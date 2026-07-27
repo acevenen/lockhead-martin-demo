@@ -63,19 +63,19 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--c1);
 #topbar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:stretch;gap:10px;
   padding:10px 46px 0;pointer-events:none}
 #topbar>*{pointer-events:auto}
-#brand{display:flex;flex-direction:column;justify-content:center;padding:6px 14px}
+#brand{display:flex;flex-direction:column;justify-content:center;padding:6px 14px;min-width:0;flex-shrink:1}
 #brand .t1{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.34em;color:#eaf9ff;
   text-shadow:0 0 14px var(--c1-dim);white-space:nowrap}
 #brand .t1 b{color:var(--c1);font-weight:700}
 #brand .t2{font-size:8.5px;letter-spacing:.22em;color:var(--mut);margin-top:3px;white-space:nowrap}
-#sectors{display:flex;gap:6px;align-items:center;margin:0 auto}
+#sectors{display:flex;gap:6px;align-items:center;margin:0 auto;min-width:0;flex-shrink:1;overflow-x:auto}
 .secbtn{font-family:var(--disp);letter-spacing:.18em;font-size:10.5px;color:var(--mut);
   background:var(--panel);border:1px solid var(--line-soft);padding:8px 14px;cursor:pointer;
   clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
   transition:color .15s,border-color .15s,background .15s}
 .secbtn:hover{color:var(--c1);border-color:var(--line)}
 .secbtn.on{color:#04121a;background:var(--c1);border-color:var(--c1);text-shadow:none;box-shadow:var(--glow)}
-#tstatus{display:flex;align-items:center;gap:8px;padding:6px 10px}
+#tstatus{display:flex;align-items:center;gap:8px;padding:6px 10px;flex:none}
 .pill{border:1px solid var(--line-soft);padding:5px 9px;font-size:9.5px;letter-spacing:.14em;color:var(--mut);
   background:var(--panel);white-space:nowrap}
 .pill b{color:var(--ok);font-weight:400}
@@ -100,13 +100,17 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--c1);
 body.mk1 #tgt-status.locked{color:#53e6ff;border-color:rgba(83,230,255,.5)}
 @keyframes blink{50%{opacity:.45}}
 #arsenal{flex:1;min-height:0;display:flex;flex-direction:column}
-#weapons{padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
-.weapon{display:flex;gap:10px;align-items:center;border:1px solid var(--line-soft);background:rgba(10,24,38,.5);
-  padding:8px 10px;cursor:pointer;transition:all .15s;text-align:left;color:inherit;font-family:inherit}
+#weapons{padding:7px;display:flex;flex-direction:column;gap:5px;overflow-y:auto}
+.weapon .ico{width:26px;height:26px}
+/* short displays: drop the subtitles so all five systems stay visible */
+@media (max-height:840px){ .weapon .sb{display:none} .weapon{padding:7px 9px} }
+.weapon{display:flex;gap:9px;align-items:center;border:1px solid var(--line-soft);background:rgba(10,24,38,.5);
+  padding:6px 9px;cursor:pointer;transition:all .15s;text-align:left;color:inherit;font-family:inherit}
 .weapon:hover{border-color:var(--line);background:rgba(14,34,52,.7)}
 .weapon.sel{border-color:var(--c2);background:rgba(50,36,14,.45);box-shadow:0 0 14px rgba(255,180,84,.18) inset}
 body.mk1 .weapon.sel{background:rgba(10,40,52,.45);box-shadow:0 0 14px rgba(83,230,255,.18) inset}
 .weapon .ico{width:30px;height:30px;flex:none;color:var(--c1)}
+#execute{flex:none}
 .weapon.sel .ico{color:var(--c2)}
 .weapon .nm{font-family:var(--disp);font-size:11.5px;letter-spacing:.14em;color:#eaf9ff}
 .weapon .sb{font-size:8.5px;letter-spacing:.1em;color:var(--mut);margin-top:2px}
@@ -118,6 +122,22 @@ body.mk1 .weapon.sel{background:rgba(10,40,52,.45);box-shadow:0 0 14px rgba(83,2
 #execute.ready{opacity:1;pointer-events:auto;animation:armpulse 1.4s infinite}
 #execute.busy{animation:none;background:var(--alert);color:#12040a;pointer-events:none}
 @keyframes armpulse{0%,100%{box-shadow:0 0 6px rgba(255,77,94,.3)}50%{box-shadow:0 0 22px rgba(255,77,94,.75)}}
+#btn-multi{margin-left:auto;padding:2px 7px;font-size:8px;letter-spacing:.12em}
+#btn-multi.on{color:#04121a;background:var(--c2);border-color:var(--c2)}
+.weapon.nukeopt .nm{color:#ffd4da}
+.weapon.nukeopt .ico{color:var(--alert)}
+.weapon.nukeopt.sel{border-color:var(--alert);background:rgba(70,10,18,.4);box-shadow:0 0 14px rgba(255,77,94,.22) inset}
+.weapon.nukeopt.sel .ico{color:var(--alert)}
+#teamops{flex:none}
+#team-btns{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:8px 8px 4px}
+.tbtn{border:1px solid var(--line-soft);background:rgba(10,24,38,.5);color:var(--ok);cursor:pointer;
+  font-family:var(--mono);font-size:9px;letter-spacing:.1em;padding:6px 4px;transition:all .15s}
+.tbtn:hover{border-color:rgba(87,255,160,.6)}
+.tbtn.on{color:#04120a;background:var(--ok);border-color:var(--ok)}
+.tbtn:focus-visible{outline:1px solid var(--c2);outline-offset:2px}
+#team-status{margin:2px 8px 8px;padding:4px 7px;font-size:8.5px;letter-spacing:.12em;text-align:center;
+  border:1px dashed rgba(87,255,160,.35);color:var(--ok)}
+#whiteout{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:95}
 
 /* ---------- right rail ---------- */
 #rail-r{position:fixed;right:14px;top:86px;bottom:64px;width:250px;z-index:45;display:flex;
@@ -197,6 +217,18 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
   clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
 #toast.show{opacity:1}
 
+/* laptop widths: shed the status pills before the controls can overflow */
+@media (max-width:1340px){
+  #topbar{padding:10px 16px 0;gap:8px}
+  #tstatus .pill{display:none}
+  .secbtn{padding:8px 10px}
+}
+@media (max-width:1120px){
+  #brand .t2{display:none}
+  #brand .t1{font-size:13px;letter-spacing:.24em}
+  .secbtn{padding:7px 8px;font-size:9.5px;letter-spacing:.12em}
+  .iconbtn{padding:5px 7px;font-size:9px}
+}
 /* ---------- mobile ---------- */
 @media (max-width:940px){
   #topbar{padding:8px 8px 0;flex-wrap:wrap;gap:6px}
@@ -263,12 +295,13 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
     <button class="iconbtn" id="btn-cine">▶ CINEMATIC</button>
     <button class="iconbtn" id="btn-theme">MK-II CYAN</button>
     <button class="iconbtn off" id="btn-audio">AUDIO</button>
+    <button class="iconbtn" id="btn-reset">⟲ RESET</button>
   </div>
 </header>
 
 <div id="rail-l">
   <section class="panel" id="tgt">
-    <div class="ptitle">TARGET DESIGNATION<span class="tag">R-3X</span></div>
+    <div class="ptitle">TARGET DESIGNATION<button class="iconbtn" id="btn-multi">MULTI OFF</button></div>
     <div class="body">
       <span class="k">LAT</span><span class="v dim" id="t-lat">——</span>
       <span class="k">LON</span><span class="v dim" id="t-lon">——</span>
@@ -279,9 +312,19 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
     <div id="tgt-status">TAP TERRAIN TO DESIGNATE</div>
   </section>
   <section class="panel" id="arsenal">
-    <div class="ptitle">ARSENAL<span class="tag">4 SYS</span></div>
+    <div class="ptitle">ARSENAL<span class="tag">5 SYS</span></div>
     <div id="weapons"></div>
     <button id="execute">EXECUTE</button>
+  </section>
+  <section class="panel" id="teamops" hidden>
+    <div class="ptitle">TEAM OPS · PATHFINDER<span class="tag" id="team-n">4/4</span></div>
+    <div id="team-btns">
+      <button class="tbtn" data-ord="move">⌖ MOVE</button>
+      <button class="tbtn on" data-ord="overwatch">◉ HOLD</button>
+      <button class="tbtn" data-ord="sweep">↻ SWEEP</button>
+      <button class="tbtn" data-ord="exfil">✕ EXFIL</button>
+    </div>
+    <div id="team-status">HOLDING · PERIMETER SET</div>
   </section>
 </div>
 
@@ -336,6 +379,7 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
     <div id="bootskip">TAP TO SKIP</div>
   </div>
 </div>
+<div id="whiteout"></div>
 <div id="toast"></div>
 
 <script src="vendor/three.min.js"></script>
@@ -471,7 +515,8 @@ const tUni = {
   uCRiver: { value: new THREE.Color(THEMES.mk2.river) },
   uTarget: { value: new THREE.Vector3(0,0,0) },
   uHasTarget: { value: 0 },
-  uBoost: { value: 1 }
+  uBoost: { value: 1 },
+  uWaste: { value: 0 }
 };
 const tMat = new THREE.ShaderMaterial({
   uniforms: tUni,
@@ -485,7 +530,7 @@ const tMat = new THREE.ShaderMaterial({
   fragmentShader: `
     uniform float uTime;
     uniform vec3 uCLow, uCHigh, uCLine, uCCity, uCFarm, uCRiver, uTarget;
-    uniform float uHasTarget, uBoost;
+    uniform float uHasTarget, uBoost, uWaste;
     varying vec3 vPos; varying vec4 vZone; varying vec3 vN;
     float gridLine(vec2 p, float scale){
       vec2 q = p / scale;
@@ -501,6 +546,8 @@ const tMat = new THREE.ShaderMaterial({
       col = mix(col, uCRiver, vZone.w * 0.9);
       float slope = 1.0 - clamp(vN.y, 0.0, 1.0);
       col += uCHigh * slope * 1.4 * vZone.x;
+      vec3 ash = mix(vec3(0.10, 0.085, 0.075), vec3(0.40, 0.26, 0.15), pow(hN, 0.7));
+      col = mix(col, ash, uWaste);
       float ct = abs(fract(vPos.y * 0.85) - 0.5);
       float cw = fwidth(vPos.y * 0.85) + 1e-5;
       float contour = (1.0 - min(ct / (cw * 1.6), 1.0)) * (0.25 + 0.5 * hN);
@@ -513,7 +560,8 @@ const tMat = new THREE.ShaderMaterial({
         tg = smoothstep(1.1, 0.15, abs(td - mod(uTime * 13.0, 24.0))) * 0.5 * smoothstep(28.0, 5.0, td)
            + smoothstep(5.0, 0.0, td) * 0.3;
       }
-      vec3 outc = col * 0.6 + uCLine * (g + contour * 0.55 + scan + tg);
+      vec3 line = mix(uCLine, vec3(0.52, 0.31, 0.19), uWaste);
+      vec3 outc = col * 0.6 + line * (g * (1.0 - 0.45 * uWaste) + contour * 0.55 + scan + tg);
       float ef = smoothstep(0.0, 12.0, 150.0 - abs(vPos.x)) * smoothstep(0.0, 12.0, 100.0 - abs(vPos.z));
       outc *= 0.3 + 0.7 * ef;
       gl_FragColor = vec4(outc * uBoost, 1.0);
@@ -639,7 +687,27 @@ const capitol = new THREE.Group();
   capitol.add(base, wings, drum, dome, domeF, spire, beacon);
   capitol.position.set(CAPITOL.x, terrainH(CAPITOL.x, CAPITOL.z), CAPITOL.z);
   capitol.userData.beacon = beacon;
+  capitol.userData.baseY = capitol.position.y;
   scene.add(capitol);
+}
+let capitolAlive = true;
+function destroyCapitol(){
+  if (!capitolAlive) return;
+  capitolAlive = false;
+  debrisBurst(CAPITOL.x, capitol.position.y + 2.2, CAPITOL.z);
+  debrisBurst(CAPITOL.x + 1.2, capitol.position.y + 1, CAPITOL.z - 1);
+  capitol.userData.beacon.visible = false;
+  let t = 0;
+  addFx({ update(dt){
+    t += dt/.9;
+    const e = Math.min(1, t);
+    capitol.rotation.z = .42*e;
+    capitol.rotation.x = .16*e;
+    capitol.position.y = capitol.userData.baseY - 1.15*e;
+    capitol.scale.setScalar(1 - .3*e);
+    return e < 1;
+  }});
+  log('BDA ▸ STATE CAPITOL DESTROYED — LANDMARK LOST', 'crit');
 }
 
 /* street grid overlay */
@@ -768,7 +836,7 @@ for (let i=0; i<2600 && treePts.length<760; i++){
   if (!(foothill && ecoRand() < .8) && !riparian && !shore && !windbreak && !plains) continue;
   treePts.push({ x, z, y: h, s: .5 + ecoRand()*.5, sy: 1.1 + ecoRand()*.7, rot: ecoRand()*6.28 });
 }
-for (let i=0; i<2200 && bushPts.length<420; i++){
+for (let i=0; i<5600 && bushPts.length<900; i++){
   const x = -150 + ecoRand()*300, z = -100 + ecoRand()*200;
   if (!openGround(x, z)) continue;
   const m = mountainMask(x), h = terrainH(x, z);
@@ -778,9 +846,53 @@ for (let i=0; i<2200 && bushPts.length<420; i++){
 const treeGeo = new THREE.ConeGeometry(.42, 1.35, 5); treeGeo.translate(0, .68, 0);
 const treeMat = new THREE.MeshBasicMaterial({ color: 0x39b06d, transparent:true, opacity:.55, wireframe:true });
 const treeMesh = scatterInstanced(treeGeo, treeMat, treePts);
-const bushGeo = new THREE.SphereGeometry(.5, 5, 4); bushGeo.translate(0, .3, 0);
+const bushGeo = new THREE.SphereGeometry(.5, 4, 3); bushGeo.translate(0, .3, 0);
 const bushMat = new THREE.MeshBasicMaterial({ color: 0x2f9158, transparent:true, opacity:.4, wireframe:true });
 const bushMesh = scatterInstanced(bushGeo, bushMat, bushPts);
+/* grass tufts — pure ambience, cheap static points */
+const grassMat = new THREE.PointsMaterial({ color: 0x39a065, size: .5, transparent:true, opacity:.35,
+  blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true });
+{
+  const G = [];
+  for (let i=0; i<7000 && G.length/3 < 700; i++){
+    const x = -150 + ecoRand()*300, z = -100 + ecoRand()*200;
+    if (!openGround(x, z)) continue;
+    const h = terrainH(x, z);
+    if (h > 9 || mountainMask(x) > .65) continue;
+    G.push(x, h + .12, z);
+  }
+  const gg = new THREE.BufferGeometry();
+  gg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(G), 3));
+  const gp = new THREE.Points(gg, grassMat);
+  gp.frustumCulled = false;
+  scene.add(gp);
+}
+/* center-pivot irrigation arms sweeping their circles — the agri-belt at work */
+const pivots = [];
+for (let i=0; i<6; i++){
+  const x = 72 + (i%3)*26 + (ecoRand()-.5)*7, z = -58 + ((i/3)|0)*74 + (ecoRand()-.5)*16;
+  const y = terrainH(x, z);
+  const ring = circleLine(6, 40, 0x7fe89a, .28);
+  ring.position.set(x, y + .15, z);
+  scene.add(ring);
+  const arm = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(6,0,0)]),
+    new THREE.LineBasicMaterial({ color: 0xa8ffc2, transparent:true, opacity:.65 }));
+  arm.position.set(x, y + .18, z);
+  scene.add(arm);
+  pivots.push({ arm, sp: .1 + ecoRand()*.16 });
+}
+/* a few tracked civilians get a floating marker — the pattern-of-life "plumbob" */
+const plumbobs = [4, 41, 87].map(i => {
+  const m = new THREE.Mesh(new THREE.OctahedronGeometry(.34),
+    new THREE.MeshBasicMaterial({ color: 0x57ffa0, transparent:true, opacity:.85, wireframe:true }));
+  scene.add(m);
+  return { m, i };
+});
+/* window flicker on the tallest towers */
+const winFlick = buildings.map((b, i) => ({ i, h: b.h, f: 2 + (i%5)*.7, ph: i*1.7 }))
+  .sort((a, b) => b.h - a.h).slice(0, 26);
+const flickCol = new THREE.Color();
 
 /* ---------------- farmsteads (destructible) ---------------- */
 const farmMatWire = new THREE.MeshBasicMaterial({ color: 0xe8d8a8, transparent:true, opacity:.6, wireframe:true });
@@ -807,19 +919,38 @@ for (let gx=66; gx<=138; gx+=24) for (let gz=-84; gz<=84; gz+=24){
 }
 
 /* ---------------- ecosystem: fauna ---------------- */
-function makeLife(n, col, size){
+/* point-sprite silhouettes so people and animals read differently at a glance */
+function lifeSprite(draw){
+  const cv = document.createElement('canvas'); cv.width = cv.height = 32;
+  const c = cv.getContext('2d'); c.fillStyle = '#fff';
+  draw(c);
+  return new THREE.CanvasTexture(cv);
+}
+const personTex = lifeSprite(c => {
+  c.beginPath(); c.arc(16, 8, 4.2, 0, 7); c.fill();
+  c.fillRect(12.6, 13, 6.8, 13);
+});
+const animalTex = lifeSprite(c => {
+  c.fillRect(6, 13, 17, 7.5);
+  c.fillRect(7.5, 20.5, 3.4, 6.5); c.fillRect(18.5, 20.5, 3.4, 6.5);
+  c.beginPath(); c.arc(25.5, 11, 3.8, 0, 7); c.fill();
+});
+function makeLife(n, col, size, tex){
   const g = new THREE.BufferGeometry();
-  const P = new Float32Array(n*3);
+  const P = new Float32Array(n*3), C = new Float32Array(n*3);
+  const base = new THREE.Color(col);
+  for (let i=0;i<n;i++){ C[i*3] = base.r; C[i*3+1] = base.g; C[i*3+2] = base.b; }
   g.setAttribute('position', new THREE.BufferAttribute(P, 3));
-  const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: col, size, transparent:true,
-    opacity:.9, blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true }));
+  g.setAttribute('color', new THREE.BufferAttribute(C, 3));
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ size, vertexColors:true, map: tex || null,
+    transparent:true, opacity:.95, blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true }));
   pts.frustumCulled = false;
   scene.add(pts);
-  return { node: pts, P, attr: g.attributes.position, n };
+  return { node: pts, P, C, attr: g.attributes.position, cattr: g.attributes.color, n };
 }
 /* pedestrians walk the street grid Manhattan-style */
 const npcs = [];
-const npcSys = makeLife(112, 0xeaf6ff, .55);
+const npcSys = makeLife(112, 0xeaf6ff, 1.0, personTex);
 for (let i=0; i<npcSys.n; i++){
   let wx, wz, tries = 0;
   do { wx = CITY.x + (((ecoRand()*7)|0) - 3)*5; wz = CITY.z + (((ecoRand()*7)|0) - 3)*5; }
@@ -863,7 +994,7 @@ const herds = [
   { cx: LAKE.x + 14, cz: LAKE.z - 10, r: 6, kind: 'DEER' },
 ];
 const animals = [];
-const aniSys = makeLife(15, 0xd9b47e, .6);
+const aniSys = makeLife(15, 0xd9b47e, 1.45, animalTex);
 for (let i=0; i<aniSys.n; i++){
   const h = herds[i%herds.length];
   animals.push({ home: h, x: h.cx + (ecoRand()-.5)*h.r*2, z: h.cz + (ecoRand()-.5)*h.r*2,
@@ -874,6 +1005,11 @@ function updateLife(dt){
   /* pedestrians */
   for (let i=0; i<npcs.length; i++){
     const p = npcs[i];
+    if (p.dead){
+      if (p.deadT > 0){ p.deadT -= dt; p.x += p.fx*dt*7; p.z += p.fz*dt*7; }
+      npcSys.P[i*3] = p.x; npcSys.P[i*3+1] = sampleH(p.x, p.z) + .06; npcSys.P[i*3+2] = p.z;
+      continue;
+    }
     if (p.flee > 0){
       p.flee -= dt;
       p.x += p.fx*dt*3.4; p.z += p.fz*dt*3.4;
@@ -925,6 +1061,11 @@ function updateLife(dt){
   /* grazers */
   for (let i=0; i<animals.length; i++){
     const a = animals[i];
+    if (a.dead){
+      if (a.deadT > 0){ a.deadT -= dt; a.x += a.fx*dt*6; a.z += a.fz*dt*6; }
+      aniSys.P[i*3] = a.x; aniSys.P[i*3+1] = sampleH(a.x, a.z) + .08; aniSys.P[i*3+2] = a.z;
+      continue;
+    }
     if (a.flee > 0){ a.flee -= dt; a.x += a.fx*dt*5; a.z += a.fz*dt*5; }
     else if (a.wait > 0) a.wait -= dt;
     else {
@@ -968,9 +1109,23 @@ const retTicks = (() => {
 reticle.add(retInner, retOuter, retBeam, retTicks);
 reticle.visible = false;
 scene.add(reticle);
+/* smaller markers for additional salvo targets */
+const subReticles = Array.from({ length: 3 }, () => {
+  const g = new THREE.Group();
+  const ring = circleLine(2, 40, 0xffb454, .8);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, 24, 6, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffb454, transparent:true, opacity:.22,
+      blending:THREE.AdditiveBlending, depthWrite:false }));
+  beam.position.y = 12;
+  g.add(ring, beam);
+  g.visible = false;
+  scene.add(g);
+  return g;
+});
 
 /* ---------------- state ---------------- */
-const state = { target: null, weapon: null, busy: false, sector: 'overview', t0: performance.now(), idle: 0 };
+const state = { target: null, targets: [], multi: false, weapon: null, busy: false,
+  sector: 'overview', t0: performance.now(), idle: 0 };
 const decals = [];
 const fx = [];
 function addFx(o){ fx.push(o); }
@@ -1083,29 +1238,63 @@ function pickTarget(cx, cy){
   const v = new THREE.Vector2((cx/innerWidth)*2 - 1, -(cy/innerHeight)*2 + 1);
   ray.setFromCamera(v, camera);
   const hit = ray.intersectObject(terrain)[0];
-  if (hit) setTarget(hit.point.x, hit.point.z);
+  if (!hit) return;
+  if (teamState && teamState.pendingMove){ setTeamWaypoint(hit.point.x, hit.point.z); return; }
+  setTarget(hit.point.x, hit.point.z);
+}
+function refreshReticles(){
+  const ts = state.targets;
+  reticle.visible = ts.length > 0;
+  if (ts.length){
+    const l = ts[ts.length-1];
+    reticle.position.set(l.x, l.y + .12, l.z);
+    tUni.uTarget.value.set(l.x, l.y, l.z);
+    tUni.uHasTarget.value = 1;
+  } else tUni.uHasTarget.value = 0;
+  subReticles.forEach((g, i) => {
+    const t = ts.length > 1 && i < ts.length - 1 ? ts[i] : null;
+    g.visible = !!t;
+    if (t) g.position.set(t.x, t.y + .12, t.z);
+  });
 }
 function setTarget(x, z){
   const y = sampleH(x, z);
-  state.target = { x, y, z };
-  reticle.visible = true;
-  reticle.position.set(x, y + .12, z);
+  if (state.multi && state.targets.length < 4) state.targets.push({ x, y, z });
+  else state.targets = [{ x, y, z }];
+  state.target = state.targets[state.targets.length-1];
   reticle.scale.setScalar(2.6);
-  tUni.uTarget.value.set(x, y, z);
-  tUni.uHasTarget.value = 1;
+  refreshReticles();
   const ll = fmtLL(x, z);
   $('t-lat').textContent = ll.lat; $('t-lon').textContent = ll.lon;
   $('t-elev').textContent = Math.round(1450 + y*205) + ' M';
   $('t-grid').textContent = fmtGrid(x, z);
   $('t-sec').textContent = sectorAt(x, z);
   ['t-lat','t-lon','t-elev','t-grid','t-sec'].forEach(id => $(id).classList.remove('dim'));
-  $('tgt-status').textContent = '◈ TARGET LOCKED — SELECT SYSTEM';
+  $('tgt-status').textContent = state.targets.length > 1
+    ? `◈ ${state.targets.length} TARGETS LOCKED — SALVO READY`
+    : '◈ TARGET LOCKED — SELECT SYSTEM';
   $('tgt-status').classList.add('locked');
   satFocus.set(x, z);
-  log('TGT ▸ ' + ll.lat + ' ' + ll.lon + ' · ' + sectorAt(x, z), 'warn');
+  log('TGT ▸ ' + ll.lat + ' ' + ll.lon + ' · ' + sectorAt(x, z)
+    + (state.targets.length > 1 ? ` · SALVO ${state.targets.length}/4` : ''), 'warn');
   sfx.lock(); haptic([12, 40, 18]);
   updateExec();
 }
+function setMulti(on){
+  state.multi = on;
+  $('btn-multi').textContent = on ? 'MULTI ON' : 'MULTI OFF';
+  $('btn-multi').classList.toggle('on', on);
+  if (!on && state.targets.length > 1){
+    state.targets = [state.target];
+    refreshReticles();
+    $('tgt-status').textContent = '◈ TARGET LOCKED — SELECT SYSTEM';
+  }
+}
+$('btn-multi').addEventListener('click', () => {
+  setMulti(!state.multi);
+  sfx.blip(state.multi ? 990 : 620, .05);
+  if (state.multi) toast('MULTI-STRIKE — TAP UP TO 4 LOCATIONS');
+});
 
 /* ---------------- weapons ---------------- */
 const WEAPONS = [
@@ -1117,11 +1306,13 @@ const WEAPONS = [
     ico:'<svg viewBox="0 0 30 30" fill="none" stroke="currentColor"><path d="M5 9 a10 10 0 0 1 20 0" stroke-width="1.5"/><path d="M5 9 L12 18 M25 9 L18 18 M15 9 L15 18" stroke-width="1"/><rect x="11" y="18" width="8" height="7" stroke-width="1.5"/></svg>' },
   { id:'recon', name:'PATHFINDER TEAM', sub:'4-MAN ISR + STALKER VXE', hk:'4',
     ico:'<svg viewBox="0 0 30 30" fill="none" stroke="currentColor"><circle cx="15" cy="15" r="10" stroke-dasharray="3 3"/><circle cx="15" cy="15" r="5.5"/><circle cx="15" cy="15" r="1.4" fill="currentColor"/><path d="M15 2v4 M15 24v4 M2 15h4 M24 15h4" stroke-width="1.2"/></svg>' },
+  { id:'nuke', name:'SUNDOWN', sub:'STRATEGIC LEVELING · FULL THEATER', hk:'5',
+    ico:'<svg viewBox="0 0 30 30" fill="none" stroke="currentColor"><path d="M12 27 h6 M13 27 c1.2-5 -.8-7.5 -.8-11 h5.6 c0 3.5 -2 6 -.8 11" stroke-width="1.3"/><ellipse cx="15" cy="9.5" rx="9" ry="5.5" stroke-width="1.4"/><path d="M9.5 6.5 a7 5 0 0 1 11 0" stroke-width="1"/></svg>' },
 ];
 const wEl = $('weapons');
 WEAPONS.forEach(w => {
   const b = document.createElement('button');
-  b.className = 'weapon'; b.dataset.id = w.id;
+  b.className = 'weapon' + (w.id === 'nuke' ? ' nukeopt' : ''); b.dataset.id = w.id;
   b.innerHTML = `<span class="ico">${w.ico}</span><span><div class="nm">${w.name}</div><div class="sb">${w.sub}</div></span><span class="hk">${w.hk}</span>`;
   b.addEventListener('click', () => selectWeapon(w.id));
   wEl.appendChild(b);
@@ -1133,19 +1324,21 @@ function selectWeapon(id){
   updateExec();
 }
 function updateExec(){
-  const ok = state.target && state.weapon && !state.busy;
+  const ok = state.targets.length && state.weapon && !state.busy;
   $('execute').classList.toggle('ready', !!ok);
-  $('execute').textContent = state.busy ? 'IN FLIGHT…' : (ok ? '⟢ EXECUTE ⟣' : 'EXECUTE');
+  $('execute').textContent = state.busy ? 'IN FLIGHT…'
+    : (ok ? (state.targets.length > 1 ? `⟢ EXECUTE ×${state.targets.length} ⟣` : '⟢ EXECUTE ⟣') : 'EXECUTE');
 }
 $('execute').addEventListener('click', execute);
 addEventListener('keydown', e => {
   if (e.target && e.target.closest && e.target.closest('button,input,textarea')) return;
-  if (e.key >= '1' && e.key <= '4') selectWeapon(WEAPONS[+e.key - 1].id);
+  if (e.key >= '1' && e.key <= '5') selectWeapon(WEAPONS[+e.key - 1].id);
   if (e.key === ' '){ e.preventDefault(); execute(); }
   if (e.key === 'Escape') clearTarget();
 });
 function clearTarget(){
-  state.target = null; reticle.visible = false; tUni.uHasTarget.value = 0;
+  state.target = null; state.targets = [];
+  refreshReticles();
   ['t-lat','t-lon','t-elev','t-grid','t-sec'].forEach(id => { $(id).textContent = '——'; $(id).classList.add('dim'); });
   $('tgt-status').textContent = 'TAP TERRAIN TO DESIGNATE';
   $('tgt-status').classList.remove('locked');
@@ -1153,20 +1346,27 @@ function clearTarget(){
 }
 function setWeapon(id){ if (state.weapon !== id) selectWeapon(id); }
 function execute(){
-  if (!state.target || !state.weapon || state.busy) return;
+  if (!state.targets.length || !state.weapon || state.busy) return;
   state.busy = true;
   const ex = $('execute');
   ex.classList.add('busy'); ex.textContent = 'AUTHORIZING…';
   sfx.auth(); haptic([20, 60, 20, 60, 40]);
-  /* refresh ground height at launch — earlier strikes may have cratered this spot */
-  const tgt = { ...state.target, y: sampleH(state.target.x, state.target.z) };
   const wpn = state.weapon;
-  const kinetic = wpn === 'jassm' || wpn === 'ucav';
+  const kinetic = wpn === 'jassm' || wpn === 'ucav' || wpn === 'nuke';
+  /* recon inserts one team; SUNDOWN takes a single ground zero */
+  const list = (wpn === 'recon' || wpn === 'nuke')
+    ? [state.targets[state.targets.length-1]] : [...state.targets];
+  if (wpn === 'nuke' && state.targets.length > 1) log('SUNDOWN ▸ SINGLE GZ — LAST DESIGNATE USED', 'warn');
   log(kinetic ? 'AUTH ▸ DUAL-KEY CONFIRMED · SIM SANDBOX' : 'AUTH ▸ TASKING CONFIRMED · SIM SANDBOX',
     kinetic ? 'crit' : 'sys');
   setTimeout(() => {
     ex.textContent = 'IN FLIGHT…';
-    ({ jassm: fireJASSM, ucav: fireUCAV, supply: fireSupply, recon: fireRecon })[wpn](tgt);
+    const fns = { jassm: fireJASSM, ucav: fireUCAV, supply: fireSupply, recon: fireRecon, nuke: fireNuke };
+    let pending = list.length;
+    const done = () => { if (--pending <= 0) missionDone(); };
+    if (list.length > 1) log(`SALVO ▸ ${list.length} TARGETS · STAGGER 0.5 S`, 'crit');
+    /* ground height refreshed per-shot — earlier strikes may have cratered the spot */
+    list.forEach((t, i) => setTimeout(() => fns[wpn]({ ...t, y: sampleH(t.x, t.z) }, done), i*500));
   }, 700);
 }
 function missionDone(){
@@ -1323,18 +1523,28 @@ function destroyStructures(pos, radius){
     p.dead = true; flora = true; bushMesh.setMatrixAt(i, zero);
   });
   if (flora){ treeMesh.instanceMatrix.needsUpdate = true; bushMesh.instanceMatrix.needsUpdate = true; }
-  if (Math.hypot(CAPITOL.x-pos.x, CAPITOL.z-pos.z) < radius + 4)
-    log('ROE ▸ HERITAGE SITE — CAPITOL STRIKE INHIBITED', 'warn');
+  if (capitolAlive && Math.hypot(CAPITOL.x-pos.x, CAPITOL.z-pos.z) < radius + 2.5){
+    count++;
+    destroyCapitol();
+  }
   if (Math.hypot(-88-pos.x, 42-pos.z) < radius + 6)
     log('ROE ▸ FRIENDLY INFRA — LM WATERTON SHIELDED', 'warn');
   if (count > 0) log(`BDA ▸ ${count} STRUCTURE${count > 1 ? 'S' : ''} DOWN · SIM`, 'warn');
 }
+const KIA_COL = { r: .95, g: .16, b: .22 };
 function scatterLife(pos, radius){
-  let n = 0;
-  npcs.forEach(p => {
+  let fled = 0, kiaC = 0, kiaF = 0;
+  const killR = radius * .5;
+  npcs.forEach((p, i) => {
+    if (p.dead) return;
     const dx = p.x-pos.x, dz = p.z-pos.z, d = Math.hypot(dx, dz);
     if (d > radius) return;
-    n++;
+    if (d < killR){
+      p.dead = true; p.deadT = .45; p.fx = dx/(d||1); p.fz = dz/(d||1); kiaC++;
+      npcSys.C[i*3] = KIA_COL.r; npcSys.C[i*3+1] = KIA_COL.g; npcSys.C[i*3+2] = KIA_COL.b;
+      return;
+    }
+    fled++;
     p.flee = 2.5 + Math.random()*2;
     p.fx = dx/(d||1); p.fz = dz/(d||1);
   });
@@ -1348,13 +1558,22 @@ function scatterLife(pos, radius){
     f.flee = 4;
     f.fx = dx/(d||1); f.fz = dz/(d||1);
   });
-  animals.forEach(a => {
+  animals.forEach((a, i) => {
+    if (a.dead) return;
     const dx = a.x-pos.x, dz = a.z-pos.z, d = Math.hypot(dx, dz);
     if (d > radius + 8) return;
+    if (d < killR){
+      a.dead = true; a.deadT = .45; a.fx = dx/(d||1); a.fz = dz/(d||1); kiaF++;
+      aniSys.C[i*3] = KIA_COL.r; aniSys.C[i*3+1] = KIA_COL.g; aniSys.C[i*3+2] = KIA_COL.b;
+      return;
+    }
     a.flee = 3 + Math.random()*2;
     a.fx = dx/(d||1); a.fz = dz/(d||1);
   });
-  if (n > 4) log('POL ▸ CIV TRACKS DISPERSING FROM BLAST ZONE', 'warn');
+  npcSys.cattr.needsUpdate = true;
+  aniSys.cattr.needsUpdate = true;
+  if (kiaC + kiaF > 0) log(`SIM ▸ CASUALTIES: ${kiaC} CIV · ${kiaF} FAUNA — TRAINING METRIC`, 'crit');
+  if (fled > 4) log('POL ▸ CIV TRACKS DISPERSING FROM BLAST ZONE', 'warn');
 }
 
 function explosion(pos, s, quiet){
@@ -1432,7 +1651,7 @@ function explosion(pos, s, quiet){
 }
 
 /* --- JASSM-ER cruise missile --- */
-function fireJASSM(tgt){
+function fireJASSM(tgt, done){
   const start = new THREE.Vector3(tgt.x > 0 ? -175 : 175, 4, tgt.z > 0 ? -125 : 125);
   const apex = new THREE.Vector3((start.x + tgt.x)/2, 62 + Math.random()*8, (start.z + tgt.z)/2);
   const end = new THREE.Vector3(tgt.x, tgt.y, tgt.z);
@@ -1454,7 +1673,7 @@ function fireJASSM(tgt){
       killFx(this); scene.remove(trail.node); trail.node.geometry.dispose();
       explosion(end, 1.25);
       log('SPLASH ▸ IMPACT ' + fmtLL(tgt.x, tgt.z).lat + ' ' + fmtLL(tgt.x, tgt.z).lon, 'crit');
-      setTimeout(() => { log('BDA ▸ TARGET NEUTRALIZED · SIM SCORE 98.2%', 'good'); missionDone(); }, 900);
+      setTimeout(() => { log('BDA ▸ ' + fmtGrid(tgt.x, tgt.z) + ' NEUTRALIZED · SIM', 'good'); done(); }, 900);
       return false;
     }
     const e = t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
@@ -1468,7 +1687,7 @@ function fireJASSM(tgt){
 }
 
 /* --- VECTIS UCAV strike --- */
-function fireUCAV(tgt){
+function fireUCAV(tgt, done){
   const drone = new THREE.Group();
   const wmat = new THREE.MeshBasicMaterial({ color: 0xbfe9ff, wireframe: true, transparent:true, opacity:.85 });
   const wing = new THREE.Mesh(new THREE.ConeGeometry(3.4, 5.5, 3), wmat);
@@ -1506,7 +1725,7 @@ function fireUCAV(tgt){
           scene.remove(bomb);
           explosion(end, .8);
           log('SPLASH ▸ DIRECT HIT · CEP 1.1 M', 'crit');
-          setTimeout(() => { log('VECTIS ▸ EGRESS CLEAN · RTB', 'good'); missionDone(); }, 800);
+          setTimeout(() => { log('VECTIS ▸ EGRESS CLEAN · RTB', 'good'); done(); }, 800);
           return false;
         }
         qBezier(rp, apex, end, bt.v*bt.v, bpos);
@@ -1519,7 +1738,7 @@ function fireUCAV(tgt){
 }
 
 /* --- C-130J supply drop --- */
-function fireSupply(tgt){
+function fireSupply(tgt, done){
   const plane = new THREE.Group();
   const pmat = new THREE.MeshBasicMaterial({ color: 0xaef0c8, wireframe:true, transparent:true, opacity:.8 });
   const fus = new THREE.Mesh(new THREE.CylinderGeometry(.55, .45, 5.6, 8), pmat);
@@ -1570,7 +1789,7 @@ function fireSupply(tgt){
           for (let i=0;i<3;i++) setTimeout(() => pulseRing(tgt, 0x57ffa0, 9), i*450);
           log('DZ-4 ▸ PALLET DOWN · 2,400 KG DELIVERED', 'good');
           haptic([30, 60, 30]);
-          setTimeout(missionDone, 700);
+          setTimeout(done, 700);
           return false;
         }
         return true;
@@ -1597,15 +1816,30 @@ function pulseRing(tgt, col, R){
 }
 
 /* --- Pathfinder recon insertion --- */
-let reconTeam = null;
-function fireRecon(tgt){
-  if (reconTeam){ scene.remove(reconTeam); disposables(reconTeam); }
+/* --- Pathfinder team: insertion + interactive orders --- */
+let reconTeam = null, teamState = null, wpMarker = null;
+const TEAM_OFFS = [[7,0],[-7,0],[0,7],[0,-7]];
+function clearWpMarker(){
+  if (wpMarker){ scene.remove(wpMarker); disposables(wpMarker); wpMarker = null; }
+}
+function teardownTeam(){
+  if (reconTeam){ scene.remove(reconTeam); disposables(reconTeam); reconTeam = null; }
+  teamState = null;
+  clearWpMarker();
+  $('teamops').hidden = true;
+}
+function setOrderUI(ord){
+  document.querySelectorAll('.tbtn').forEach(b => b.classList.toggle('on', b.dataset.ord === ord));
+}
+function fireRecon(tgt, done){
+  teardownTeam();
   const team = reconTeam = new THREE.Group(); scene.add(team);
-  const offs = [[7,0],[-7,0],[0,7],[0,-7]];
   log('PATHFINDER ▸ INSERTION VECTOR CONFIRMED', 'sys');
-  offs.forEach(([ox, oz], i) => {
+  const members = [];
+  TEAM_OFFS.forEach(([ox, oz], i) => {
     setTimeout(() => {
-      const lx = tgt.x + ox, lz = tgt.z + oz, ly = sampleH(lx, lz);
+      if (team !== reconTeam) return;
+      const lx = tgt.x + ox, lz = tgt.z + oz;
       const mk = new THREE.Group();
       const cone = new THREE.Mesh(new THREE.ConeGeometry(.5, 1.3, 4),
         new THREE.MeshBasicMaterial({ color: 0x57ffa0, transparent:true, opacity:.95, wireframe:true }));
@@ -1614,18 +1848,26 @@ function fireRecon(tgt){
       mk.add(cone, gl2);
       mk.position.set(lx, 45, lz);
       team.add(mk);
+      members.push({ node: mk, x: lx, z: lz });
       sfx.blip(980 + i*60, .05);
       let t = 0;
       addFx({ update(dt){
+        if (team !== reconTeam) return false;
         t += dt/.7;
+        const ly = sampleH(lx, lz);
         if (t >= 1){
           mk.position.y = ly;
           pulseRing({ x: lx, y: ly, z: lz }, 0x57ffa0, 4);
           if (i === 3){
-            log('PATHFINDER ▸ 4/4 IN POSITION · PERIMETER SET', 'good');
+            teamState = { members, anchor: { x: tgt.x, z: tgt.z }, wp: null, mode: 'overwatch',
+              pendingMove: false, sweepPh: 0, scanT: 0 };
+            $('teamops').hidden = false;
+            setOrderUI('overwatch');
+            $('team-status').textContent = 'HOLDING · PERIMETER SET';
+            log('PATHFINDER ▸ 4/4 IN POSITION · AWAITING ORDERS', 'good');
             log('STALKER VXE ▸ ISR FEED → SAT-UPLINK', 'sys');
             haptic([15, 40, 15, 40, 15]);
-            setTimeout(missionDone, 600);
+            setTimeout(done, 600);
           }
           return false;
         }
@@ -1634,15 +1876,282 @@ function fireRecon(tgt){
       }});
     }, i*260);
   });
-  /* persistent scan ring from team center — dies with THIS team, not the variable */
-  const scanState = { t: 0 };
-  addFx({ update(dt){
-    if (team !== reconTeam || !team.parent) return false;
-    scanState.t += dt;
-    if (scanState.t > 2.6){ scanState.t = 0; pulseRing(tgt, 0x57ffa0, 13); }
-    team.children.forEach((m, i) => { if (m.children[1]) m.children[1].position.y = 1.9 + Math.sin(perfT*2 + i)*0.25; });
+}
+function setTeamWaypoint(x, z){
+  if (!teamState) return;
+  teamState.pendingMove = false;
+  teamState.wp = { x, z };
+  teamState.mode = 'moving';
+  setOrderUI('move');
+  clearWpMarker();
+  wpMarker = new THREE.Group();
+  const r1 = circleLine(2.4, 40, 0x57ffa0, .8);
+  const bm = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, 20, 6, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0x57ffa0, transparent:true, opacity:.25,
+      blending:THREE.AdditiveBlending, depthWrite:false }));
+  bm.position.y = 10;
+  wpMarker.add(r1, bm);
+  wpMarker.position.set(x, sampleH(x, z) + .1, z);
+  scene.add(wpMarker);
+  sfx.lock(); haptic([10, 30, 10]);
+  const d = Math.hypot(x - teamState.anchor.x, z - teamState.anchor.z);
+  $('team-status').textContent = 'MOVING · ' + Math.round(d*400) + ' M TO WP';
+  log('PATHFINDER ▸ MOVING TO ' + fmtGrid(x, z), 'sys');
+}
+function teamOrder(ord){
+  if (!teamState) return;
+  sfx.blip(760, .05); haptic(10);
+  if (ord === 'move'){
+    teamState.pendingMove = true;
+    setOrderUI('move');
+    $('team-status').textContent = 'AWAITING WAYPOINT — TAP TERRAIN';
+    toast('TAP TERRAIN TO SET TEAM WAYPOINT');
+  } else if (ord === 'overwatch'){
+    teamState.mode = 'overwatch'; teamState.pendingMove = false; teamState.wp = null;
+    clearWpMarker();
+    setOrderUI('overwatch');
+    $('team-status').textContent = 'HOLDING · OVERWATCH';
+    log('PATHFINDER ▸ HOLDING OVERWATCH', 'sys');
+  } else if (ord === 'sweep'){
+    teamState.mode = 'sweep'; teamState.pendingMove = false; teamState.wp = null;
+    clearWpMarker();
+    setOrderUI('sweep');
+    $('team-status').textContent = 'SWEEPING · ISR PATTERN';
+    log('PATHFINDER ▸ RECON SWEEP INITIATED', 'sys');
+  } else if (ord === 'exfil'){
+    const team = reconTeam, st = teamState;
+    reconTeam = null; teamState = null;
+    clearWpMarker();
+    $('teamops').hidden = true;
+    log('PATHFINDER ▸ EXFIL — WHEELS UP', 'good');
+    let t = 0;
+    addFx({ node: team, update(dt){
+      t += dt/1.4;
+      if (t >= 1){ killFx(this); return false; }
+      st.members.forEach(m => { m.node.position.y += dt*30; });
+      return true;
+    }});
+  }
+}
+document.querySelectorAll('.tbtn').forEach(b => b.addEventListener('click', () => teamOrder(b.dataset.ord)));
+function updateTeam(dt){
+  if (!teamState) return;
+  const st = teamState;
+  if (st.mode === 'moving' && st.wp){
+    const dx = st.wp.x - st.anchor.x, dz = st.wp.z - st.anchor.z, d = Math.hypot(dx, dz);
+    if (d < 1.2){
+      st.mode = 'overwatch'; st.wp = null;
+      clearWpMarker();
+      setOrderUI('overwatch');
+      $('team-status').textContent = 'HOLDING · WP SECURED';
+      log('PATHFINDER ▸ WAYPOINT SECURED — HOLDING', 'good');
+      pulseRing({ x: st.anchor.x, y: sampleH(st.anchor.x, st.anchor.z), z: st.anchor.z }, 0x57ffa0, 6);
+    } else {
+      const sp = 3.4*dt;
+      st.anchor.x += dx/d*sp; st.anchor.z += dz/d*sp;
+      $('team-status').textContent = 'MOVING · ' + Math.round(d*400) + ' M TO WP';
+    }
+  }
+  if (st.mode === 'sweep') st.sweepPh += dt*.55;
+  st.scanT += dt;
+  if (st.scanT > (st.mode === 'sweep' ? 1.8 : 2.6)){
+    st.scanT = 0;
+    pulseRing({ x: st.anchor.x, y: sampleH(st.anchor.x, st.anchor.z), z: st.anchor.z },
+      0x57ffa0, st.mode === 'sweep' ? 14 : 10);
+  }
+  st.members.forEach((m, i) => {
+    let tx, tz;
+    if (st.mode === 'sweep'){
+      const a = st.sweepPh + i*Math.PI/2;
+      tx = st.anchor.x + Math.cos(a)*9; tz = st.anchor.z + Math.sin(a)*9;
+    } else {
+      tx = st.anchor.x + TEAM_OFFS[i][0]; tz = st.anchor.z + TEAM_OFFS[i][1];
+    }
+    const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz);
+    if (d > .1){ const sp = Math.min(d, 4.2*dt); m.x += dx/d*sp; m.z += dz/d*sp; }
+    m.node.position.set(m.x, sampleH(m.x, m.z), m.z);
+    if (m.node.children[1]) m.node.children[1].position.y = 1.9 + Math.sin(perfT*2 + i)*.25;
+  });
+}
+
+/* --- SUNDOWN: full-theater strategic leveling (sim) --- */
+let wasteland = false, lakeAlive = true;
+function wastelandH(x, z, gx, gz){
+  let h = 0.3 + 0.6*fbm(x*0.045+3, z*0.045+7, 3) + mountainMask(x)*1.5*ridge(x*0.03, z*0.03, 3);
+  h -= 2.6*Math.exp(-((x-gx)*(x-gx) + (z-gz)*(z-gz))/1600);
+  return Math.max(h, 0.05);
+}
+function fireNuke(tgt, done){
+  log('STRATCOM ▸ SUNDOWN RELEASE — SIM SANDBOX ONLY', 'crit');
+  const start = new THREE.Vector3(tgt.x > 0 ? -178 : 178, 6, tgt.z > 0 ? -132 : 132);
+  const apex = new THREE.Vector3((start.x + tgt.x)/2, 108, (start.z + tgt.z)/2);
+  const end = new THREE.Vector3(tgt.x, tgt.y, tgt.z);
+  const grp = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.ConeGeometry(.7, 4.2, 8),
+    new THREE.MeshBasicMaterial({ color: 0xffe0b0, transparent:true, opacity:.95 }));
+  body.rotation.x = Math.PI/2;
+  grp.add(body, glowSprite('rgba(255,140,60,.95)', 5));
+  scene.add(grp);
+  const trail = makeTrail(130, 0xff8040, 2.6);
+  scene.add(trail.node);
+  sfx.launch();
+  const pos = new THREE.Vector3(), prev = start.clone();
+  let t = 0;
+  addFx({ node: grp, update(dt){
+    t += dt/5;
+    if (t >= 1){
+      killFx(this); scene.remove(trail.node); trail.node.geometry.dispose();
+      nukeDetonate(tgt);
+      setTimeout(done, 6000);
+      return false;
+    }
+    const e = t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
+    qBezier(start, apex, end, e, pos);
+    grp.position.copy(pos);
+    grp.lookAt(pos.x*2 - prev.x, pos.y*2 - prev.y, pos.z*2 - prev.z);
+    prev.copy(pos);
+    trail.push(pos);
     return true;
   }});
+}
+function nukeDetonate(tgt){
+  wasteland = true;
+  /* screen flash */
+  const wo = $('whiteout');
+  wo.style.transition = 'none'; wo.style.opacity = '1';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    wo.style.transition = 'opacity 2.8s'; wo.style.opacity = '0';
+  }));
+  sfx.nuke(); haptic([220, 90, 320, 90, 420]);
+  shake = 5;
+  const ll = fmtLL(tgt.x, tgt.z);
+  log('DET ▸ GROUND ZERO ' + ll.lat + ' ' + ll.lon, 'crit');
+  /* fireball + mushroom column */
+  const fb = glowSprite('rgba(255,150,50,.95)', 8);
+  fb.position.set(tgt.x, tgt.y + 4, tgt.z); scene.add(fb);
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 4.5, 1, 14, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xff9850, transparent:true, opacity:.55,
+      blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+  col.position.set(tgt.x, tgt.y, tgt.z); scene.add(col);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(9, 18, 12),
+    new THREE.MeshBasicMaterial({ color: 0xffb060, transparent:true, opacity:.4, wireframe:true }));
+  cap.position.set(tgt.x, tgt.y + 6, tgt.z); scene.add(cap);
+  let ft = 0;
+  addFx({ update(dt){
+    ft += dt/6;
+    if (ft >= 1){
+      scene.remove(fb); scene.remove(col); col.geometry.dispose();
+      scene.remove(cap); cap.geometry.dispose();
+      return false;
+    }
+    const rise = Math.min(1, ft*1.8);
+    fb.scale.setScalar(8 + 170*Math.pow(ft, .5));
+    fb.material.opacity = Math.max(0, .95 - ft*1.15);
+    col.scale.y = 4 + rise*40; col.position.y = tgt.y + col.scale.y/2;
+    col.material.opacity = Math.max(0, .55 - ft*.6);
+    cap.position.y = tgt.y + 6 + rise*36;
+    cap.scale.setScalar(1 + rise*2.2 + ft*.8);
+    cap.material.opacity = Math.max(0, .4 - ft*.42);
+    return true;
+  }});
+  for (let i=0; i<3; i++) setTimeout(() => pulseRing(tgt, 0xffa050, 105 + i*24), i*420);
+  /* the land itself is levelled */
+  const pos = tGeo.attributes.position;
+  const from = new Float32Array(pos.count), to = new Float32Array(pos.count);
+  for (let i=0; i<pos.count; i++){
+    from[i] = pos.getY(i);
+    to[i] = wastelandH(pos.getX(i), pos.getZ(i), tgt.x, tgt.z);
+  }
+  let mt = 0, fc = 0;
+  addFx({ update(dt){
+    mt += dt/3.5;
+    const e = Math.min(1, mt), ease = e*e*(3-2*e);
+    for (let i=0; i<pos.count; i++) pos.setY(i, from[i] + (to[i]-from[i])*ease);
+    pos.needsUpdate = true;
+    if ((++fc % 3) === 0 || e >= 1) tGeo.computeVertexNormals();
+    tUni.uWaste.value = ease;
+    if (e >= 1){
+      for (let j=0; j<LUT_D; j++) for (let i=0; i<LUT_W; i++)
+        lutH[j*LUT_W+i] = wastelandH(i*LUT_S-150, j*LUT_S-100, tgt.x, tgt.z);
+      return false;
+    }
+    return true;
+  }});
+  /* structures, flora, life */
+  buildings.forEach(b => { if (b.alive){ b.alive = false; b.lean = (Math.random()-.5)*1.2; } });
+  let bt = 0;
+  addFx({ update(dt){
+    bt += dt/1.5;
+    const e = Math.min(1, bt), ease = 1 - Math.pow(1-e, 3);
+    buildings.forEach((b, i) => {
+      b.hCur = b.h + (b.h*.07 - b.h)*ease;
+      b.yaw = (b.lean || 0)*ease;
+      if (e >= 1) b.y = sampleH(b.x, b.z) - .04;
+      writeBuilding(i);
+    });
+    bMesh.instanceMatrix.needsUpdate = true;
+    bEdges.geometry.attributes.position.needsUpdate = true;
+    if (e >= 1){
+      const rubble = new THREE.Color(0x6b4638);
+      buildings.forEach((b, i) => bMesh.setColorAt(i, rubble));
+      bMesh.instanceColor.needsUpdate = true;
+      bEdges.material.color.set(0x7d5340);
+      bEdges.material.opacity = .5;
+      return false;
+    }
+    return true;
+  }});
+  for (let i=0; i<10; i++)
+    setTimeout(() => debrisBurst(CITY.x + (Math.random()-.5)*44, 2, CITY.z + (Math.random()-.5)*40), i*130);
+  farmsteads.forEach(f => {
+    if (!f.alive) return;
+    f.alive = false;
+    let t2 = 0;
+    addFx({ update(dt){ t2 += dt/.8; const e = Math.min(1, t2);
+      f.node.scale.y = 1 - .87*e; f.node.rotation.x = .12*e; return e < 1; }});
+  });
+  destroyCapitol();
+  const zero = new THREE.Matrix4().makeScale(0, 0, 0);
+  treePts.forEach((p, i) => { p.dead = true; treeMesh.setMatrixAt(i, zero); });
+  bushPts.forEach((p, i) => { p.dead = true; bushMesh.setMatrixAt(i, zero); });
+  treeMesh.instanceMatrix.needsUpdate = true;
+  bushMesh.instanceMatrix.needsUpdate = true;
+  grassMat.opacity = .06;
+  pivots.forEach(p => { p.arm.visible = false; });
+  /* overlays + water burn away */
+  lakeAlive = false;
+  lakeRipples.forEach(r => { r.visible = false; });
+  addFx({ update(dt){
+    let live = false;
+    [roads.material, farm.material].forEach(m => { if (m.opacity > 0){ m.opacity = Math.max(0, m.opacity - dt*.25); live = true; } });
+    if (lake.material.opacity > .05){ lake.material.opacity = Math.max(.05, lake.material.opacity - dt*.12); live = true; }
+    return live;
+  }});
+  markers.children.forEach(m => { if (m.material) m.material.opacity *= .3; });
+  /* everyone inside the theater is a casualty in this sim */
+  scatterLife({ x: tgt.x, y: tgt.y, z: tgt.z }, 500);
+  cars.forEach(c => { c.halt = 1e9; });
+  addFx({ update(dt){
+    const m = birdSys.node.material;
+    m.opacity = Math.max(0, m.opacity - dt*.3);
+    if (m.opacity <= 0){ birdSys.node.visible = false; return false; }
+    return true;
+  }});
+  if (teamState){ log('PATHFINDER ▸ SIGNAL LOST', 'crit'); teardownTeam(); }
+  /* scorched earth at ground zero */
+  const sc = new THREE.Group();
+  sc.position.set(tgt.x, .1, tgt.z);
+  const burn = new THREE.Mesh(new THREE.CircleGeometry(26, 48),
+    new THREE.MeshBasicMaterial({ color: 0x0e0806, transparent:true, opacity:.72, depthWrite:false }));
+  burn.rotation.x = -Math.PI/2; sc.add(burn);
+  const ember = new THREE.Mesh(new THREE.RingGeometry(24.5, 26, 48),
+    new THREE.MeshBasicMaterial({ color: 0xff6030, transparent:true, opacity:.7, side:THREE.DoubleSide,
+      blending:THREE.AdditiveBlending, depthWrite:false }));
+  ember.rotation.x = -Math.PI/2; ember.position.y = .02; sc.add(ember);
+  scene.add(sc); decals.push({ node: sc, ember: ember.material });
+  setTimeout(() => log('BDA ▸ THEATER LEVELED — TOTAL STRUCTURAL LOSS', 'crit'), 1400);
+  setTimeout(() => log('ECO ▸ BIOSPHERE COLLAPSE · WASTELAND CONDITIONS', 'warn'), 2800);
+  setTimeout(() => toast('WASTELAND PROTOCOL COMPLETE — ⟲ RESET SIM TO RESTORE'), 4000);
 }
 
 /* ---------------- audio ---------------- */
@@ -1688,6 +2197,17 @@ const sfx = {
     this.env(g, c.currentTime, .4, 3.6, .06);
     o.start(); o2.start(); o.stop(c.currentTime + 4.2); o2.stop(c.currentTime + 4.2);
   },
+  nuke(){
+    if (!audio.ctx || audio.muted) return;
+    this.boom();
+    setTimeout(() => this.boom(), 240);
+    const c = audio.ctx, o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(52, c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(18, c.currentTime + 3.2);
+    o.connect(g); g.connect(audio.master);
+    this.env(g, c.currentTime, .05, 3.4, .5);
+    o.start(); o.stop(c.currentTime + 3.6);
+  },
   boom(){
     if (!audio.ctx || audio.muted) return;
     const c = audio.ctx, n = this.noiseSrc(1.6), f = c.createBiquadFilter(), g = c.createGain();
@@ -1721,10 +2241,19 @@ function log(text, cls){
   const span = document.createElement('span'); li.appendChild(span);
   const el = $('log');
   el.insertBefore(li, el.firstChild);
-  while (el.children.length > 26) el.removeChild(el.lastChild);
+  while (el.children.length > 26){
+    const gone = el.lastChild;
+    if (gone._iv) clearInterval(gone._iv);
+    el.removeChild(gone);
+  }
   $('log-n').textContent = ++logN;
-  let i = 0;
-  const iv = setInterval(() => { span.textContent = text.slice(0, ++i); if (i >= text.length) clearInterval(iv); }, 9);
+  /* reveal by elapsed time, not per tick — stays readable when frames are slow */
+  const t0 = performance.now(), dur = Math.min(420, text.length * 9);
+  li._iv = setInterval(() => {
+    const k = Math.min(1, (performance.now() - t0) / dur);
+    span.textContent = text.slice(0, Math.ceil(k * text.length));
+    if (k >= 1) clearInterval(li._iv);
+  }, 16);
 }
 
 /* ---------------- HUD wiring ---------------- */
@@ -1746,10 +2275,12 @@ function setTheme(t){
   tUni.uCFarm.value.set(T.farm); tUni.uCRiver.value.set(T.river);
   rim.material.color.set(T.line);
   skirt.userData.tint.color.set(T.line);
-  bEdges.material.color.set(T.city);
-  const bc = new THREE.Color(T.city);
-  buildings.forEach((b, i) => { if (b.alive) bMesh.setColorAt(i, bc); });
-  bMesh.instanceColor.needsUpdate = true;
+  if (!wasteland){
+    bEdges.material.color.set(T.city);
+    const bc = new THREE.Color(T.city);
+    buildings.forEach((b, i) => { if (b.alive) bMesh.setColorAt(i, bc); });
+    bMesh.instanceColor.needsUpdate = true;
+  }
   polar.material.color.set(T.line);
   retInner.material.color.set(T.accent); retOuter.material.color.set(T.accent);
   retTicks.material.color.set(T.accent); retBeam.material.color.set(T.accent);
@@ -1839,6 +2370,7 @@ async function cinematic(){
   $('btn-cine').textContent = '■ STOP';
   try {
     toast('CINEMATIC DEMO — SIT BACK');
+    setMulti(false);
     flyTo('city'); await step(2300);
     setTarget(14, 2); await step(1300);
     setWeapon('jassm'); await step(900);
@@ -1865,14 +2397,36 @@ async function cinematic(){
   }
 }
 $('btn-cine').addEventListener('click', () => { audio.unlock(); cinematic(); });
+$('btn-reset').addEventListener('click', () => location.replace(location.pathname + '?fastboot'));
+
+/* ambient life ticker — the theater reports in even when nothing is tasked */
+const AMBIENT_LIVE = [
+  () => `CITY ▸ POWER LOAD ${55 + (Math.random()*22|0)}% · GRID NOMINAL`,
+  () => `POL ▸ TRAFFIC FLOW ${68 + (Math.random()*27|0)}% · ${cars.length} TRACKS`,
+  () => 'ECO ▸ ELK HERD GRAZING · FOOTHILL BAND',
+  () => 'AGRI ▸ CENTER-PIVOT CYCLE ACTIVE · SOIL MOISTURE OK',
+  () => `CIV ▸ ${npcs.filter(p => !p.dead).length} TRACKS ACTIVE · PATTERN NOMINAL`,
+  () => 'WX ▸ WINDS 240/15KT · CAVU',
+  () => 'RES ▸ CHATFIELD WATERLINE STEADY · BIRD ACTIVITY NORMAL',
+];
+const AMBIENT_WASTE = [
+  () => 'ECO ▸ NO LIFE SIGNS DETECTED',
+  () => 'WX ▸ ASH ADVISORY · VISIBILITY DEGRADED',
+  () => 'CITY ▸ GRID OFFLINE · ZERO POWER DRAW',
+];
+setInterval(() => {
+  if (!booted || state.busy) return;
+  const pool = wasteland ? AMBIENT_WASTE : AMBIENT_LIVE;
+  log(pool[(Math.random()*pool.length)|0](), 'sys');
+}, 19000);
 
 /* ---------------- main loop ---------------- */
-let perfT = 0, lastT = performance.now();
+let perfT = 0, lastT = performance.now(), frameN = 0;
 function frame(){
   requestAnimationFrame(frame);
   const now = performance.now();
-  const dt = Math.min(.05, (now - lastT)/1000);
-  lastT = now; perfT += dt;
+  const dt = Math.min(.09, (now - lastT)/1000);
+  lastT = now; perfT += dt; frameN++;
   state.idle += dt;
   if (state.idle > 9 && !cineRunning) sphT.theta += dt*.035;
   tUni.uTime.value = perfT;
@@ -1885,12 +2439,30 @@ function frame(){
   decals.forEach(d => { if (d.ember) d.ember.opacity = .4 + .4*Math.abs(Math.sin(perfT*2.2)); });
   for (let i=fx.length-1; i>=0; i--){ if (fx[i].update(dt) === false) fx.splice(i, 1); }
   updateLife(dt);
-  lakeRipples.forEach(r => {
+  updateTeam(dt);
+  if (lakeAlive) lakeRipples.forEach(r => {
     const t = (perfT*.22 + r.userData.ph) % 1;
     r.scale.setScalar(1 + t*(LAKE.r - 1));
     r.material.opacity = .3*(1 - t);
   });
-  capitol.userData.beacon.material.opacity = .55 + .45*Math.abs(Math.sin(perfT*1.8));
+  if (capitolAlive) capitol.userData.beacon.material.opacity = .55 + .45*Math.abs(Math.sin(perfT*1.8));
+  pivots.forEach(p => { p.arm.rotation.y = perfT*p.sp*2.6; });
+  if (!wasteland && (frameN & 3) === 0){
+    winFlick.forEach(w => {
+      if (!buildings[w.i].alive) return;
+      flickCol.copy(bEdges.material.color).multiplyScalar(.7 + .45*Math.sin(perfT*w.f + w.ph));
+      bMesh.setColorAt(w.i, flickCol);
+    });
+    bMesh.instanceColor.needsUpdate = true;
+  }
+  plumbobs.forEach(b => {
+    const p = npcs[b.i];
+    b.m.visible = !p.dead && !wasteland;
+    if (b.m.visible){
+      b.m.position.set(p.x, sampleH(p.x, p.z) + 1.4 + Math.sin(perfT*3 + b.i)*.15, p.z);
+      b.m.rotation.y = perfT*2;
+    }
+  });
   /* sat cam follows focus */
   satFocus.cx += (satFocus.x - satFocus.cx)*Math.min(1, dt*2.4);
   satFocus.cz += (satFocus.z - satFocus.cz)*Math.min(1, dt*2.4);
@@ -1930,6 +2502,9 @@ addEventListener('resize', () => {
 
 /* demo + diagnostics API (used by the headless QA harness) */
 window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme, state, clearTarget, finishBoot,
+  setMulti, teamOrder, setTeamWaypoint,
+  hasTeam: () => !!teamState, isWasteland: () => wasteland,
+  npcsDead: () => npcs.filter(p => p.dead).length,
   fxCount: () => fx.length, decalCount: () => decals.length, sceneCount: () => scene.children.length,
   info: () => JSON.parse(JSON.stringify(renderer.info)) };
 
