@@ -369,6 +369,10 @@ function mountainMask(x){ return ssf(38, 85, -x); }
 function farmMask(x){ return ssf(50, 80, x); }
 function riverX(z){ return 5 - z*0.35 + 8*Math.sin(z*0.03); }
 function riverMask(x, z){ const d = Math.abs(x - riverX(z)); return Math.max(0, 1 - d/1.6); }
+/* Chatfield Reservoir — real position, 39.554 N 105.075 W */
+const LAKE = { x: -16, z: 46, r: 12 };
+const WATER_Y = 0.18;
+function lakeMask(x, z){ return ssf(LAKE.r, LAKE.r*0.5, Math.hypot(x-LAKE.x, z-LAKE.z)); }
 function terrainH(x, z){
   const m = mountainMask(x), f = farmMask(x), c = cityMask(x, z);
   let h = 0.8 * fbm(x*0.02+9, z*0.02+3, 4);
@@ -377,9 +381,19 @@ function terrainH(x, z){
   h += f*(1-m)*0.22;
   h = h*(1 - ssf(0.15, 0.55, c)) + 0.35*ssf(0.15, 0.55, c);
   h -= Math.max(0, 1.5 - Math.abs(x - riverX(z))) * 0.26 * (1-m);
-  return Math.max(h, 0.06);
+  const lk = lakeMask(x, z);
+  if (lk > 0) h = h*(1-lk) - 0.62*lk;
+  return Math.max(h, lk > 0.02 ? -0.8 : 0.06);
 }
-
+/* coarse height lookup so the ecosystem can sample terrain cheaply every frame */
+const LUT_S = 2, LUT_W = 151, LUT_D = 101, lutH = new Float32Array(LUT_W*LUT_D);
+for (let j=0;j<LUT_D;j++) for (let i=0;i<LUT_W;i++) lutH[j*LUT_W+i] = terrainH(i*LUT_S-150, j*LUT_S-100);
+function sampleH(x, z){
+  const fx = Math.min(299.98, Math.max(0, x+150))/LUT_S, fz = Math.min(199.98, Math.max(0, z+100))/LUT_S;
+  const i = fx|0, j = fz|0, u = fx-i, v = fz-j;
+  const a = lutH[j*LUT_W+i], b = lutH[j*LUT_W+i+1], c = lutH[(j+1)*LUT_W+i], d = lutH[(j+1)*LUT_W+i+1];
+  return a + (b-a)*u + (c-a)*v + (a-b-c+d)*u*v;
+}
 /* ---------------- three.js core ---------------- */
 let renderer;
 try {
@@ -528,7 +542,8 @@ polar.material.color.set(THEMES.mk2.line);
 polar.material.transparent = true; polar.material.opacity = 0.07;
 scene.add(polar);
 
-/* ---------------- city ---------------- */
+/* ---------------- city (destructible) ---------------- */
+const CAPITOL = { x: CITY.x + 7, z: CITY.z + 5 };
 const buildings = [];
 {
   let seed = 7;
@@ -541,40 +556,65 @@ const buildings = [];
     const c = cityMask(x, z);
     if (c < 0.22) continue;
     if (Math.abs(x - riverX(z)) < 3.2) continue;
+    if (Math.hypot(x-CAPITOL.x, z-CAPITOL.z) < 5.5) continue;
     const fall = Math.pow(c, 1.7);
     const h = 0.5 + (4.8*fall + 0.3) * (0.35 + 0.65*rand());
     if (h < 0.55) continue;
-    buildings.push({ x, z, y: terrainH(x, z)-0.04, w: 1.0+1.2*rand(), d: 1.0+1.2*rand(), h });
+    buildings.push({ x, z, y: terrainH(x, z)-0.04, w: 1.0+1.2*rand(), d: 1.0+1.2*rand(), h,
+      hCur: h, yaw: 0, alive: true });
   }
 }
 const bGeo = new THREE.BoxGeometry(1,1,1); bGeo.translate(0,.5,0);
 const bFillMat = new THREE.MeshBasicMaterial({ transparent:true, opacity:.045, blending:THREE.AdditiveBlending, depthWrite:false });
 const bMesh = new THREE.InstancedMesh(bGeo, bFillMat, buildings.length);
-{
-  const m4 = new THREE.Matrix4();
-  buildings.forEach((b, i) => {
-    m4.makeScale(b.w, b.h, b.d).setPosition(b.x, b.y, b.z);
-    bMesh.setMatrixAt(i, m4);
-  });
-  bMesh.instanceMatrix.needsUpdate = true;
+const B_E = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+const B_V = [[-.5,0,-.5],[.5,0,-.5],[.5,0,.5],[-.5,0,.5],[-.5,1,-.5],[.5,1,-.5],[.5,1,.5],[-.5,1,.5]];
+const bEdgeP = new Float32Array(buildings.length * 24 * 3);
+function writeBuilding(i){
+  const b = buildings[i], m4 = writeBuilding.m4 || (writeBuilding.m4 = new THREE.Matrix4());
+  m4.makeRotationY(b.yaw).scale(new THREE.Vector3(b.w, b.hCur, b.d)).setPosition(b.x, b.y, b.z);
+  bMesh.setMatrixAt(i, m4);
+  const cy = Math.cos(b.yaw), sy = Math.sin(b.yaw);
+  let o = i*72;
+  for (const e of B_E) for (const vi of e){
+    const v = B_V[vi], lx = v[0]*b.w, lz = v[2]*b.d;
+    bEdgeP[o++] = b.x + lx*cy + lz*sy;
+    bEdgeP[o++] = b.y + v[1]*b.hCur;
+    bEdgeP[o++] = b.z - lx*sy + lz*cy;
+  }
 }
+buildings.forEach((b, i) => { writeBuilding(i); bMesh.setColorAt(i, new THREE.Color(THEMES.mk2.city)); });
+bMesh.instanceMatrix.needsUpdate = true;
+bMesh.instanceColor.needsUpdate = true;
 scene.add(bMesh);
-/* merged wire edges for all buildings */
-const bEdges = (() => {
-  const E = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
-  const V = [[-.5,0,-.5],[.5,0,-.5],[.5,0,.5],[-.5,0,.5],[-.5,1,-.5],[.5,1,-.5],[.5,1,.5],[-.5,1,.5]];
-  const P = new Float32Array(buildings.length * 24 * 3);
-  let o = 0;
-  buildings.forEach(b => { E.forEach(e => { e.forEach(vi => {
-    const v = V[vi];
-    P[o++] = b.x + v[0]*b.w; P[o++] = b.y + v[1]*b.h; P[o++] = b.z + v[2]*b.d;
-  });});});
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(P, 3));
-  return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: THEMES.mk2.city, transparent:true,
-    opacity:.3, blending:THREE.AdditiveBlending, depthWrite:false }));
-})();
+const bEdges = new THREE.LineSegments(
+  (() => { const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(bEdgeP, 3)); return g; })(),
+  new THREE.LineBasicMaterial({ color: 0xffffff, transparent:true, opacity:.3,
+    blending:THREE.AdditiveBlending, depthWrite:false, vertexColors:false }));
+bEdges.material.color.set(THEMES.mk2.city);
 scene.add(bEdges);
+
+/* landmark: Colorado State Capitol, gold dome */
+const capitol = new THREE.Group();
+{
+  const gold = new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent:true, opacity:.9, wireframe:true });
+  const goldFill = new THREE.MeshBasicMaterial({ color: 0xffc966, transparent:true, opacity:.1,
+    blending:THREE.AdditiveBlending, depthWrite:false });
+  const stone = new THREE.MeshBasicMaterial({ color: 0xcfe8f5, transparent:true, opacity:.5, wireframe:true });
+  const base = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.1, 2.4), stone); base.position.y = .55;
+  const wings = new THREE.Mesh(new THREE.BoxGeometry(5.2, .7, 1.6), stone); wings.position.y = .35;
+  const drum = new THREE.Mesh(new THREE.CylinderGeometry(.85, .95, 1.2, 12), stone); drum.position.y = 1.7;
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.95, 14, 8, 0, Math.PI*2, 0, Math.PI/2), gold);
+  dome.position.y = 2.3;
+  const domeF = new THREE.Mesh(dome.geometry, goldFill); domeF.position.y = 2.3;
+  const spire = new THREE.Mesh(new THREE.ConeGeometry(.16, .8, 6), gold); spire.position.y = 3.55;
+  const beacon = glowSprite('rgba(255,210,120,.95)', 1.6); beacon.position.y = 3.95;
+  capitol.add(base, wings, drum, dome, domeF, spire, beacon);
+  capitol.position.set(CAPITOL.x, terrainH(CAPITOL.x, CAPITOL.z), CAPITOL.z);
+  capitol.userData.beacon = beacon;
+  scene.add(capitol);
+}
 
 /* street grid overlay */
 function canvasPlane(draw, size, w, h, pos, opacity){
@@ -621,6 +661,11 @@ const farm = canvasPlane((c, S) => {
       c.beginPath(); c.arc(i*cw+cw/2, j*chh+chh/2, Math.min(cw,chh)*.42, 0, 7);
       c.fillStyle = `rgba(160,255,140,${.10+rand()*.18})`; c.fill();
       c.strokeStyle = 'rgba(200,255,180,.35)'; c.lineWidth = 1; c.stroke();
+    } else if (r > .34){
+      c.strokeStyle = 'rgba(190,255,160,.12)'; c.lineWidth = 1;
+      for (let yy=j*chh+3; yy<(j+1)*chh-2; yy+=4){
+        c.beginPath(); c.moveTo(i*cw+2, yy); c.lineTo((i+1)*cw-2, yy); c.stroke();
+      }
     }
   }
   c.strokeStyle='rgba(255,255,255,.25)'; c.lineWidth=1;
@@ -645,9 +690,229 @@ function addMarkerLabel(x, z, txt, col){
   markers.add(sp);
 }
 addMarkerLabel(8, 6, 'DENVER GRID', 'rgba(120,235,255,.95)');
+addMarkerLabel(CAPITOL.x, CAPITOL.z, 'STATE CAPITOL', 'rgba(255,215,140,.95)');
 addMarkerLabel(-104, -22, 'MT BLUE SKY 4348M', 'rgba(200,240,255,.9)');
 addMarkerLabel(-88, 42, 'WATERTON CYN · LM SPACE', 'rgba(255,190,110,.95)');
 addMarkerLabel(102, 20, 'AGRI-BELT DZ-4', 'rgba(150,255,170,.9)');
+addMarkerLabel(LAKE.x, LAKE.z, 'CHATFIELD RES.', 'rgba(120,220,255,.9)');
+
+/* ---------------- water ---------------- */
+const lake = new THREE.Mesh(new THREE.CircleGeometry(LAKE.r*1.02, 48),
+  new THREE.MeshBasicMaterial({ color: 0x2f9fd8, transparent:true, opacity:.34,
+    blending:THREE.AdditiveBlending, depthWrite:false }));
+lake.rotation.x = -Math.PI/2;
+lake.position.set(LAKE.x, WATER_Y, LAKE.z);
+scene.add(lake);
+const lakeRipples = [0, 1, 2].map(i => {
+  const r = circleLine(1, 48, 0x7adfff, .3);
+  r.position.set(LAKE.x, WATER_Y + .04, LAKE.z);
+  r.userData.ph = i/3;
+  scene.add(r);
+  return r;
+});
+
+/* ---------------- ecosystem: flora ---------------- */
+function scatterInstanced(geo, mat, list){
+  const mesh = new THREE.InstancedMesh(geo, mat, list.length);
+  const m4 = new THREE.Matrix4();
+  list.forEach((p, i) => {
+    m4.makeRotationY(p.rot || 0).scale(new THREE.Vector3(p.s, p.s*(p.sy||1), p.s)).setPosition(p.x, p.y, p.z);
+    mesh.setMatrixAt(i, m4);
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  scene.add(mesh);
+  return mesh;
+}
+let ecoSeed = 401;
+const ecoRand = () => (ecoSeed = (ecoSeed*48271) % 2147483647) / 2147483647;
+function openGround(x, z){
+  return lakeMask(x, z) < .05 && cityMask(x, z) < .3 && Math.abs(x-riverX(z)) > 2.2 &&
+    Math.abs(x) < 148 && Math.abs(z) < 98;
+}
+const treePts = [], bushPts = [];
+for (let i=0; i<2600 && treePts.length<760; i++){
+  const x = -150 + ecoRand()*300, z = -100 + ecoRand()*200;
+  if (!openGround(x, z)) continue;
+  const m = mountainMask(x), h = terrainH(x, z);
+  const foothill = m > .1 && m < .8 && h < 8.5;
+  const riparian = Math.abs(x-riverX(z)) < 7 && m < .3;
+  const shore = lakeMask(x, z) < .05 && Math.hypot(x-LAKE.x, z-LAKE.z) < LAKE.r + 7;
+  const windbreak = farmMask(x) > .5 && (Math.abs(((x+150)%24)-12) < 1.2) && ecoRand() < .5;
+  const plains = m < .1 && farmMask(x) < .4 && ecoRand() < .06;
+  if (!(foothill && ecoRand() < .8) && !riparian && !shore && !windbreak && !plains) continue;
+  treePts.push({ x, z, y: h, s: .5 + ecoRand()*.5, sy: 1.1 + ecoRand()*.7, rot: ecoRand()*6.28 });
+}
+for (let i=0; i<2200 && bushPts.length<420; i++){
+  const x = -150 + ecoRand()*300, z = -100 + ecoRand()*200;
+  if (!openGround(x, z)) continue;
+  const m = mountainMask(x), h = terrainH(x, z);
+  if (h > 9 || (m < .05 && ecoRand() < .5) || farmMask(x) > .6) continue;
+  bushPts.push({ x, z, y: h, s: .22 + ecoRand()*.2, sy: .7, rot: 0 });
+}
+const treeGeo = new THREE.ConeGeometry(.42, 1.35, 5); treeGeo.translate(0, .68, 0);
+const treeMat = new THREE.MeshBasicMaterial({ color: 0x39b06d, transparent:true, opacity:.55, wireframe:true });
+const treeMesh = scatterInstanced(treeGeo, treeMat, treePts);
+const bushGeo = new THREE.SphereGeometry(.5, 5, 4); bushGeo.translate(0, .3, 0);
+const bushMat = new THREE.MeshBasicMaterial({ color: 0x2f9158, transparent:true, opacity:.4, wireframe:true });
+const bushMesh = scatterInstanced(bushGeo, bushMat, bushPts);
+
+/* ---------------- farmsteads (destructible) ---------------- */
+const farmMatWire = new THREE.MeshBasicMaterial({ color: 0xe8d8a8, transparent:true, opacity:.6, wireframe:true });
+const farmsteads = [];
+for (let gx=66; gx<=138; gx+=24) for (let gz=-84; gz<=84; gz+=24){
+  if (farmsteads.length >= 10) break;
+  const x = gx + (ecoRand()-.5)*6, z = gz + (ecoRand()-.5)*6;
+  if (farmMask(x) < .55 || ecoRand() < .25) continue;
+  const y = terrainH(x, z), g = new THREE.Group();
+  const house = new THREE.Mesh(new THREE.BoxGeometry(1.2, .7, 1), farmMatWire); house.position.y = .35;
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(.85, .55, 4), farmMatWire);
+  roof.position.y = .95; roof.rotation.y = Math.PI/4;
+  const barn = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1, 1.1), farmMatWire);
+  barn.position.set(2.1, .5, .6);
+  const silo = new THREE.Mesh(new THREE.CylinderGeometry(.34, .34, 1.5, 8), farmMatWire);
+  silo.position.set(-1.4, .75, .4);
+  const siloCap = new THREE.Mesh(new THREE.SphereGeometry(.34, 8, 4, 0, Math.PI*2, 0, Math.PI/2), farmMatWire);
+  siloCap.position.set(-1.4, 1.5, .4);
+  g.add(house, roof, barn, silo, siloCap);
+  g.position.set(x, y, z);
+  g.rotation.y = ecoRand()*6.28;
+  scene.add(g);
+  farmsteads.push({ x, z, node: g, alive: true });
+}
+
+/* ---------------- ecosystem: fauna ---------------- */
+function makeLife(n, col, size){
+  const g = new THREE.BufferGeometry();
+  const P = new Float32Array(n*3);
+  g.setAttribute('position', new THREE.BufferAttribute(P, 3));
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: col, size, transparent:true,
+    opacity:.9, blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true }));
+  pts.frustumCulled = false;
+  scene.add(pts);
+  return { node: pts, P, attr: g.attributes.position, n };
+}
+/* pedestrians walk the street grid Manhattan-style */
+const npcs = [];
+const npcSys = makeLife(112, 0xeaf6ff, .55);
+for (let i=0; i<npcSys.n; i++){
+  let wx, wz, tries = 0;
+  do { wx = CITY.x + (((ecoRand()*7)|0) - 3)*5; wz = CITY.z + (((ecoRand()*7)|0) - 3)*5; }
+  while (cityMask(wx, wz) < .3 && ++tries < 20);
+  npcs.push({ x: wx + (ecoRand()-.5)*2, z: wz + (ecoRand()-.5)*2, tx: wx, tz: wz,
+    sp: .5 + ecoRand()*.8, flee: 0, fx: 0, fz: 0 });
+}
+/* traffic: grid lanes + the diagonal avenue + farm trucks */
+const cars = [];
+for (let i=0; i<52; i++){
+  const lane = (((ecoRand()*7)|0) - 3)*5, horiz = ecoRand() < .5, dir = ecoRand() < .5 ? 1 : -1;
+  cars.push({ kind:'grid', horiz, lane, t: (ecoRand()-.5)*54, dir, sp: 2.8 + ecoRand()*3.4,
+    halt: 0, taxi: ecoRand() < .18 });
+}
+for (let i=0; i<5; i++) cars.push({ kind:'diag', t: .15 + ecoRand()*.7, dir: ecoRand()<.5?1:-1, sp: 4.2, halt: 0, taxi: false });
+for (let i=0; i<4; i++) cars.push({ kind:'farm', lane: [78, 102, 126, 90][i], t: (ecoRand()-.5)*160,
+  dir: ecoRand()<.5?1:-1, sp: 1.9, halt: 0, taxi: false });
+const carGeo = new THREE.BoxGeometry(.9, .22, .42);
+carGeo.translate(0, .11, 0);
+const carMat = new THREE.MeshBasicMaterial({ transparent:true, opacity:.85 });
+const carMesh = new THREE.InstancedMesh(carGeo, carMat, cars.length);
+cars.forEach((c, i) => carMesh.setColorAt(i, new THREE.Color(c.taxi ? 0xffb454 : 0xbfe9ff)));
+carMesh.instanceColor.needsUpdate = true;
+scene.add(carMesh);
+function carPos(c){
+  if (c.kind === 'grid') return c.horiz
+    ? { x: CITY.x + c.t, z: CITY.z + c.lane, rot: c.dir > 0 ? 0 : Math.PI }
+    : { x: CITY.x + c.lane, z: CITY.z + c.t, rot: c.dir > 0 ? -Math.PI/2 : Math.PI/2 };
+  if (c.kind === 'diag') return { x: CITY.x - 41 + 64*c.t, z: CITY.z + 23 - 64*c.t, rot: Math.PI/4 };
+  return { x: c.lane, z: c.t, rot: c.dir > 0 ? -Math.PI/2 : Math.PI/2 };
+}
+/* bird flocks + grazing herds */
+const flocks = [
+  { cx: LAKE.x, cz: LAKE.z, r: 9, h: 6, ph: 0, flee: 0 },
+  { cx: CITY.x - 10, cz: CITY.z - 8, r: 12, h: 9, ph: 2.1, flee: 0 },
+  { cx: -60, cz: -30, r: 14, h: 12, ph: 4.2, flee: 0 },
+];
+const birdSys = makeLife(flocks.length*9, 0xd8ecff, .4);
+const herds = [
+  { cx: -52, cz: 18, r: 8, kind: 'ELK' },
+  { cx: LAKE.x + 14, cz: LAKE.z - 10, r: 6, kind: 'DEER' },
+];
+const animals = [];
+const aniSys = makeLife(15, 0xd9b47e, .6);
+for (let i=0; i<aniSys.n; i++){
+  const h = herds[i%herds.length];
+  animals.push({ home: h, x: h.cx + (ecoRand()-.5)*h.r*2, z: h.cz + (ecoRand()-.5)*h.r*2,
+    tx: 0, tz: 0, wait: ecoRand()*4, flee: 0, fx: 0, fz: 0 });
+  animals[i].tx = animals[i].x; animals[i].tz = animals[i].z;
+}
+function updateLife(dt){
+  /* pedestrians */
+  for (let i=0; i<npcs.length; i++){
+    const p = npcs[i];
+    if (p.flee > 0){
+      p.flee -= dt;
+      p.x += p.fx*dt*3.4; p.z += p.fz*dt*3.4;
+    } else {
+      const dx = p.tx - p.x, dz = p.tz - p.z, d = Math.hypot(dx, dz);
+      if (d < .3){
+        const axis = ecoRand() < .5;
+        const step = (ecoRand() < .5 ? -5 : 5);
+        const nx = axis ? p.tx + step : p.tx, nz = axis ? p.tz : p.tz + step;
+        if (cityMask(nx, nz) > .28){ p.tx = nx; p.tz = nz; }
+      } else { p.x += dx/d*p.sp*dt; p.z += dz/d*p.sp*dt; }
+    }
+    npcSys.P[i*3] = p.x; npcSys.P[i*3+1] = sampleH(p.x, p.z) + .22; npcSys.P[i*3+2] = p.z;
+  }
+  npcSys.attr.needsUpdate = true;
+  /* traffic */
+  const m4 = updateLife.m4 || (updateLife.m4 = new THREE.Matrix4());
+  const eu = updateLife.eu || (updateLife.eu = new THREE.Euler());
+  for (let i=0; i<cars.length; i++){
+    const c = cars[i];
+    if (c.halt > 0) c.halt -= dt;
+    else if (c.kind === 'diag'){
+      c.t += c.dir*c.sp*dt/64;
+      if (c.t > .85){ c.t = .85; c.dir = -1; } else if (c.t < .15){ c.t = .15; c.dir = 1; }
+    } else {
+      c.t += c.dir*c.sp*dt;
+      const lim = c.kind === 'farm' ? 88 : 27;
+      if (c.t > lim) c.t = -lim; else if (c.t < -lim) c.t = lim;
+    }
+    const p = carPos(c);
+    eu.set(0, p.rot, 0);
+    m4.makeRotationFromEuler(eu).setPosition(p.x, sampleH(p.x, p.z) + .12, p.z);
+    carMesh.setMatrixAt(i, m4);
+  }
+  carMesh.instanceMatrix.needsUpdate = true;
+  /* birds */
+  for (let f=0; f<flocks.length; f++){
+    const fl = flocks[f];
+    fl.ph += dt*(.35 + f*.07);
+    if (fl.flee > 0){ fl.flee -= dt; fl.cx += fl.fx*dt*6; fl.cz += fl.fz*dt*6; }
+    for (let b=0; b<9; b++){
+      const i = f*9 + b, a = fl.ph + b*.7;
+      birdSys.P[i*3]   = fl.cx + Math.cos(a)*fl.r + Math.sin(a*2.3 + b)*1.6;
+      birdSys.P[i*3+1] = Math.max(sampleH(fl.cx, fl.cz), WATER_Y) + fl.h + Math.sin(a*1.7 + b*2)*1.2;
+      birdSys.P[i*3+2] = fl.cz + Math.sin(a)*fl.r + Math.cos(a*1.9 + b)*1.6;
+    }
+  }
+  birdSys.attr.needsUpdate = true;
+  /* grazers */
+  for (let i=0; i<animals.length; i++){
+    const a = animals[i];
+    if (a.flee > 0){ a.flee -= dt; a.x += a.fx*dt*5; a.z += a.fz*dt*5; }
+    else if (a.wait > 0) a.wait -= dt;
+    else {
+      const dx = a.tx - a.x, dz = a.tz - a.z, d = Math.hypot(dx, dz);
+      if (d < .3){
+        a.tx = a.home.cx + (ecoRand()-.5)*a.home.r*2;
+        a.tz = a.home.cz + (ecoRand()-.5)*a.home.r*2;
+        a.wait = 1 + ecoRand()*4;
+      } else { a.x += dx/d*.55*dt; a.z += dz/d*.55*dt; }
+    }
+    aniSys.P[i*3] = a.x; aniSys.P[i*3+1] = sampleH(a.x, a.z) + .25; aniSys.P[i*3+2] = a.z;
+  }
+  aniSys.attr.needsUpdate = true;
+}
 
 /* ---------------- reticle ---------------- */
 function circleLine(r, seg, col, op){
@@ -708,16 +973,16 @@ function applyCam(dt){
 const SECTORS = {
   overview:{ name:'THEATER OVERVIEW', coords:'FRONT RANGE · COLORADO · 39.72°N 105.00°W',
     pivot:[0,0], r:250, phi:.95, theta:.85,
-    intel:['THREE-BIOME SYNTHETIC RANGE · 120 × 80 KM','GOOGLE EARTH MESH FUSION: 94.7% TILE LOCK','ASSETS ON STATION: KH-GEO 7 · VECTIS CAP 2 · C-130J'] },
+    intel:['THREE-BIOME SYNTHETIC RANGE · 120 × 80 KM','GOOGLE EARTH MESH FUSION: 94.7% TILE LOCK','PATTERN-OF-LIFE: 190 TRACKS · ECO-SIM ACTIVE','ASSETS: KH-GEO 7 · VECTIS CAP 2 · C-130J'] },
   city:{ name:'SECTOR ALPHA — DENVER METRO GRID', coords:'39.7392°N 104.9903°W · ELEV 1,609 M',
     pivot:[8,6], r:74, phi:.8, theta:.55,
-    intel:['STRUCTURES TRACKED: 340 · POWER GRID NOMINAL','POP DENSITY 4,674/KM² — COLLATERAL RISK HIGH','ROE: WEAPONS TIGHT · PID REQUIRED'] },
+    intel:['STRUCTURES: 340 · CIV TRACKS: 112 · VEHICLES: 61','LANDMARK LOCK: STATE CAPITOL · GOLD DOME','ROE: WEAPONS TIGHT · PID REQUIRED · COLLATERAL HIGH'] },
   range:{ name:'SECTOR BRAVO — FRONT RANGE', coords:'39.5883°N 105.6438°W · PEAK 4,348 M',
     pivot:[-92,-10], r:118, phi:.88, theta:1.25,
-    intel:['RIDGELINE CONCEALMENT HIGH · IR CONTRAST LOW','PASS CHOKEPOINTS: 2 TRACKED','WX: CLEAR · WINDS 240/15KT'] },
+    intel:['RIDGELINE CONCEALMENT HIGH · IR CONTRAST LOW','PASS CHOKEPOINTS: 2 · ELK HERD: 8 TRACKED','WX: CLEAR · WINDS 240/15KT'] },
   farm:{ name:'SECTOR CHARLIE — EASTERN AGRI-BELT', coords:'39.7500°N 104.4500°W · ELEV 1,530 M',
     pivot:[100,12], r:96, phi:.78, theta:.42,
-    intel:['CENTER-PIVOT SITES: 38 · GRAIN SEASON ACTIVE','DZ SUITABILITY: EXCELLENT · FLAT ±2 M','CIV PRESENCE SPARSE · CLEARED FOR AIRDROP (SIM)'] }
+    intel:['FARMSTEADS: 10 · CENTER-PIVOT SITES: 38 · CROPS ACTIVE','DZ SUITABILITY: EXCELLENT · FLAT ±2 M','CIV PRESENCE SPARSE · CLEARED FOR AIRDROP (SIM)'] }
 };
 function flyTo(id){
   const s = SECTORS[id]; if (!s) return;
@@ -793,7 +1058,7 @@ function pickTarget(cx, cy){
   if (hit) setTarget(hit.point.x, hit.point.z);
 }
 function setTarget(x, z){
-  const y = terrainH(x, z);
+  const y = sampleH(x, z);
   state.target = { x, y, z };
   reticle.visible = true;
   reticle.position.set(x, y + .12, z);
@@ -877,8 +1142,8 @@ function missionDone(){
 }
 
 /* ---------------- effects library ---------------- */
-const glowTexCache = {};
 function glowSprite(col, scale){
+  const glowTexCache = glowSprite.cache || (glowSprite.cache = {});
   if (!glowTexCache[col]){
     const cv = document.createElement('canvas'); cv.width = cv.height = 64;
     const c = cv.getContext('2d');
@@ -923,6 +1188,139 @@ function makeTrail(n, col, size){
       g.attributes.color.needsUpdate = true;
     } };
 }
+/* ---------------- destruction engine ---------------- */
+function applyCrater(cx, cz, r, depth){
+  const pos = tGeo.attributes.position;
+  const stepX = MAP.w/SEGX, stepZ = MAP.d/SEGZ;
+  const i0 = Math.max(0, Math.floor((cx - r*1.8 + 150)/stepX)), i1 = Math.min(SEGX, Math.ceil((cx + r*1.8 + 150)/stepX));
+  const j0 = Math.max(0, Math.floor((cz - r*1.8 + 100)/stepZ)), j1 = Math.min(SEGZ, Math.ceil((cz + r*1.8 + 100)/stepZ));
+  for (let j=j0; j<=j1; j++) for (let i=i0; i<=i1; i++){
+    const idx = j*(SEGX+1) + i;
+    const vx = -150 + i*stepX, vz = -100 + j*stepZ;
+    const d = Math.hypot(vx-cx, vz-cz);
+    if (d > r*1.8) continue;
+    const bowl = depth * Math.exp(-(d*d)/(r*r*.5));
+    const rim = depth * .28 * Math.exp(-Math.pow((d-r)/(r*.35), 2));
+    pos.setY(idx, Math.max(-2.6, pos.getY(idx) - bowl + rim));
+  }
+  pos.needsUpdate = true;
+  tGeo.computeVertexNormals();
+  for (let j=0; j<LUT_D; j++) for (let i=0; i<LUT_W; i++){
+    const vx = i*LUT_S-150, vz = j*LUT_S-100;
+    const d = Math.hypot(vx-cx, vz-cz);
+    if (d > r*1.8) continue;
+    const bowl = depth * Math.exp(-(d*d)/(r*r*.5));
+    const rim = depth * .28 * Math.exp(-Math.pow((d-r)/(r*.35), 2));
+    lutH[j*LUT_W+i] = Math.max(-2.6, lutH[j*LUT_W+i] - bowl + rim);
+  }
+}
+function debrisBurst(x, y, z){
+  const N = 26, g = new THREE.BufferGeometry();
+  const P = new Float32Array(N*3), V = [];
+  for (let i=0;i<N;i++){
+    P[i*3] = x; P[i*3+1] = y; P[i*3+2] = z;
+    const th = Math.random()*6.28;
+    V.push([Math.cos(th)*(2+Math.random()*5), 3+Math.random()*6, Math.sin(th)*(2+Math.random()*5)]);
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(P, 3));
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({ color: 0x9fd8e8, size: .5, transparent:true,
+    opacity:.9, blending:THREE.AdditiveBlending, depthWrite:false }));
+  pts.frustumCulled = false;
+  scene.add(pts);
+  let t = 0;
+  addFx({ node: pts, update(dt){
+    t += dt/.85;
+    if (t >= 1){ scene.remove(pts); g.dispose(); return false; }
+    for (let i=0;i<N;i++){
+      V[i][1] -= 16*dt;
+      P[i*3] += V[i][0]*dt; P[i*3+1] = Math.max(y-3, P[i*3+1] + V[i][1]*dt); P[i*3+2] += V[i][2]*dt;
+    }
+    g.attributes.position.needsUpdate = true;
+    pts.material.opacity = .9*(1-t);
+    return true;
+  }});
+}
+function destroyStructures(pos, radius){
+  let count = 0;
+  buildings.forEach((b, i) => {
+    if (!b.alive || Math.hypot(b.x-pos.x, b.z-pos.z) > radius) return;
+    b.alive = false; count++;
+    const lean = (Math.random()-.5)*1.1, stub = b.h*.08;
+    debrisBurst(b.x, b.y + b.h*.5, b.z);
+    let t = 0;
+    addFx({ update(dt){
+      t += dt/.7;
+      const e = Math.min(1, t), ease = 1 - Math.pow(1-e, 3);
+      b.hCur = b.h + (stub - b.h)*ease;
+      b.yaw = lean*ease;
+      if (e >= 1){ b.y = sampleH(b.x, b.z) - .04; }
+      writeBuilding(i);
+      bMesh.instanceMatrix.needsUpdate = true;
+      bEdges.geometry.attributes.position.needsUpdate = true;
+      if (e >= 1){
+        bMesh.setColorAt(i, new THREE.Color(0x7a4a30));
+        bMesh.instanceColor.needsUpdate = true;
+        return false;
+      }
+      return true;
+    }});
+  });
+  farmsteads.forEach(f => {
+    if (!f.alive || Math.hypot(f.x-pos.x, f.z-pos.z) > radius+1.5) return;
+    f.alive = false; count++;
+    debrisBurst(f.x, f.node.position.y + 1, f.z);
+    let t = 0;
+    addFx({ update(dt){
+      t += dt/.7;
+      const e = Math.min(1, t);
+      f.node.scale.y = 1 - .87*e;
+      f.node.rotation.x = .12*e;
+      return e < 1;
+    }});
+  });
+  const zero = destroyStructures.zero || (destroyStructures.zero = new THREE.Matrix4().makeScale(0,0,0));
+  let flora = false;
+  treePts.forEach((p, i) => {
+    if (p.dead || Math.hypot(p.x-pos.x, p.z-pos.z) > radius*1.15) return;
+    p.dead = true; flora = true; treeMesh.setMatrixAt(i, zero);
+  });
+  bushPts.forEach((p, i) => {
+    if (p.dead || Math.hypot(p.x-pos.x, p.z-pos.z) > radius*1.15) return;
+    p.dead = true; flora = true; bushMesh.setMatrixAt(i, zero);
+  });
+  if (flora){ treeMesh.instanceMatrix.needsUpdate = true; bushMesh.instanceMatrix.needsUpdate = true; }
+  if (Math.hypot(CAPITOL.x-pos.x, CAPITOL.z-pos.z) < radius + 4)
+    log('ROE ▸ HERITAGE SITE — CAPITOL STRIKE INHIBITED', 'warn');
+  if (count > 0) log(`BDA ▸ ${count} STRUCTURE${count > 1 ? 'S' : ''} DOWN · SIM`, 'warn');
+}
+function scatterLife(pos, radius){
+  let n = 0;
+  npcs.forEach(p => {
+    const dx = p.x-pos.x, dz = p.z-pos.z, d = Math.hypot(dx, dz);
+    if (d > radius) return;
+    n++;
+    p.flee = 2.5 + Math.random()*2;
+    p.fx = dx/(d||1); p.fz = dz/(d||1);
+  });
+  cars.forEach(c => {
+    const p = carPos(c);
+    if (Math.hypot(p.x-pos.x, p.z-pos.z) < radius*1.3) c.halt = 2 + Math.random()*2.5;
+  });
+  flocks.forEach(f => {
+    const dx = f.cx-pos.x, dz = f.cz-pos.z, d = Math.hypot(dx, dz);
+    if (d > radius + 12) return;
+    f.flee = 4;
+    f.fx = dx/(d||1); f.fz = dz/(d||1);
+  });
+  animals.forEach(a => {
+    const dx = a.x-pos.x, dz = a.z-pos.z, d = Math.hypot(dx, dz);
+    if (d > radius + 8) return;
+    a.flee = 3 + Math.random()*2;
+    a.fx = dx/(d||1); a.fz = dz/(d||1);
+  });
+  if (n > 4) log('POL ▸ CIV TRACKS DISPERSING FROM BLAST ZONE', 'warn');
+}
+
 function explosion(pos, s, quiet){
   const grp = new THREE.Group(); grp.position.copy(pos); scene.add(grp);
   const flash = glowSprite('rgba(255,170,60,.9)', 4); grp.add(flash);
@@ -951,8 +1349,19 @@ function explosion(pos, s, quiet){
   parts.frustumCulled = false; grp.add(parts);
   if (!quiet){ sfx.boom(); haptic([60, 40, 120]); }
   shake = Math.max(shake, 1.5*s);
-  /* scorch decal */
-  const sc = new THREE.Group(); sc.position.set(pos.x, pos.y + .08, pos.z);
+  /* the land takes the hit: crater + collapse + pattern-of-life reaction */
+  const overWater = lakeMask(pos.x, pos.z) > .25 || riverMask(pos.x, pos.z) > .5;
+  if (overWater){
+    for (let i=0;i<3;i++) setTimeout(() => pulseRing({ x: pos.x, y: WATER_Y, z: pos.z }, 0x7adfff, 10), i*260);
+    log('SPLASH ▸ WATER IMPACT — MINIMAL SURFACE EFFECT', 'sys');
+  } else {
+    applyCrater(pos.x, pos.z, 4.6*s, 1.5*s);
+  }
+  destroyStructures(pos, 5.6*s);
+  scatterLife(pos, 15*s);
+  /* scorch decal at the (possibly cratered) floor */
+  const sc = new THREE.Group();
+  sc.position.set(pos.x, (overWater ? WATER_Y : sampleH(pos.x, pos.z)) + .08, pos.z);
   const burn = new THREE.Mesh(new THREE.CircleGeometry(2.6*s, 32),
     new THREE.MeshBasicMaterial({ color: 0x120a08, transparent:true, opacity:.8, depthWrite:false }));
   burn.rotation.x = -Math.PI/2; sc.add(burn);
@@ -960,8 +1369,10 @@ function explosion(pos, s, quiet){
     new THREE.MeshBasicMaterial({ color: 0xff7038, transparent:true, opacity:.8, side:THREE.DoubleSide,
       blending:THREE.AdditiveBlending, depthWrite:false }));
   ember.rotation.x = -Math.PI/2; ember.position.y = .01; sc.add(ember);
-  scene.add(sc); decals.push({ node: sc, ember: ember.material });
-  while (decals.length > 10){ const d = decals.shift(); scene.remove(d.node); disposables(d.node); }
+  if (!overWater){
+    scene.add(sc); decals.push({ node: sc, ember: ember.material });
+    while (decals.length > 10){ const d = decals.shift(); scene.remove(d.node); disposables(d.node); }
+  }
   let t = 0;
   addFx({ node: grp, update(dt){
     t += dt;
@@ -1030,15 +1441,15 @@ function fireUCAV(tgt){
   const nav = glowSprite('rgba(255,60,80,.95)', .9); nav.position.set(0, .4, -2.4); drone.add(nav);
   scene.add(drone);
   const y = 26;
-  const from = new THREE.Vector3(tgt.x - 150, y, tgt.z - 42);
-  const to = new THREE.Vector3(tgt.x + 170, y, tgt.z + 48);
+  const from = new THREE.Vector3(tgt.x - 118, y, tgt.z - 34);
+  const to = new THREE.Vector3(tgt.x + 132, y, tgt.z + 38);
   const dir = to.clone().sub(from).normalize();
   log('VECTIS ▸ INGRESS 240 KT · AUTONOMY LEVEL 4', 'sys');
   sfx.droneHum();
   let released = false, t = 0;
-  const releaseT = .42;
+  const releaseT = .45;
   addFx({ node: drone, update(dt){
-    t += dt/9;
+    t += dt/6.5;
     if (t >= 1){ killFx(this); return false; }
     drone.position.lerpVectors(from, to, t);
     drone.position.y = y + Math.sin(t*14)*1.2;
@@ -1083,12 +1494,12 @@ function fireSupply(tgt){
   plane.add(fus, wingsM, tail, fin, glowSprite('rgba(150,255,190,.6)', 2.6));
   scene.add(plane);
   const y = 30;
-  const from = new THREE.Vector3(tgt.x, y, tgt.z + 150), to = new THREE.Vector3(tgt.x, y, tgt.z - 160);
+  const from = new THREE.Vector3(tgt.x, y, tgt.z + 105), to = new THREE.Vector3(tgt.x, y, tgt.z - 115);
   log('HERKY ▸ C-130J ON FINAL · DZ MARKED', 'sys');
   sfx.droneHum();
   let dropped = false, t = 0;
   addFx({ node: plane, update(dt){
-    t += dt/8.5;
+    t += dt/5.8;
     if (t >= 1){ killFx(this); return false; }
     plane.position.lerpVectors(from, to, t);
     plane.lookAt(to);
@@ -1109,7 +1520,7 @@ function fireSupply(tgt){
       let ct = 0;
       addFx({ node: crate, update(dt2){
         ct += dt2;
-        const fall = Math.min(1, ct/5.2);
+        const fall = Math.min(1, ct/3.4);
         const yy = (y-1.5) - (y - 1.5 - tgt.y - .55) * (fall < .12 ? fall*3*fall : .0432 + (fall-.12)/.88 * .9568);
         crate.position.y = yy;
         crate.position.x = tgt.x + Math.sin(ct*1.7)*1.1*(1-fall);
@@ -1158,7 +1569,7 @@ function fireRecon(tgt){
   log('PATHFINDER ▸ INSERTION VECTOR CONFIRMED', 'sys');
   offs.forEach(([ox, oz], i) => {
     setTimeout(() => {
-      const lx = tgt.x + ox, lz = tgt.z + oz, ly = terrainH(lx, lz);
+      const lx = tgt.x + ox, lz = tgt.z + oz, ly = sampleH(lx, lz);
       const mk = new THREE.Group();
       const cone = new THREE.Mesh(new THREE.ConeGeometry(.5, 1.3, 4),
         new THREE.MeshBasicMaterial({ color: 0x57ffa0, transparent:true, opacity:.95, wireframe:true }));
@@ -1299,6 +1710,9 @@ function setTheme(t){
   rim.material.color.set(T.line);
   skirt.userData.tint.color.set(T.line);
   bEdges.material.color.set(T.city);
+  const bc = new THREE.Color(T.city);
+  buildings.forEach((b, i) => { if (b.alive) bMesh.setColorAt(i, bc); });
+  bMesh.instanceColor.needsUpdate = true;
   polar.material.color.set(T.line);
   retInner.material.color.set(T.accent); retOuter.material.color.set(T.accent);
   retTicks.material.color.set(T.accent); retBeam.material.color.set(T.accent);
@@ -1337,6 +1751,7 @@ const BOOT_LINES = [
   ['SAT-UPLINK ............ KH-GEO CONSTELLATION <span class="ok">[4/4 LOCK]</span>'],
   ['IMAGERY MESH .......... GOOGLE EARTH · 3D TILES <span class="ok">[STREAM OK]</span>'],
   ['THEATER ............... FRONT RANGE, COLORADO · 39.72N 105.00W'],
+  ['PATTERN-OF-LIFE ....... 190 CIV/FAUNA TRACKS <span class="ok">[FUSED]</span>'],
   ['ROE ................... <span class="ok">TRAINING SIMULATION — SANDBOX ONLY</span>'],
   ['PROJECTING HOLO-TABLE ...', 'dm'],
 ];
@@ -1392,14 +1807,14 @@ async function cinematic(){
     flyTo('farm'); await sleep(2400);
     setTarget(100, 16); await sleep(1100);
     selectWeapon('supply'); await sleep(800);
-    execute(); await sleep(11500);
+    execute(); await sleep(9500);
     flyTo('range'); await sleep(2400);
     setTarget(-88, -14); await sleep(1100);
     selectWeapon('recon'); await sleep(800);
     execute(); await sleep(5200);
     setTarget(-72, 22); await sleep(1000);
     selectWeapon('ucav'); await sleep(800);
-    execute(); await sleep(9000);
+    execute(); await sleep(7500);
     flyTo('overview');
     toast('DEMO COMPLETE — YOUR TURN. TAP ANYWHERE TO DESIGNATE.');
   } finally {
@@ -1427,6 +1842,13 @@ function frame(){
   }
   decals.forEach(d => { if (d.ember) d.ember.opacity = .4 + .4*Math.abs(Math.sin(perfT*2.2)); });
   for (let i=fx.length-1; i>=0; i--){ if (fx[i].update(dt) === false) fx.splice(i, 1); }
+  updateLife(dt);
+  lakeRipples.forEach(r => {
+    const t = (perfT*.22 + r.userData.ph) % 1;
+    r.scale.setScalar(1 + t*(LAKE.r - 1));
+    r.material.opacity = .3*(1 - t);
+  });
+  capitol.userData.beacon.material.opacity = .55 + .45*Math.abs(Math.sin(perfT*1.8));
   /* sat cam follows focus */
   satFocus.cx += (satFocus.x - satFocus.cx)*Math.min(1, dt*2.4);
   satFocus.cz += (satFocus.z - satFocus.cz)*Math.min(1, dt*2.4);
@@ -1463,8 +1885,10 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-/* debug / demo API */
-window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme, state, clearTarget, finishBoot };
+/* demo + diagnostics API (used by the headless QA harness) */
+window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme, state, clearTarget, finishBoot,
+  fxCount: () => fx.length, decalCount: () => decals.length, sceneCount: () => scene.children.length,
+  info: () => JSON.parse(JSON.stringify(renderer.info)) };
 
 boot();
 frame();

@@ -32,6 +32,19 @@ asset takes four seconds and zero keyboards.*
   2. `VECTIS` UCAV — Skunk Works loyal-wingman ingress + JAGM release
   3. `C-130J` airdrop — pallet, chute, landing beacon
   4. `PATHFINDER` recon team — 4-man insert + Stalker VXE scan rings
+- **Destructible world** — strikes carve persistent craters into the terrain
+  itself (the mountain range deforms, city blocks get holes blown in them),
+  buildings collapse to rubble stubs with debris bursts, farmsteads flatten,
+  trees inside the blast radius are erased, and water impacts splash instead.
+- **Pattern-of-life simulation** — 112 pedestrians walking the street grid,
+  61 vehicles (grid traffic, the diagonal avenue, farm trucks, amber taxis),
+  bird flocks over the lake and city, elk and deer herds grazing the
+  foothills. Everything scatters from a blast; traffic halts.
+- **Landmark lock** — the Colorado State Capitol with its gold dome and
+  beacon (heritage-shielded from strikes, and the log tells you so).
+- **Living landscape** — Chatfield Reservoir with animated ripples, 760
+  conifers/cottonwoods, 420 bushes, riparian corridors, farm windbreaks,
+  10 farmsteads (house + barn + silo), and crop-row fields.
 - **Mission log** with military brevity codes, dual-key authorize flow,
   EXECUTE button, keyboard shortcuts (1–4, Space, Esc).
 - **Two hologram palettes** — MK-II Cyan (ops) and MK-I Amber (the garage).
