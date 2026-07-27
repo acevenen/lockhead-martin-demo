@@ -120,9 +120,9 @@ body.mk1 .weapon.sel{background:rgba(10,40,52,.45);box-shadow:0 0 14px rgba(83,2
 #rail-r{position:fixed;right:14px;top:86px;bottom:64px;width:250px;z-index:45;display:flex;
   flex-direction:column;gap:10px;pointer-events:none}
 #rail-r>*{pointer-events:auto}
-#satwin{position:relative}
-#satview{position:relative;height:168px;margin:8px;border:1px solid var(--line-soft);overflow:hidden;
-  background:rgba(0,0,0,.25)}
+#satwin{position:relative;background:none;border:none;clip-path:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+#satwin .ptitle{background:var(--panel);border:1px solid var(--line);border-bottom:1px solid var(--line-soft)}
+#satview{position:relative;height:168px;margin:0;border:1px solid var(--line);border-top:none;overflow:hidden}
 #satview .scan{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
   background:repeating-linear-gradient(0deg,rgba(160,230,255,.06) 0 1px,transparent 1px 3px)}
 #satview .sweep{position:absolute;left:0;right:0;height:34%;pointer-events:none;
@@ -134,12 +134,14 @@ body.mk1 .weapon.sel{background:rgba(10,40,52,.45);box-shadow:0 0 14px rgba(83,2
 #satview .xh::before,#satview .xh::after{content:'';position:absolute;background:var(--c2)}
 #satview .xh::before{left:0;right:0;top:50%;height:1px}
 #satview .xh::after{top:0;bottom:0;left:50%;width:1px}
+#satview .ovl{text-shadow:0 1px 3px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.8)}
 #sat-rec{position:absolute;top:6px;left:8px;font-size:8.5px;letter-spacing:.18em;color:var(--alert)}
 #sat-rec::before{content:'●';margin-right:5px;animation:blink 1s infinite}
 #sat-coords{position:absolute;bottom:5px;left:8px;right:8px;display:flex;justify-content:space-between;
   font-size:8px;letter-spacing:.08em;color:rgba(200,240,255,.75);font-variant-numeric:tabular-nums}
 #sat-z{position:absolute;top:6px;right:8px;font-size:8px;letter-spacing:.12em;color:rgba(200,240,255,.7)}
-#sat-src{padding:0 10px 8px;font-size:8px;letter-spacing:.1em;color:var(--mut);display:flex;justify-content:space-between}
+#sat-src{padding:6px 10px;font-size:8px;letter-spacing:.1em;color:var(--mut);display:flex;justify-content:space-between;
+  background:var(--panel);border:1px solid var(--line);border-top:none}
 #sat-src b{color:var(--c1);font-weight:400}
 #intel .body{padding:8px 12px 10px;display:flex;flex-direction:column;gap:5px}
 #intel-name{font-family:var(--disp);font-size:11px;letter-spacing:.16em;color:#eaf9ff}
@@ -260,8 +262,8 @@ body.mk1 .weapon.sel{background:rgba(10,40,52,.45);box-shadow:0 0 14px rgba(83,2
     <div class="ptitle">SAT-UPLINK · LIVE<span class="tag" id="sat-id">KH-GEO 7</span></div>
     <div id="satview">
       <div class="scan"></div><div class="sweep"></div><div class="xh"></div>
-      <span id="sat-rec">REC</span><span id="sat-z">ORBIT 402 KM</span>
-      <div id="sat-coords"><span id="sat-ll">39.7200 N · 105.0000 W</span><span id="sat-t">--:--:--Z</span></div>
+      <span id="sat-rec" class="ovl">REC</span><span id="sat-z" class="ovl">ORBIT 402 KM</span>
+      <div id="sat-coords" class="ovl"><span id="sat-ll">39.7200 N · 105.0000 W</span><span id="sat-t">--:--:--Z</span></div>
     </div>
     <div id="sat-src"><span>IMAGERY · <b>GOOGLE EARTH MESH</b></span><span>3D TILES · CONCEPT LINK</span></div>
   </section>
@@ -391,7 +393,7 @@ renderer.autoClear = false;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.5, 2000);
-const satCam = new THREE.PerspectiveCamera(18, 1.4, 1, 800);
+const satCam = new THREE.PerspectiveCamera(24, 1.4, 1, 800);
 
 const THEMES = {
   mk2: { line:0x53e6ff, low:0x0a2233, high:0x39c9ef, city:0x2ee8ff, farm:0x2fae72, river:0x53e6ff, accent:0xffb454, css:'MK-II CYAN', other:'MK-I AMBER' },
@@ -426,7 +428,8 @@ const tUni = {
   uCFarm:  { value: new THREE.Color(THEMES.mk2.farm) },
   uCRiver: { value: new THREE.Color(THEMES.mk2.river) },
   uTarget: { value: new THREE.Vector3(0,0,0) },
-  uHasTarget: { value: 0 }
+  uHasTarget: { value: 0 },
+  uBoost: { value: 1 }
 };
 const tMat = new THREE.ShaderMaterial({
   uniforms: tUni,
@@ -440,7 +443,7 @@ const tMat = new THREE.ShaderMaterial({
   fragmentShader: `
     uniform float uTime;
     uniform vec3 uCLow, uCHigh, uCLine, uCCity, uCFarm, uCRiver, uTarget;
-    uniform float uHasTarget;
+    uniform float uHasTarget, uBoost;
     varying vec3 vPos; varying vec4 vZone; varying vec3 vN;
     float gridLine(vec2 p, float scale){
       vec2 q = p / scale;
@@ -471,7 +474,7 @@ const tMat = new THREE.ShaderMaterial({
       vec3 outc = col * 0.6 + uCLine * (g + contour * 0.55 + scan + tg);
       float ef = smoothstep(0.0, 12.0, 150.0 - abs(vPos.x)) * smoothstep(0.0, 12.0, 100.0 - abs(vPos.z));
       outc *= 0.3 + 0.7 * ef;
-      gl_FragColor = vec4(outc, 1.0);
+      gl_FragColor = vec4(outc * uBoost, 1.0);
     }`,
 });
 tMat.extensions.derivatives = true;
@@ -541,7 +544,7 @@ const buildings = [];
   }
 }
 const bGeo = new THREE.BoxGeometry(1,1,1); bGeo.translate(0,.5,0);
-const bFillMat = new THREE.MeshBasicMaterial({ transparent:true, opacity:.13, blending:THREE.AdditiveBlending, depthWrite:false });
+const bFillMat = new THREE.MeshBasicMaterial({ transparent:true, opacity:.045, blending:THREE.AdditiveBlending, depthWrite:false });
 const bMesh = new THREE.InstancedMesh(bGeo, bFillMat, buildings.length);
 {
   const m4 = new THREE.Matrix4();
@@ -565,7 +568,7 @@ const bEdges = (() => {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(P, 3));
   return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: THEMES.mk2.city, transparent:true,
-    opacity:.4, blending:THREE.AdditiveBlending, depthWrite:false }));
+    opacity:.3, blending:THREE.AdditiveBlending, depthWrite:false }));
 })();
 scene.add(bEdges);
 
@@ -632,8 +635,8 @@ function addMarkerLabel(x, z, txt, col){
   c.fillStyle = col; c.fillText(txt, 128, 26);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent:true,
     opacity:.85, depthWrite:false }));
-  sp.scale.set(17, 2.7, 1); sp.position.set(x, y + 3.4, z);
-  const lg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,y,z), new THREE.Vector3(x,y+2.6,z)]);
+  sp.scale.set(15, 2.4, 1); sp.position.set(x, y + 5.6, z);
+  const lg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,y,z), new THREE.Vector3(x,y+4.6,z)]);
   markers.add(new THREE.Line(lg, new THREE.LineBasicMaterial({ color: 0x53e6ff, transparent:true, opacity:.4 })));
   markers.add(sp);
 }
@@ -793,7 +796,7 @@ function setTarget(x, z){
   tUni.uHasTarget.value = 1;
   const ll = fmtLL(x, z);
   $('t-lat').textContent = ll.lat; $('t-lon').textContent = ll.lon;
-  $('t-elev').textContent = Math.round(1500 + y*400) + ' M';
+  $('t-elev').textContent = Math.round(1450 + y*205) + ' M';
   $('t-grid').textContent = fmtGrid(x, z);
   $('t-sec').textContent = sectorAt(x, z);
   ['t-lat','t-lon','t-elev','t-grid','t-sec'].forEach(id => $(id).classList.remove('dim'));
@@ -952,18 +955,18 @@ function explosion(pos, s, quiet){
   let t = 0;
   addFx({ node: grp, update(dt){
     t += dt;
-    const k = t/1.15;
+    const k = t/1.6;
     if (k >= 1){ killFx(this); return false; }
     flash.scale.setScalar(4 + 30*s*Math.pow(k,.4));
-    flash.material.opacity = Math.max(0, 1 - k*1.7);
-    ring.scale.setScalar(1 + k*22*s); ring.material.opacity = Math.max(0, .95 - k*1.1);
-    ring2.scale.setScalar(1 + Math.max(0,k-.18)*30*s); ring2.material.opacity = Math.max(0, .7 - k*.9);
+    flash.material.opacity = Math.max(0, 1 - k*1.35);
+    ring.scale.setScalar(1 + k*22*s); ring.material.opacity = Math.max(0, .95 - k*1.05);
+    ring2.scale.setScalar(1 + Math.max(0,k-.18)*30*s); ring2.material.opacity = Math.max(0, .7 - k*.85);
     pillar.scale.y = 2 + k*26*s; pillar.position.y = pillar.scale.y/2;
-    pillar.material.opacity = Math.max(0, .5 - k*.62);
+    pillar.material.opacity = Math.max(0, .5 - k*.58);
     for (let i=0;i<N;i++){
       PV[i].y -= 22*dt;
       PP[i*3] += PV[i].x*dt; PP[i*3+1] = Math.max(0, PP[i*3+1] + PV[i].y*dt); PP[i*3+2] += PV[i].z*dt;
-      const f = Math.max(0, 1-k*1.25);
+      const f = Math.max(0, 1-k*1.2);
       PC[i*3] = f; PC[i*3+1] = .75*f*f + .1; PC[i*3+2] = .5*f*f*f;
     }
     pg.attributes.position.needsUpdate = true; pg.attributes.color.needsUpdate = true;
@@ -982,7 +985,7 @@ function fireJASSM(tgt){
   body.rotation.x = Math.PI/2;
   grp.add(body, glowSprite('rgba(255,160,60,.9)', 3.2));
   scene.add(grp);
-  const trail = makeTrail(80, 0xffa050, 1.4);
+  const trail = makeTrail(110, 0xffa050, 2.0);
   scene.add(trail.node);
   log('FOX-3 ▸ JASSM-ER AWAY · ETA 3.4 S', 'crit');
   sfx.launch();
@@ -1418,7 +1421,7 @@ function frame(){
   satFocus.cx += (satFocus.x - satFocus.cx)*Math.min(1, dt*2.4);
   satFocus.cz += (satFocus.z - satFocus.cz)*Math.min(1, dt*2.4);
   const orb = perfT*.07;
-  satCam.position.set(satFocus.cx + Math.cos(orb)*14, 130, satFocus.cz + Math.sin(orb)*14);
+  satCam.position.set(satFocus.cx + Math.cos(orb)*10, 92, satFocus.cz + Math.sin(orb)*10);
   satCam.lookAt(satFocus.cx, 0, satFocus.cz);
   /* render main */
   renderer.setScissorTest(false);
@@ -1436,7 +1439,9 @@ function frame(){
       renderer.setScissor(x, y, r.width, r.height);
       renderer.setViewport(x, y, r.width, r.height);
       renderer.clear(true, true, false);
+      tUni.uBoost.value = 2.6;
       renderer.render(scene, satCam);
+      tUni.uBoost.value = 1;
       renderer.setScissorTest(false);
     }
   }
