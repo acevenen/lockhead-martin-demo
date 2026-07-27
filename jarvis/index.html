@@ -291,37 +291,40 @@ const EMBEDDED_STATE = {
   user:{name:"", honorific:"sir"},
   brief:{
     since:"last session",
-    headline:"AEGIS Overwatch review fixes shipped; JARVIS command HUD deployed.",
+    headline:"Sentinel repo attached; first hardening PR shipped. JARVIS command HUD deployed.",
     items:[
-      {agent:"demo-engineer", kind:"done", text:"AEGIS OVERWATCH demo hardened: pinch ghost-tap guard, theme-complete compass/grid/feed, JAGM/RIFLE brevity, texture cache."},
-      {agent:"demo-engineer", kind:"done", text:"QA pass: city additive blowout fixed, sat-uplink feed brightened, real elevations, longer impact FX."},
-      {agent:"jarvis-chief-of-staff", kind:"done", text:"JARVIS personal command HUD built and deployed — voice loop, orb, panels, agent roster, state pipeline."},
-      {agent:"sentinel-lead", kind:"blocked", text:"Sentinel repo is not attached to this workspace yet — add it with add_repo so the team can execute, not just plan."}
+      {agent:"sentinel-lead", kind:"done", text:"Sentinel repo attached and mapped: authorization-first Go security CLI, 131 Go files, build/vet/tests/lint all green at baseline."},
+      {agent:"sentinel-lead", kind:"done", text:"Shipped PR #2 — hardened all 9 intrusive-tool output parsers against hostile input; caught and fixed a hashcat parser bug that fabricated 'hash recovered' findings from status banners."},
+      {agent:"jarvis-chief-of-staff", kind:"done", text:"JARVIS personal command HUD built and deployed — voice loop, reactive orb, panels, agent roster, state pipeline (PR #1)."},
+      {agent:"demo-engineer", kind:"done", text:"AEGIS OVERWATCH review fixes shipped: pinch ghost-tap guard, theme-complete chrome, brightened sat feed, longer impact FX."},
+      {agent:"sentinel-lead", kind:"blocked", text:"Sentinel next milestone needs your steer — see the proposed direction in Operations."}
     ]
   },
   priorities:[
-    {id:"sentinel", label:"SENTINEL DEVELOPMENT", status:"P0 · ACTIVE", progress:0.15,
-     next:"Attach Sentinel repo → chief of staff maps codebase → sentinel-lead proposes next milestone plan."}
+    {id:"sentinel", label:"SENTINEL DEVELOPMENT", status:"P0 · ACTIVE", progress:0.28,
+     next:"Parser-hardening PR #2 in review. Next: extend the robustness pattern to the authz/scope gate and audit-chain, or take a milestone you name."}
   ],
   tasks:[
-    {title:"Attach Sentinel repo to JARVIS workspace", project:"SENTINEL", priority:"P0", status:"open",
-     note:"Say “add repo <owner/name>” in Claude Code; sentinel-lead takes it from there."},
-    {title:"Sentinel: map codebase + write milestone plan", project:"SENTINEL", priority:"P0", status:"open",
-     note:"Blocked on repo attach."},
+    {title:"Sentinel PR #2 — review + merge parser hardening", project:"SENTINEL", priority:"P0", status:"in-review",
+     note:"Tests + one defensive fix. CI (Build/Test/Lint) running; all three pass locally."},
+    {title:"Sentinel: pick the next milestone", project:"SENTINEL", priority:"P0", status:"open",
+     note:"Proposed: central authorization-contract fuzzing + audit-chain tamper tests. Your call in Operations."},
     {title:"AEGIS: record 2-min cinematic capture for the pitch", project:"DEMOS", priority:"P1", status:"open",
      note:"?autodemo flag runs the scripted loop."},
     {title:"Configure ElevenLabs key for authentic JARVIS voice", project:"JARVIS", priority:"P2", status:"open",
      note:"Settings panel → key + voice ID. Falls back to en-GB system voice."},
-    {title:"Load values.md + business.md knowledge base", project:"JARVIS", priority:"P2", status:"open",
-     note:"jarvis/knowledge/ — the team checks decisions against it."}
+    {title:"Fill in values.md + business.md knowledge base", project:"JARVIS", priority:"P2", status:"open",
+     note:"jarvis/knowledge/ — the team checks decisions against it; blanks force escalations."}
   ],
   roadblocks:[
-    {title:"Sentinel source not in workspace", impact:"P0 priority can be planned but not executed.",
-     proposed:"Attach the Sentinel repo to this Claude Code environment (add_repo), then fire the sentinel-lead agent.", needsUser:true},
+    {title:"Sentinel CI Lint is broken on main (pre-existing)", impact:"Every PR's Lint check fails; Build + Test are green. Not caused by PR #2.",
+     proposed:"golangci-lint v2.1.6 can't parse the Go 1.26 stdlib that `go-version: stable` now pulls. Bump golangci-lint or pin go-version to 1.25 in ci.yml — a small separate PR I can open on your go-ahead.", needsUser:true},
+    {title:"Sentinel next milestone needs direction", impact:"The team can keep hardening autonomously, but a named milestone focuses P0.",
+     proposed:"Approve the proposed track — fuzz the central authorization contract shared by active adapters and add tamper tests for the hash-chained audit log — or name your own.", needsUser:true},
     {title:"No ElevenLabs credentials", impact:"JARVIS speaks with the system en-GB voice instead of the cinematic one.",
      proposed:"Paste key + voice ID in Settings (stored in this browser only).", needsUser:true},
-    {title:"Mic permissions on headset browsers", impact:"Wake-word listening may be unavailable on some Meta browsers.",
-     proposed:"Use tap-to-talk on the orb, or the typed command line — both drive the same intents.", needsUser:false}
+    {title:"Knowledge base is placeholder-only", impact:"Decisions that aren't covered by values.md get escalated instead of resolved.",
+     proposed:"Fill in jarvis/knowledge/values.md and business.md when you have a moment.", needsUser:true}
   ],
   demos:[
     {id:"aegis", title:"AEGIS OVERWATCH", status:"REVIEW FIXES SHIPPED", path:"../index.html",
@@ -333,8 +336,8 @@ const EMBEDDED_STATE = {
   agents:[
     {id:"jarvis-chief-of-staff", name:"CHIEF OF STAFF", status:"active",
      role:"Runs every session: reads state, delivers the brief, routes work to the team, updates state before signing off."},
-    {id:"sentinel-lead", name:"SENTINEL LEAD", status:"standby",
-     role:"Owns Priority One. Maps the Sentinel codebase, plans milestones, ships development work."},
+    {id:"sentinel-lead", name:"SENTINEL LEAD", status:"active",
+     role:"Owns Priority One. Sentinel repo mapped; parser-hardening PR #2 shipped and in review."},
     {id:"demo-engineer", name:"DEMO ENGINEER", status:"active",
      role:"Owns the demos group — AEGIS Overwatch and future concept pieces. Polish, QA, cinematic capture."},
     {id:"daily-brief", name:"BRIEFING OFFICER", status:"active",
@@ -342,7 +345,7 @@ const EMBEDDED_STATE = {
     {id:"biz-ops", name:"BIZ OPS", status:"standby",
      role:"Business problems and roadblocks: triage, propose solutions, flag what needs your call."}
   ],
-  activity14:[1,0,2,1,3,2,4,3,2,5,4,6,8,9]
+  activity14:[0,2,1,3,2,4,3,2,5,4,6,8,9,12]
 };
 
 let STATE = EMBEDDED_STATE;
