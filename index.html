@@ -33,7 +33,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--c1);
 #stage,#gl{position:fixed;inset:0;width:100%;height:100%}
 #gl{display:block;touch-action:none;animation:holoflicker 7s infinite steps(1)}
 @keyframes holoflicker{0%,93%,96%,100%{filter:brightness(1)}94%{filter:brightness(1.12)}95%{filter:brightness(.94)}}
-@media (prefers-reduced-motion:reduce){#gl{animation:none}}
+@media (prefers-reduced-motion:reduce){
+  #gl{animation:none}
+  #execute.ready,#tgt-status.locked,#sat-rec::before,#satview .sweep{animation:none}
+}
 
 /* ---------- full-screen atmosphere ---------- */
 #scanlines{position:fixed;inset:0;pointer-events:none;z-index:40;mix-blend-mode:screen;opacity:.5;
@@ -198,9 +201,16 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
 @media (max-width:940px){
   #topbar{padding:8px 8px 0;flex-wrap:wrap;gap:6px}
   #brand .t1{font-size:12px;letter-spacing:.2em}
-  #tstatus{display:none}
+  #tstatus{display:flex;order:2;margin-left:auto;padding:2px;gap:5px}
+  #tstatus .pill{display:none}
+  .iconbtn{padding:5px 7px;font-size:9px}
   #sectors{margin:0;order:3;width:100%;justify-content:flex-start;overflow-x:auto}
   .secbtn{padding:7px 10px;font-size:9.5px;flex:none}
+  /* SIMULATION watermark survives the mobile layout as a header banner */
+  #topbar::after{content:'SIMULATION · SYNTHETIC RANGE · NO LIVE-WEAPON INTERFACE';
+    flex:1 0 100%;order:9;text-align:center;font-size:7.5px;letter-spacing:.16em;
+    color:var(--alert);border:1px solid rgba(255,77,94,.4);background:rgba(40,6,12,.6);
+    padding:3px 6px;pointer-events:none}
   #rail-r{display:none}
   #rail-l{left:8px;right:8px;top:auto;bottom:8px;width:auto;flex-direction:column;gap:6px}
   #arsenal{flex:none}
@@ -210,6 +220,22 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
   #tgt .body{grid-template-columns:auto 1fr auto 1fr}
   #bottombar{display:none}
   .corner{display:none}
+}
+/* landscape phone: HUD hugs the left edge so the terrain stays tappable */
+@media (max-width:940px) and (max-height:520px){
+  #topbar::after{position:fixed;right:8px;bottom:4px;left:auto;flex:none;order:0;z-index:60}
+  #brand{padding:4px 10px}
+  #brand .t2{display:none}
+  #sectors{order:1;width:auto;margin:0 4px;flex:1}
+  #tstatus{order:2}
+  #rail-l{left:8px;right:auto;top:50px;bottom:8px;width:206px;flex-direction:column}
+  #tgt .body{grid-template-columns:auto 1fr;gap:2px 8px}
+  #tgt-status{margin:2px 8px 6px;padding:3px 6px}
+  #arsenal{flex:1;min-height:0}
+  #weapons{flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:5px}
+  .weapon{width:auto;padding:5px 8px}
+  .weapon .sb{display:none}
+  #execute{margin:3px 6px 6px;padding:8px;font-size:11px}
 }
 </style>
 </head>
@@ -261,7 +287,7 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
 
 <div id="rail-r">
   <section class="panel" id="satwin">
-    <div class="ptitle">SAT-UPLINK · LIVE<span class="tag" id="sat-id">KH-GEO 7</span></div>
+    <div class="ptitle">SAT-UPLINK · LIVE<span class="tag" id="sat-id">KEYHOLE 7</span></div>
     <div id="satview">
       <div class="scan"></div><div class="sweep"></div><div class="xh"></div>
       <span id="sat-rec" class="ovl">REC</span><span id="sat-z" class="ovl">ORBIT 402 KM</span>
@@ -333,7 +359,7 @@ function fmtLL(x, z){
            lon: Math.abs(p.lon).toFixed(4) + '° ' + (p.lon <= 0 ? 'W' : 'E') };
 }
 function fmtGrid(x, z){
-  return '13S ' + String(Math.round((x+150)*33)).padStart(5,'0') + ' ' + String(Math.round((100-z)*47)).padStart(5,'0');
+  return '13S ES ' + String(Math.round((x+150)*33)).padStart(5,'0') + ' ' + String(Math.round((100-z)*47)).padStart(5,'0');
 }
 function sectorAt(x, z){
   if (mountainMask(x) > 0.4) return 'BRAVO · RANGE';
@@ -948,7 +974,7 @@ const state = { target: null, weapon: null, busy: false, sector: 'overview', t0:
 const decals = [];
 const fx = [];
 function addFx(o){ fx.push(o); }
-const disposables = obj => obj.traverse ? obj.traverse(n => { n.geometry && n.geometry.dispose(); }) : 0;
+const disposables = obj => obj.traverse ? obj.traverse(n => { if (!n.isSprite && n.geometry) n.geometry.dispose(); }) : 0;
 function killFx(o){ if (o.node) { scene.remove(o.node); disposables(o.node); } }
 
 /* ---------------- camera control ---------------- */
@@ -968,12 +994,14 @@ function applyCam(dt){
     pivot.x + sph.r*Math.sin(sph.phi)*Math.sin(sph.theta) + sx,
     pivot.y + sph.r*Math.cos(sph.phi) + sy,
     pivot.z + sph.r*Math.sin(sph.phi)*Math.cos(sph.theta) + sz);
+  const floor = sampleH(camera.position.x, camera.position.z) + 1.7;
+  if (camera.position.y < floor) camera.position.y = floor;
   camera.lookAt(pivot.x + sx*.4, pivot.y, pivot.z + sz*.4);
 }
 const SECTORS = {
   overview:{ name:'THEATER OVERVIEW', coords:'FRONT RANGE · COLORADO · 39.72°N 105.00°W',
     pivot:[0,0], r:250, phi:.95, theta:.85,
-    intel:['THREE-BIOME SYNTHETIC RANGE · 120 × 80 KM','GOOGLE EARTH MESH FUSION: 94.7% TILE LOCK','PATTERN-OF-LIFE: 190 TRACKS · ECO-SIM ACTIVE','ASSETS: KH-GEO 7 · VECTIS CAP 2 · C-130J'] },
+    intel:['THREE-BIOME SYNTHETIC RANGE · 120 × 80 KM','GOOGLE EARTH MESH FUSION: 94.7% TILE LOCK','PATTERN-OF-LIFE: 190 TRACKS · ECO-SIM ACTIVE','ASSETS: KEYHOLE 7 · VECTIS CAP 2 · C-130J'] },
   city:{ name:'SECTOR ALPHA — DENVER METRO GRID', coords:'39.7392°N 104.9903°W · ELEV 1,609 M',
     pivot:[8,6], r:74, phi:.8, theta:.55,
     intel:['STRUCTURES: 340 · CIV TRACKS: 112 · VEHICLES: 61','LANDMARK LOCK: STATE CAPITOL · GOLD DOME','ROE: WEAPONS TIGHT · PID REQUIRED · COLLATERAL HIGH'] },
@@ -1111,6 +1139,7 @@ function updateExec(){
 }
 $('execute').addEventListener('click', execute);
 addEventListener('keydown', e => {
+  if (e.target && e.target.closest && e.target.closest('button,input,textarea')) return;
   if (e.key >= '1' && e.key <= '4') selectWeapon(WEAPONS[+e.key - 1].id);
   if (e.key === ' '){ e.preventDefault(); execute(); }
   if (e.key === 'Escape') clearTarget();
@@ -1122,14 +1151,19 @@ function clearTarget(){
   $('tgt-status').classList.remove('locked');
   updateExec();
 }
+function setWeapon(id){ if (state.weapon !== id) selectWeapon(id); }
 function execute(){
   if (!state.target || !state.weapon || state.busy) return;
   state.busy = true;
   const ex = $('execute');
   ex.classList.add('busy'); ex.textContent = 'AUTHORIZING…';
   sfx.auth(); haptic([20, 60, 20, 60, 40]);
-  log('AUTH ▸ DUAL-KEY CONFIRMED · SIM SANDBOX', 'crit');
-  const tgt = { ...state.target }, wpn = state.weapon;
+  /* refresh ground height at launch — earlier strikes may have cratered this spot */
+  const tgt = { ...state.target, y: sampleH(state.target.x, state.target.z) };
+  const wpn = state.weapon;
+  const kinetic = wpn === 'jassm' || wpn === 'ucav';
+  log(kinetic ? 'AUTH ▸ DUAL-KEY CONFIRMED · SIM SANDBOX' : 'AUTH ▸ TASKING CONFIRMED · SIM SANDBOX',
+    kinetic ? 'crit' : 'sys');
   setTimeout(() => {
     ex.textContent = 'IN FLIGHT…';
     ({ jassm: fireJASSM, ucav: fireUCAV, supply: fireSupply, recon: fireRecon })[wpn](tgt);
@@ -1291,6 +1325,8 @@ function destroyStructures(pos, radius){
   if (flora){ treeMesh.instanceMatrix.needsUpdate = true; bushMesh.instanceMatrix.needsUpdate = true; }
   if (Math.hypot(CAPITOL.x-pos.x, CAPITOL.z-pos.z) < radius + 4)
     log('ROE ▸ HERITAGE SITE — CAPITOL STRIKE INHIBITED', 'warn');
+  if (Math.hypot(-88-pos.x, 42-pos.z) < radius + 6)
+    log('ROE ▸ FRIENDLY INFRA — LM WATERTON SHIELDED', 'warn');
   if (count > 0) log(`BDA ▸ ${count} STRUCTURE${count > 1 ? 'S' : ''} DOWN · SIM`, 'warn');
 }
 function scatterLife(pos, radius){
@@ -1564,7 +1600,7 @@ function pulseRing(tgt, col, R){
 let reconTeam = null;
 function fireRecon(tgt){
   if (reconTeam){ scene.remove(reconTeam); disposables(reconTeam); }
-  reconTeam = new THREE.Group(); scene.add(reconTeam);
+  const team = reconTeam = new THREE.Group(); scene.add(team);
   const offs = [[7,0],[-7,0],[0,7],[0,-7]];
   log('PATHFINDER ▸ INSERTION VECTOR CONFIRMED', 'sys');
   offs.forEach(([ox, oz], i) => {
@@ -1577,7 +1613,7 @@ function fireRecon(tgt){
       const gl2 = glowSprite('rgba(90,255,160,.9)', 1.5); gl2.position.y = 1.9;
       mk.add(cone, gl2);
       mk.position.set(lx, 45, lz);
-      reconTeam.add(mk);
+      team.add(mk);
       sfx.blip(980 + i*60, .05);
       let t = 0;
       addFx({ update(dt){
@@ -1598,13 +1634,13 @@ function fireRecon(tgt){
       }});
     }, i*260);
   });
-  /* persistent scan ring from team center */
+  /* persistent scan ring from team center — dies with THIS team, not the variable */
   const scanState = { t: 0 };
   addFx({ update(dt){
-    if (!reconTeam || !reconTeam.parent) return false;
+    if (team !== reconTeam || !team.parent) return false;
     scanState.t += dt;
     if (scanState.t > 2.6){ scanState.t = 0; pulseRing(tgt, 0x57ffa0, 13); }
-    reconTeam.children.forEach((m, i) => { if (m.children[1]) m.children[1].position.y = 1.9 + Math.sin(perfT*2 + i)*0.25; });
+    team.children.forEach((m, i) => { if (m.children[1]) m.children[1].position.y = 1.9 + Math.sin(perfT*2 + i)*0.25; });
     return true;
   }});
 }
@@ -1618,6 +1654,7 @@ const audio = { ctx: null, master: null, muted: true,
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : .5;
       this.master.connect(this.ctx.destination);
+      if (this.ctx.state === 'suspended') this.ctx.resume();
     } catch(e){}
   },
   setMuted(m){ this.muted = m; if (this.master) this.master.gain.value = m ? 0 : .5; } };
@@ -1748,7 +1785,7 @@ const BOOT_LINES = [
   ['AEGIS OVERWATCH v5.0 — SKUNK WORKS ADVANCED CONCEPTS', 'dm'],
   ['NEURAL HUD ............ META RAY-BAN DISPLAY <span class="ok">[PAIRED]</span>'],
   ['GESTURE ENGINE ........ EMG WRISTBAND <span class="ok">[ONLINE]</span>'],
-  ['SAT-UPLINK ............ KH-GEO CONSTELLATION <span class="ok">[4/4 LOCK]</span>'],
+  ['SAT-UPLINK ............ KEYHOLE CONSTELLATION · LEO <span class="ok">[4/4 LOCK]</span>'],
   ['IMAGERY MESH .......... GOOGLE EARTH · 3D TILES <span class="ok">[STREAM OK]</span>'],
   ['THEATER ............... FRONT RANGE, COLORADO · 39.72N 105.00W'],
   ['PATTERN-OF-LIFE ....... 190 CIV/FAUNA TRACKS <span class="ok">[FUSED]</span>'],
@@ -1792,34 +1829,39 @@ function toast(t){
 }
 
 /* ---------------- cinematic auto-demo ---------------- */
-let cineRunning = false;
+let cineRunning = false, cineToken = 0;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function cinematic(){
-  if (cineRunning) return;
+  if (cineRunning){ cineToken++; return; }   /* second press = stop */
   cineRunning = true;
-  $('btn-cine').classList.add('off');
+  const myToken = ++cineToken;
+  const step = async ms => { await sleep(ms); if (myToken !== cineToken) throw 'cine-abort'; };
+  $('btn-cine').textContent = '■ STOP';
   try {
     toast('CINEMATIC DEMO — SIT BACK');
-    flyTo('city'); await sleep(2300);
-    setTarget(14, 2); await sleep(1300);
-    selectWeapon('jassm'); await sleep(900);
-    execute(); await sleep(7200);
-    flyTo('farm'); await sleep(2400);
-    setTarget(100, 16); await sleep(1100);
-    selectWeapon('supply'); await sleep(800);
-    execute(); await sleep(9500);
-    flyTo('range'); await sleep(2400);
-    setTarget(-88, -14); await sleep(1100);
-    selectWeapon('recon'); await sleep(800);
-    execute(); await sleep(5200);
-    setTarget(-72, 22); await sleep(1000);
-    selectWeapon('ucav'); await sleep(800);
-    execute(); await sleep(7500);
+    flyTo('city'); await step(2300);
+    setTarget(14, 2); await step(1300);
+    setWeapon('jassm'); await step(900);
+    execute(); await step(7200);
+    flyTo('farm'); await step(2400);
+    setTarget(100, 16); await step(1100);
+    setWeapon('supply'); await step(800);
+    execute(); await step(9500);
+    flyTo('range'); await step(2400);
+    setTarget(-88, -14); await step(1100);
+    setWeapon('recon'); await step(800);
+    execute(); await step(5200);
+    setTarget(-72, 22); await step(1000);
+    setWeapon('ucav'); await step(800);
+    execute(); await step(7500);
     flyTo('overview');
-    toast('DEMO COMPLETE — YOUR TURN. TAP ANYWHERE TO DESIGNATE.');
+    toast('DEMO COMPLETE — YOUR TURN. TAP THE TERRAIN TO DESIGNATE.');
+  } catch(e) {
+    if (e === 'cine-abort') toast('CINEMATIC STOPPED — MANUAL CONTROL');
+    else throw e;
   } finally {
     cineRunning = false;
-    $('btn-cine').classList.remove('off');
+    $('btn-cine').textContent = '▶ CINEMATIC';
   }
 }
 $('btn-cine').addEventListener('click', () => { audio.unlock(); cinematic(); });
@@ -1882,6 +1924,7 @@ function frame(){
 addEventListener('resize', () => {
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
 });
 
