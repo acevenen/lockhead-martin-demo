@@ -291,22 +291,25 @@ const EMBEDDED_STATE = {
   user:{name:"", honorific:"sir"},
   brief:{
     since:"last session",
-    headline:"Sentinel repo attached; first hardening PR shipped. JARVIS command HUD deployed.",
+    headline:"Sentinel: two hardening PRs shipped (parsers + authorization gate). JARVIS command HUD deployed.",
     items:[
       {agent:"sentinel-lead", kind:"done", text:"Sentinel repo attached and mapped: authorization-first Go security CLI, 131 Go files, build/vet/tests/lint all green at baseline."},
       {agent:"sentinel-lead", kind:"done", text:"Shipped PR #2 — hardened all 9 intrusive-tool output parsers against hostile input; caught and fixed a hashcat parser bug that fabricated 'hash recovered' findings from status banners."},
+      {agent:"sentinel-lead", kind:"done", text:"Shipped PR #3 — adversarial scope-matching tests for the authorization gate: wildcard/apex, path-prefix confusion, scheme strictness, deny-wins, kill-switch ordering, Chain fail-closed."},
       {agent:"jarvis-chief-of-staff", kind:"done", text:"JARVIS personal command HUD built and deployed — voice loop, reactive orb, panels, agent roster, state pipeline (PR #1)."},
       {agent:"demo-engineer", kind:"done", text:"AEGIS OVERWATCH review fixes shipped: pinch ghost-tap guard, theme-complete chrome, brightened sat feed, longer impact FX."},
       {agent:"sentinel-lead", kind:"blocked", text:"Sentinel next milestone needs your steer — see the proposed direction in Operations."}
     ]
   },
   priorities:[
-    {id:"sentinel", label:"SENTINEL DEVELOPMENT", status:"P0 · ACTIVE", progress:0.28,
-     next:"Parser-hardening PR #2 in review. Next: extend the robustness pattern to the authz/scope gate and audit-chain, or take a milestone you name."}
+    {id:"sentinel", label:"SENTINEL DEVELOPMENT", status:"P0 · ACTIVE", progress:0.36,
+     next:"PRs #2 (parsers) and #3 (authorization gate) in review. Next: audit-chain tamper tests, or take a milestone you name."}
   ],
   tasks:[
     {title:"Sentinel PR #2 — review + merge parser hardening", project:"SENTINEL", priority:"P0", status:"in-review",
-     note:"Tests + one defensive fix. CI (Build/Test/Lint) running; all three pass locally."},
+     note:"Tests + one defensive fix. Build/Test green; Lint red on pre-existing CI skew."},
+    {title:"Sentinel PR #3 — review + merge authorization-gate tests", project:"SENTINEL", priority:"P0", status:"in-review",
+     note:"Adversarial scope-matching tests, no production change. Independent of #2."},
     {title:"Sentinel: pick the next milestone", project:"SENTINEL", priority:"P0", status:"open",
      note:"Proposed: central authorization-contract fuzzing + audit-chain tamper tests. Your call in Operations."},
     {title:"AEGIS: record 2-min cinematic capture for the pitch", project:"DEMOS", priority:"P1", status:"open",
@@ -345,7 +348,7 @@ const EMBEDDED_STATE = {
     {id:"biz-ops", name:"BIZ OPS", status:"standby",
      role:"Business problems and roadblocks: triage, propose solutions, flag what needs your call."}
   ],
-  activity14:[0,2,1,3,2,4,3,2,5,4,6,8,9,12]
+  activity14:[2,1,3,2,4,3,2,5,4,6,8,9,12,15]
 };
 
 let STATE = EMBEDDED_STATE;
