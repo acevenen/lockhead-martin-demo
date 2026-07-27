@@ -31,7 +31,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--c1);
   font-family:var(--mono);font-size:12px;-webkit-user-select:none;user-select:none;
   -webkit-tap-highlight-color:transparent}
 #stage,#gl{position:fixed;inset:0;width:100%;height:100%}
-#gl{display:block;animation:holoflicker 7s infinite steps(1)}
+#gl{display:block;touch-action:none;animation:holoflicker 7s infinite steps(1)}
 @keyframes holoflicker{0%,93%,96%,100%{filter:brightness(1)}94%{filter:brightness(1.12)}95%{filter:brightness(.94)}}
 @media (prefers-reduced-motion:reduce){#gl{animation:none}}
 
@@ -128,6 +128,8 @@ body.mk1 .weapon.sel{background:rgba(10,40,52,.45);box-shadow:0 0 14px rgba(83,2
 #satview .sweep{position:absolute;left:0;right:0;height:34%;pointer-events:none;
   background:linear-gradient(180deg,transparent,rgba(140,230,255,.10),transparent);
   animation:satsweep 3.4s linear infinite}
+body.mk1 #satview .scan{background:repeating-linear-gradient(0deg,rgba(255,210,150,.06) 0 1px,transparent 1px 3px)}
+body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,200,130,.10),transparent)}
 @keyframes satsweep{from{top:-40%}to{top:110%}}
 #satview .xh{position:absolute;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);
   pointer-events:none;opacity:.8}
@@ -159,8 +161,8 @@ body.mk1 .weapon.sel{background:rgba(10,40,52,.45);box-shadow:0 0 14px rgba(83,2
 /* ---------- bottom ---------- */
 #bottombar{position:fixed;left:0;right:0;bottom:0;z-index:44;display:flex;align-items:flex-end;
   justify-content:space-between;padding:0 46px 12px;pointer-events:none;gap:12px}
-#compass{width:54px;height:54px;position:relative;flex:none}
-#compass svg{width:100%;height:100%;filter:drop-shadow(0 0 6px rgba(83,230,255,.4))}
+#compass{width:54px;height:54px;position:relative;flex:none;color:var(--c1)}
+#compass svg{width:100%;height:100%;filter:drop-shadow(0 0 6px var(--c1-dim))}
 #gestures{display:flex;gap:14px;padding:7px 16px;font-size:8.5px;letter-spacing:.18em;color:var(--mut);
   background:var(--panel);border:1px solid var(--line-soft)}
 #gestures b{color:var(--c1);font-weight:400}
@@ -284,9 +286,9 @@ body.mk1 .weapon.sel{background:rgba(10,40,52,.45);box-shadow:0 0 14px rgba(83,2
 <div id="bottombar">
   <div id="compass">
     <svg viewBox="0 0 60 60">
-      <circle cx="30" cy="30" r="26" fill="none" stroke="rgba(83,230,255,.25)" stroke-width="1"/>
-      <circle cx="30" cy="30" r="20" fill="none" stroke="rgba(83,230,255,.12)" stroke-width="1" stroke-dasharray="2 4"/>
-      <g id="needle"><path d="M30 8 L34 30 L30 26 L26 30 Z" fill="#53e6ff"/>
+      <circle cx="30" cy="30" r="26" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="1"/>
+      <circle cx="30" cy="30" r="20" fill="none" stroke="currentColor" stroke-opacity=".12" stroke-width="1" stroke-dasharray="2 4"/>
+      <g id="needle"><path d="M30 8 L34 30 L30 26 L26 30 Z" fill="currentColor"/>
       <text x="30" y="6" text-anchor="middle" font-size="7" fill="#7d93a8" font-family="monospace">N</text></g>
     </svg>
   </div>
@@ -519,8 +521,10 @@ const skirt = buildSkirt(); scene.add(skirt);
 skirt.userData.tint.color = new THREE.Color(THEMES.mk2.line);
 
 /* platform ring beneath */
-const polar = new THREE.PolarGridHelper(210, 12, 6, 64, 0x53e6ff, 0x53e6ff);
+const polar = new THREE.PolarGridHelper(210, 12, 6, 64, 0xffffff, 0xffffff);
 polar.position.y = -7;
+polar.material.vertexColors = false;
+polar.material.color.set(THEMES.mk2.line);
 polar.material.transparent = true; polar.material.opacity = 0.07;
 scene.add(polar);
 
@@ -739,6 +743,7 @@ cvs.addEventListener('pointerdown', e => {
   state.idle = 0; audio.unlock();
   if (ptrs.size === 1) downInfo = { x: e.clientX, y: e.clientY, t: performance.now() };
   if (ptrs.size === 2){
+    downInfo = null;
     const [a, b] = [...ptrs.values()];
     pinch0 = Math.hypot(a.x-b.x, a.y-b.y); pinchR0 = sphT.r;
   }
@@ -765,6 +770,7 @@ cvs.addEventListener('pointermove', e => {
 });
 function endPtr(e){
   ptrs.delete(e.pointerId);
+  if (e.type === 'pointercancel') downInfo = null;
   if (downInfo && ptrs.size === 0){
     const dt = performance.now() - downInfo.t;
     const dist = Math.hypot(e.clientX - downInfo.x, e.clientY - downInfo.y);
@@ -871,13 +877,17 @@ function missionDone(){
 }
 
 /* ---------------- effects library ---------------- */
+const glowTexCache = {};
 function glowSprite(col, scale){
-  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
-  const c = cv.getContext('2d');
-  const g = c.createRadialGradient(32,32,2,32,32,30);
-  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.35, col); g.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = g; c.fillRect(0,0,64,64);
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(cv), transparent:true,
+  if (!glowTexCache[col]){
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const c = cv.getContext('2d');
+    const g = c.createRadialGradient(32,32,2,32,32,30);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.35, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.fillRect(0,0,64,64);
+    glowTexCache[col] = new THREE.CanvasTexture(cv);
+  }
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexCache[col], transparent:true,
     blending:THREE.AdditiveBlending, depthWrite:false }));
   s.scale.setScalar(scale);
   return s;
@@ -987,7 +997,7 @@ function fireJASSM(tgt){
   scene.add(grp);
   const trail = makeTrail(110, 0xffa050, 2.0);
   scene.add(trail.node);
-  log('FOX-3 ▸ JASSM-ER AWAY · ETA 3.4 S', 'crit');
+  log('RIFLE ▸ JASSM-ER AWAY · ETA 3.4 S', 'crit');
   sfx.launch();
   const pos = new THREE.Vector3(), prev = start.clone();
   let t = 0;
@@ -1036,7 +1046,7 @@ function fireUCAV(tgt){
     nav.material.opacity = (Math.sin(t*90) > 0) ? .95 : .1;
     if (!released && t >= releaseT){
       released = true;
-      log('VECTIS ▸ WEAPON RELEASE — GBU-53 SIM', 'crit');
+      log('VECTIS ▸ WEAPON RELEASE — JAGM SIM', 'crit');
       const rp = drone.position.clone();
       const apex = new THREE.Vector3((rp.x+tgt.x)/2, rp.y*.6, (rp.z+tgt.z)/2);
       const end = new THREE.Vector3(tgt.x, tgt.y, tgt.z);
@@ -1439,7 +1449,7 @@ function frame(){
       renderer.setScissor(x, y, r.width, r.height);
       renderer.setViewport(x, y, r.width, r.height);
       renderer.clear(true, true, false);
-      tUni.uBoost.value = 2.6;
+      tUni.uBoost.value = 2.2;
       renderer.render(scene, satCam);
       tUni.uBoost.value = 1;
       renderer.setScissorTest(false);
