@@ -289,6 +289,53 @@ body.realmode .corner{opacity:.35}
 body.realmode .panel,body.realmode #gestures,body.realmode .pill,body.realmode .iconbtn{
   background:rgba(10,16,22,.86)}
 
+
+/* ---------- soldier / crew POV ----------
+   Inside a crew seat the command table has no business being on screen: the
+   operator is looking through a helmet cam, not down at a hologram. `povmode`
+   clears the rails, the toolbar and the battle strip and leaves the feed. */
+#rail-l, #rail-r, #bottombar, #battlehud, #topbar{transition:opacity .45s ease}
+body.povmode #rail-l, body.povmode #rail-r, body.povmode #bottombar,
+body.povmode #battlehud, body.povmode #topbar{opacity:0;pointer-events:none}
+body.povmode #scanlines{opacity:.75}
+#povhud{position:fixed;inset:0;z-index:48;display:none;pointer-events:none}
+#povhud.on{display:block}
+#pov-vig{position:absolute;inset:0;background:
+  radial-gradient(ellipse at 50% 50%,transparent 38%,rgba(0,0,0,.86) 100%)}
+/* feed frame — corner brackets read as a camera boundary, not a UI panel */
+#pov-frame{position:absolute;inset:26px;border:1px solid rgba(255,255,255,.10)}
+#pov-frame::before,#pov-frame::after{content:'';position:absolute;width:26px;height:26px;
+  border:1px solid var(--c1);opacity:.85}
+#pov-frame::before{left:-1px;top:-1px;border-right:0;border-bottom:0}
+#pov-frame::after{right:-1px;bottom:-1px;border-left:0;border-top:0}
+#pov-tag{position:absolute;left:38px;top:38px;font-size:9px;letter-spacing:.2em;color:#dff4ff;
+  display:flex;align-items:center;gap:8px;text-shadow:0 1px 3px #000}
+#pov-tag i{width:7px;height:7px;border-radius:50%;background:var(--alert);
+  animation:povrec 1.3s steps(1,end) infinite}
+@keyframes povrec{0%,55%{opacity:1}56%,100%{opacity:.15}}
+#pov-tel{position:absolute;right:38px;top:38px;text-align:right;font-size:9px;letter-spacing:.18em;
+  color:var(--mut);line-height:1.7;text-shadow:0 1px 3px #000}
+#pov-tel b{color:#dff4ff;font-weight:400}
+#pov-cross{position:absolute;left:50%;top:50%;width:46px;height:46px;transform:translate(-50%,-50%)}
+#pov-cross::before,#pov-cross::after{content:'';position:absolute;background:rgba(255,255,255,.85)}
+#pov-cross::before{left:50%;top:0;bottom:0;width:1px;transform:translateX(-50%)}
+#pov-cross::after{top:50%;left:0;right:0;height:1px;transform:translateY(-50%)}
+#pov-dot{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;
+  background:var(--alert);border-radius:50%}
+#pov-card{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);display:flex;gap:12px;
+  align-items:center;background:rgba(6,12,18,.82);border:1px solid var(--line);padding:8px 15px;
+  font-size:9.5px;letter-spacing:.16em;white-space:nowrap}
+#pov-card b{color:#eaf9ff;font-weight:400;font-family:var(--disp);letter-spacing:.2em}
+#pov-card .fac{color:var(--c1)}
+#pov-card .hp{width:74px;height:6px;background:rgba(255,255,255,.12);position:relative}
+#pov-card .hp i{position:absolute;inset:0 auto 0 0;background:var(--ok)}
+#pov-hint{position:absolute;left:50%;bottom:56px;transform:translateX(-50%);font-size:8.5px;
+  letter-spacing:.18em;color:var(--mut)}
+#pov-hint b{color:var(--c1);font-weight:400}
+#pov-flash{position:absolute;inset:0;background:#fff;opacity:0;transition:opacity .35s}
+@media (max-width:940px){#pov-card{bottom:132px}#pov-hint{bottom:106px}
+  #pov-frame{inset:14px}#pov-tag{left:24px;top:24px}#pov-tel{right:24px;top:24px}}
+
 /* ---------- battle HUD ---------- */
 #btn-battle.on{color:#12040a;background:var(--alert);border-color:var(--alert)}
 #battlehud{position:fixed;left:50%;top:96px;transform:translateX(-50%);z-index:47;display:none;
@@ -490,6 +537,17 @@ body.realmode .panel,body.realmode #gestures,body.realmode .pill,body.realmode .
   <div class="bh-row" id="bh-blu"><span class="bh-nm">BLUFOR</span><span class="bh-bar"><span class="bh-fill"></span></span><span class="bh-n">0/0</span></div>
   <div class="bh-row" id="bh-op"><span class="bh-nm">OPFOR</span><span class="bh-bar"><span class="bh-fill"></span></span><span class="bh-n">0/0</span></div>
 </div>
+<div id="povhud">
+  <div id="pov-vig"></div>
+  <div id="pov-frame"></div>
+  <div id="pov-tag"><i></i>REC · HELMET CAM <span id="pov-ch">CH 04</span></div>
+  <div id="pov-tel">HDG <b id="pov-hdg">000</b><br>RNG <b id="pov-rng">— —</b><br><b id="pov-state">SCANNING</b></div>
+  <div id="pov-cross"><span id="pov-dot"></span></div>
+  <div id="pov-card"><span class="fac" id="pov-fac">BLUFOR</span><b id="pov-seat">RIFLEMAN</b>
+    <span id="pov-wpn">SMALL ARMS</span><span class="hp"><i id="pov-hp"></i></span></div>
+  <div id="pov-hint"><b>[ ]</b> CYCLE CREW · <b>H</b> HOLO / REAL · <b>ESC</b> RETURN TO TABLE</div>
+  <div id="pov-flash"></div>
+</div>
 <div id="whiteout"></div>
 <div id="toast"></div>
 
@@ -501,6 +559,7 @@ body.realmode .panel,body.realmode #gestures,body.realmode .pill,body.realmode .
 <script src="js/models-mil.js"></script>
 <script src="js/battle.js"></script>
 <script src="js/rendermode.js"></script>
+<script src="js/landmarks.js"></script>
 <script src="js/console.js"></script>
 <script>
 'use strict';
@@ -797,12 +856,13 @@ const bEdgeP = new Float32Array(MAX_BLD * 24 * 3);
 function writeBuilding(i){
   const b = buildings[i]; if (!b) return;
   const m4 = writeBuilding.m4 || (writeBuilding.m4 = new THREE.Matrix4());
-  m4.makeRotationY(b.yaw).scale(new THREE.Vector3(b.w, b.hCur, b.d)).setPosition(b.x, b.y, b.z);
+  const bw = b.wCur || b.w, bd = b.dCur || b.d;
+  m4.makeRotationY(b.yaw).scale(new THREE.Vector3(bw, b.hCur, bd)).setPosition(b.x, b.y, b.z);
   bMesh.setMatrixAt(i, m4);
   const cy = Math.cos(b.yaw), sy = Math.sin(b.yaw);
   let o = i*72;
   for (const e of B_E) for (const vi of e){
-    const v = B_V[vi], lx = v[0]*b.w, lz = v[2]*b.d;
+    const v = B_V[vi], lx = v[0]*bw, lz = v[2]*bd;
     bEdgeP[o++] = b.x + lx*cy + lz*sy;
     bEdgeP[o++] = b.y + v[1]*b.hCur;
     bEdgeP[o++] = b.z - lx*sy + lz*cy;
@@ -817,16 +877,116 @@ bEdges.material.color.set(THEMES.mk2.city);
 RM.register(bEdges.material, 'wire');
 scene.add(bEdges);
 
+/* Rubble mounds. A collapsed building used to be its own box squashed flat,
+   which from the command table read fine and from a rifleman's eye read as a
+   glass-windowed pancake — the window texture is on all six faces, including
+   the one that ends up pointing at the sky. A mound over the remnant hides
+   that face and gives the ruin a silhouette. One instanced mesh, one draw. */
+const rubbleGeo = (() => {
+  const g = new THREE.IcosahedronGeometry(0.5, 1).toNonIndexed();
+  const p = g.attributes.position, col = new Float32Array(p.count * 3);
+  let s = 7717;
+  const rnd = () => (s = (s * 48271) % 2147483647) / 2147483647;
+  for (let i = 0; i < p.count; i += 3){
+    /* jitter per FACE so the silhouette stays faceted like broken slab, and
+       tint each face separately — concrete grey through scorched brown */
+    const jx = (rnd() - .5) * .30, jy = (rnd() - .5) * .18, jz = (rnd() - .5) * .30;
+    const t = rnd(), r = .30 + t * .22, gg = .27 + t * .17, bb = .24 + t * .12;
+    for (let k = 0; k < 3; k++){
+      const v = i + k;
+      p.setXYZ(v, p.getX(v) + jx, Math.max(0, p.getY(v) * .52 + .26) + jy, p.getZ(v) + jz);
+      col[v*3] = r; col[v*3+1] = gg; col[v*3+2] = bb;
+    }
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return g;
+})();
+const rubbleMesh = new THREE.InstancedMesh(rubbleGeo,
+  RM.register(new THREE.MeshLambertMaterial({ vertexColors: true }), 'model'), MAX_BLD);
+rubbleMesh.count = 0;
+rubbleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+rubbleMesh.frustumCulled = false;
+scene.add(rubbleMesh);
+const rubbleM4 = new THREE.Matrix4(), rubbleV3 = new THREE.Vector3();
+function addRubble(x, y, z, w, d, h){
+  if (rubbleMesh.count >= MAX_BLD) return;
+  rubbleM4.makeRotationY(Math.random() * 6.283)
+    .scale(rubbleV3.set(w * (1.02 + Math.random()*.16), h, d * (1.02 + Math.random()*.16)))
+    .setPosition(x, y - h * .06, z);
+  rubbleMesh.setMatrixAt(rubbleMesh.count++, rubbleM4);
+  rubbleMesh.instanceMatrix.needsUpdate = true;
+}
+function clearRubble(){ rubbleMesh.count = 0; rubbleMesh.instanceMatrix.needsUpdate = true; }
+
 /* signature landmark for the destination */
 let capitol = new THREE.Group(), capitolAlive = true;
 scene.add(capitol);
+/* secondary landmarks — a city can have more than one thing worth recognising
+   (San Francisco is the bridge AND the Salesforce tower), and only the primary
+   is wired into the strike/BDA path. */
+const landmarkExtra = new THREE.Group();
+scene.add(landmarkExtra);
+const LM = window.AegisLandmarks || null;
+const lmMat = LM ? RM.register(new THREE.MeshLambertMaterial({ vertexColors: true }), 'model') : null;
+/* Landmark models are authored at MODEL scale (0.1957 units/m, the scale the
+   vehicles use). A landmark has to read against the skyline it stands in, not
+   against a tank, so it is re-scaled to the same 0.022 units/m the buildings
+   use — and capped, or Fuji at true scale would be 83 units of mountain on a
+   table whose whole relief budget is a fraction of that. */
+function lmScale(id, extra){
+  const hM = (LM.HEIGHT_M[id] || 120);
+  const hUnits = Math.max(0.6, Math.min(hM * 0.022, 22));
+  return (hUnits / (hM * LM.M)) * (extra || 1);
+}
+function lmMesh(p){
+  const geo = LM.build(p.id);
+  if (!geo) return null;
+  const o = new THREE.Mesh(geo, lmMat);
+  o.scale.setScalar(lmScale(p.id, p.scale));
+  o.rotation.y = p.rotY || 0;
+  return o;
+}
 function buildLandmark(){
   while (capitol.children.length){ const c = capitol.children.pop(); if (c.geometry) c.geometry.dispose(); capitol.remove(c); }
+  while (landmarkExtra.children.length) landmarkExtra.remove(landmarkExtra.children.pop());
   const lm = SITE.landmark;
   /* same global metres-to-units scale the skyline uses */
   const H = Math.max(0.6, Math.min(lm.h * 0.022, 22));
   const gold = RM.register(new THREE.MeshLambertMaterial({ color: SITE.pal.accent, transparent:true, opacity:.95 }), 'model');
   const stone = RM.register(new THREE.MeshLambertMaterial({ color: 0xcfe8f5, transparent:true, opacity:.75 }), 'model');
+
+  /* a real model if the library has this destination, the abstract cue if not */
+  const places = LM ? LM.forSite(SITE.id) : [];
+  if (places.length){
+    /* The primary is the one the intel panel names and the BDA reports, so it
+       has to BE that structure. Match on published height — Manhattan lists
+       both Liberty and the Empire State, and only one of them is 443 m. */
+    const pick = Math.max(0, places.findIndex(p => LM.HEIGHT_M[p.id] === lm.h));
+    const first = places[pick], o = lmMesh(first);
+    if (o){
+      capitol.add(o);
+      CAPITOL.x = first.x; CAPITOL.z = first.z;
+      places.forEach((q, i) => {
+        if (i === pick) return;
+        const e = lmMesh(q);
+        if (!e) return;
+        e.position.set(q.x, terrainH(q.x, q.z) - .05, q.z);
+        landmarkExtra.add(e);
+      });
+      /* the beacon follows the model that is actually standing there, not the
+         atlas height — a 93 m statue does not get a marker 10 units overhead */
+      const hL = Math.max(0.6, Math.min((LM.HEIGHT_M[first.id] || lm.h) * 0.022, 22));
+      const bcn = glowSprite('rgba(255,210,120,.95)', Math.max(1.0, hL*.16));
+      bcn.position.y = hL*1.15; capitol.add(bcn);
+      capitol.userData.beacon = bcn;
+      capitol.position.set(CAPITOL.x, terrainH(CAPITOL.x, CAPITOL.z) - .05, CAPITOL.z);
+      capitol.userData.baseY = capitol.position.y;
+      capitol.rotation.set(0,0,0); capitol.scale.setScalar(1);
+      capitolAlive = true;
+      return;
+    }
+  }
   const t = lm.type;
   const add = (g, m, y, sc) => { const o = new THREE.Mesh(g, m); o.position.y = y; if (sc) o.scale.copy(sc); capitol.add(o); };
   if (t === 'pyramid') add(new THREE.ConeGeometry(H*0.95, H, 4), gold, H/2);
@@ -847,6 +1007,28 @@ function buildLandmark(){
   capitol.rotation.set(0,0,0); capitol.scale.setScalar(1);
   capitolAlive = true;
 }
+/* secondary landmarks topple on the same rules as the primary — a strike that
+   flattens the district does not politely leave the bridge standing */
+function toppleExtraLandmarks(pos, radius){
+  let n = 0;
+  landmarkExtra.children.forEach(o => {
+    if (o.userData.down) return;
+    if (pos && Math.hypot(o.position.x - pos.x, o.position.z - pos.z) > radius) return;
+    o.userData.down = true; n++;
+    const baseY = o.position.y, lean = (Math.random() - .5) * .9;
+    debrisBurst(o.position.x, baseY + 1.6, o.position.z);
+    if (DEBRIS) DEBRIS.structureCollapse(o.position.x, baseY + 1.2, o.position.z, 2.2);
+    let t = 0;
+    addFx({ update(dt){
+      t += dt/1.0; const e = Math.min(1, t);
+      o.rotation.z = (.5 + lean)*e; o.rotation.x = .18*e;
+      o.position.y = baseY - 1.1*e;
+      o.scale.multiplyScalar(1 - .006);
+      return e < 1;
+    }});
+  });
+  return n;
+}
 function destroyCapitol(){
   if (!capitolAlive) return;
   capitolAlive = false;
@@ -866,18 +1048,34 @@ function destroyCapitol(){
   log('BDA ▸ ' + SITE.landmark.name + ' DESTROYED — LANDMARK LOST', 'crit');
 }
 
-/* ---------------- ground overlays ---------------- */
+/* ---------------- ground overlays ----------------
+   A flat quad at a fixed height is fine over a hologram, where the terrain is
+   a glowing wireframe and a road that floats reads as a projection. Over lit
+   ground it is not: half the network sinks under a rise and the other half
+   hangs in the air. These drape — subdivided, and each vertex pinned just
+   above the terrain it covers. */
 function canvasPlane(draw, size, w, h, pos, opacity){
   const cv = document.createElement('canvas'); cv.width = cv.height = size;
   draw(cv.getContext('2d'), size);
   const tx = new THREE.CanvasTexture(cv);
   const m = new THREE.MeshBasicMaterial({ map: tx, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false });
-  const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
-  p.rotation.x = -Math.PI/2; p.position.copy(pos);
+  const seg = Math.max(24, Math.min(64, Math.round(Math.max(w, h) / 2)));
+  const g = new THREE.PlaneGeometry(w, h, seg, seg);
+  g.rotateX(-Math.PI/2);
+  const p = new THREE.Mesh(g, m);
+  p.position.set(pos.x, 0, pos.z);
+  p.userData.lift = pos.y;
   return p;
 }
-let roads = canvasPlane((c,S)=>WGEN.drawRoads(SITE,c,S), 512, 96, 96, new THREE.Vector3(CITY.x, .48, CITY.z), .4);
-RM.register(roads.material, 'overlay');
+function drapeOverlay(p){
+  const g = p.geometry, pos = g.attributes.position, lift = p.userData.lift || .1;
+  for (let i=0;i<pos.count;i++)
+    pos.setY(i, terrainH(p.position.x + pos.getX(i), p.position.z + pos.getZ(i)) + lift);
+  pos.needsUpdate = true;
+  g.computeBoundingSphere();
+}
+let roads = canvasPlane((c,S)=>WGEN.drawRoads(SITE,c,S), 512, 96, 96, new THREE.Vector3(CITY.x, .07, CITY.z), .4);
+RM.register(roads.material, 'road');
 scene.add(roads);
 let farm = canvasPlane((c, S) => {
   let seed = 31;
@@ -894,9 +1092,10 @@ let farm = canvasPlane((c, S) => {
       c.strokeStyle = 'rgba(200,255,180,.35)'; c.lineWidth = 1; c.stroke();
     }
   }
-}, 1024, 92, 192, new THREE.Vector3(102, .40, 0), .33);
+}, 1024, 92, 192, new THREE.Vector3(102, .06, 0), .33);
 RM.register(farm.material, 'overlay');
 scene.add(farm);
+drapeOverlay(roads); drapeOverlay(farm);
 
 /* ---------------- markers ---------------- */
 const markers = new THREE.Group(); scene.add(markers);
@@ -917,30 +1116,55 @@ function clearMarkers(){
   while (markers.children.length){ const c = markers.children.pop(); if (c.geometry) c.geometry.dispose(); markers.remove(c); }
 }
 
-/* ---------------- water ---------------- */
-let lake = new THREE.Mesh(new THREE.PlaneGeometry(MAP.w, MAP.d, 1, 1),
-  new THREE.MeshBasicMaterial({ color: SITE.pal.water, transparent:true, opacity:.34,
-    blending:THREE.AdditiveBlending, depthWrite:false }));
-lake.rotation.x = -Math.PI/2; lake.position.set(0, WATER_Y, 0); lake.visible = false;
-scene.add(lake);
-/* real water surface: a mask-driven mesh that only shows where water actually is */
+/* ---------------- water ----------------
+   One mask-driven surface for rivers, coast and ponds alike.
+
+   The mask has to control ALPHA, not colour. Carrying it as a vertex colour
+   works in HOLO — the material is additive there, so a black (dry) vertex
+   contributes nothing — but in REAL the material blends normally and a black
+   vertex is not absent: it is an opaque black plane stretched over the whole
+   map, which from a crew seat fills half the screen. So the mask is baked into
+   an alphaMap and the dry surface is genuinely not drawn in either mode. The
+   vertex colour is kept as well, because it still gives HOLO its shoreline
+   falloff for free. */
+const WMASK_W = 256, WMASK_H = 170;
+const wMaskCv = document.createElement('canvas');
+wMaskCv.width = WMASK_W; wMaskCv.height = WMASK_H;
+const wMaskTex = new THREE.CanvasTexture(wMaskCv);
 const wGeo = new THREE.PlaneGeometry(MAP.w, MAP.d, 120, 80); wGeo.rotateX(-Math.PI/2);
 const waterMesh = new THREE.Mesh(wGeo, new THREE.MeshBasicMaterial({ color: SITE.pal.water,
-  transparent:true, opacity:.5, depthWrite:false, blending:THREE.AdditiveBlending, vertexColors:true }));
+  transparent:true, opacity:.5, depthWrite:false, blending:THREE.AdditiveBlending,
+  vertexColors:true, alphaMap: wMaskTex }));
 wGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(wGeo.attributes.position.count*3), 3));
 function writeWater(){
   const pos = wGeo.attributes.position, col = wGeo.attributes.color;
   for (let i=0;i<pos.count;i++){
     const x = pos.getX(i), z = pos.getZ(i);
     const m = WAT.has ? WAT.mask(x, z) : 0;
-    pos.setY(i, WATER_Y);
     const v = m > .04 ? Math.min(1, m * 2.2) : 0;
+    pos.setY(i, WATER_Y);
     col.setXYZ(i, v, v, v);
   }
   pos.needsUpdate = true; col.needsUpdate = true;
+  /* PlaneGeometry rotated -90 about X puts u along +x and v along -z; a canvas
+     texture is flipY, so canvas row 0 is v = 1 which is z = -MAP.d/2. */
+  const ctx = wMaskCv.getContext('2d');
+  const img = ctx.createImageData(WMASK_W, WMASK_H);
+  for (let py=0; py<WMASK_H; py++){
+    const z = ((py + .5)/WMASK_H - .5) * MAP.d;
+    for (let px=0; px<WMASK_W; px++){
+      const x = ((px + .5)/WMASK_W - .5) * MAP.w;
+      const m = WAT.has ? WAT.mask(x, z) : 0;
+      const a = m > .04 ? Math.min(255, m * 2.2 * 255) : 0;
+      const o = (py*WMASK_W + px) * 4;
+      img.data[o] = img.data[o+1] = img.data[o+2] = a; img.data[o+3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  wMaskTex.needsUpdate = true;
 }
 writeWater();
-RM.register(waterMesh.material, 'water'); RM.register(lake.material, 'water');
+RM.register(waterMesh.material, 'water');
 waterMesh.visible = WAT.has;
 scene.add(waterMesh);
 const lakeRipples = [];
@@ -965,8 +1189,20 @@ treeMesh.count = 0; bushMesh.count = 0;
 treeMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 bushMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 scene.add(treeMesh, bushMesh);
+/* Ground cover is a point cloud, and a square point is a dead giveaway the
+   moment the camera drops to eye level. A soft radial sprite makes each one
+   read as a tuft at any distance and costs one 32px canvas. */
+const grassTex = (() => {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 32;
+  const c = cv.getContext('2d');
+  const g = c.createRadialGradient(16, 16, 0, 16, 16, 15);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.45, 'rgba(255,255,255,.5)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = g; c.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(cv);
+})();
 const grassMat = RM.register(new THREE.PointsMaterial({ color: 0x39a065, size: .5, transparent:true, opacity:.35,
-  blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true }), 'veg');
+  map: grassTex, blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true }), 'grass');
 let grassPts = new THREE.Points(new THREE.BufferGeometry(), grassMat);
 grassPts.frustumCulled = false; scene.add(grassPts);
 
@@ -1071,6 +1307,7 @@ function populateSite(){
   waterMesh.material.color.set(SITE.pal.water);
 
   /* --- city --- */
+  clearRubble();
   buildings = WGEN.buildCity(SITE, TER, WAT, MAX_BLD);
   bMesh.count = buildings.length;
   bEdgeP.fill(0);
@@ -1088,12 +1325,17 @@ function populateSite(){
   buildLandmark();
 
   /* --- overlays --- */
-  scene.remove(roads); roads.geometry.dispose(); roads.material.map.dispose(); roads.material.dispose();
+  scene.remove(roads); RM.unregister(roads.material);
+  roads.geometry.dispose(); roads.material.map.dispose(); roads.material.dispose();
   roads = canvasPlane((c,S)=>WGEN.drawRoads(SITE,c,S), 512, CITY.r*2.6, CITY.r*2.6,
-    new THREE.Vector3(CITY.x, .48, CITY.z), SITE.layout === 'none' ? .18 : .4);
+    new THREE.Vector3(CITY.x, .07, CITY.z), SITE.layout === 'none' ? .18 : .4);
+  RM.register(roads.material, 'road');
+  drapeOverlay(roads);
   scene.add(roads);
-  farm.material.opacity = SITE.veg > .3 ? .33 : .08;
-  farm.visible = SITE.layout !== 'none';
+  /* the cropland wash is snapshotted by the render-mode registry, so it is
+     switched on or off per destination rather than dimmed at runtime */
+  farm.visible = SITE.layout !== 'none' && SITE.veg > .3;
+  drapeOverlay(farm);
 
   /* --- markers --- */
   clearMarkers();
@@ -1586,6 +1828,11 @@ function pickTarget(cx, cy){
   const hit = ray.intersectObject(terrain)[0];
   if (!hit) return;
   if (teamState && teamState.pendingMove){ setTeamWaypoint(hit.point.x, hit.point.z); return; }
+  if (pov.unit) return;                 // inside a crew seat the table is not yours to poke
+  if (BATTLE && BATTLE.isRunning()){
+    const un = povPickNearestTo(hit.point.x, hit.point.z);
+    if (un){ enterPov(un); return; }
+  }
   setTarget(hit.point.x, hit.point.z);
 }
 function refreshReticles(){
@@ -1830,7 +2077,8 @@ function destroyStructures(pos, radius){
   buildings.forEach((b, i) => {
     if (!b.alive || Math.hypot(b.x-pos.x, b.z-pos.z) > radius) return;
     b.alive = false; count++;
-    const lean = (Math.random()-.5)*1.1, stub = b.h*.08;
+    const lean = (Math.random()-.5)*1.1, stub = b.h*.06;
+    const w0 = b.w, d0 = b.d, wEnd = w0*.72, dEnd = d0*.72;
     debrisBurst(b.x, b.y + b.h*.5, b.z);
     if (DEBRIS) DEBRIS.structureCollapse(b.x, b.y + b.h*.5, b.z, Math.max(.5, Math.min(2.4, b.h*.6)));
     let t = 0;
@@ -1838,6 +2086,8 @@ function destroyStructures(pos, radius){
       t += dt/.7;
       const e = Math.min(1, t), ease = 1 - Math.pow(1-e, 3);
       b.hCur = b.h + (stub - b.h)*ease;
+      b.wCur = w0 + (wEnd - w0)*ease;
+      b.dCur = d0 + (dEnd - d0)*ease;
       b.yaw = lean*ease;
       if (e >= 1){ b.y = sampleH(b.x, b.z) - .04; }
       writeBuilding(i);
@@ -1846,6 +2096,8 @@ function destroyStructures(pos, radius){
       if (e >= 1){
         bMesh.setColorAt(i, new THREE.Color(0x7a4a30));
         bMesh.instanceColor.needsUpdate = true;
+        /* the mound settles last, over the remnant slab */
+        addRubble(b.x, b.y, b.z, w0*.82, d0*.82, Math.max(.22, Math.min(2.6, b.h*.16)));
         return false;
       }
       return true;
@@ -1896,6 +2148,7 @@ function destroyStructures(pos, radius){
     count++;
     destroyCapitol();
   }
+  count += toppleExtraLandmarks(pos, radius + 2.5);
   if (Math.hypot(-88-pos.x, 42-pos.z) < radius + 6)
     log('ROE ▸ FRIENDLY INFRA — LM WATERTON SHIELDED', 'warn');
   if (count > 0) log(`BDA ▸ ${count} STRUCTURE${count > 1 ? 'S' : ''} DOWN · SIM`, 'warn');
@@ -2463,6 +2716,8 @@ function nukeDetonate(tgt){
     const e = Math.min(1, bt), ease = 1 - Math.pow(1-e, 3);
     buildings.forEach((b, i) => {
       b.hCur = b.h + (b.h*.07 - b.h)*ease;
+      b.wCur = b.w * (1 - .26*ease);
+      b.dCur = b.d * (1 - .26*ease);
       b.yaw = (b.lean || 0)*ease;
       if (e >= 1) b.y = sampleH(b.x, b.z) - .04;
       writeBuilding(i);
@@ -2473,6 +2728,9 @@ function nukeDetonate(tgt){
       const rubble = new THREE.Color(0x6b4638);
       buildings.forEach((b, i) => bMesh.setColorAt(i, rubble));
       bMesh.instanceColor.needsUpdate = true;
+      clearRubble();
+      buildings.forEach(b => addRubble(b.x, b.y, b.z, b.w*.82, b.d*.82,
+        Math.max(.22, Math.min(2.6, b.h*.16))));
       bEdges.material.color.set(0x7d5340);
       bEdges.material.opacity = .5;
       return false;
@@ -2489,6 +2747,7 @@ function nukeDetonate(tgt){
       f.node.scale.y = 1 - .87*e; f.node.rotation.x = .12*e; return e < 1; }});
   });
   destroyCapitol();
+  toppleExtraLandmarks(null, 0);
   const zero = new THREE.Matrix4().makeScale(0, 0, 0);
   treePts.forEach((p, i) => { p.dead = true; treeMesh.setMatrixAt(i, zero); });
   bushPts.forEach((p, i) => { p.dead = true; bushMesh.setMatrixAt(i, zero); });
@@ -2496,13 +2755,12 @@ function nukeDetonate(tgt){
   bushMesh.instanceMatrix.needsUpdate = true;
   grassMat.opacity = .06;
   pivots.forEach(p => { p.arm.visible = false; });
-  /* overlays + water burn away */
+  /* ground overlays burn away — the river does not, because a river survives */
   lakeAlive = false;
   lakeRipples.forEach(r => { r.visible = false; });
   addFx({ update(dt){
     let live = false;
     [roads.material, farm.material].forEach(m => { if (m.opacity > 0){ m.opacity = Math.max(0, m.opacity - dt*.25); live = true; } });
-    if (lake.material.opacity > .05){ lake.material.opacity = Math.max(.05, lake.material.opacity - dt*.12); live = true; }
     return live;
   }});
   markers.children.forEach(m => { if (m.material) m.material.opacity *= .3; });
@@ -2826,6 +3084,7 @@ function setBattle(on){
     pivotT.set(c.x, 0, c.z); sphT.r = 38; sphT.phi = .74; sphT.theta = .55;
     toast('FORCE-ON-FORCE — SIMULATED ENGAGEMENT');
   } else {
+    exitPov();
     B.stop();
     $('battlehud').classList.remove('on');
     $('btn-battle').classList.remove('on');
@@ -2864,6 +3123,127 @@ function setRenderMode(next){
   return m;
 }
 $('btn-mode').addEventListener('click', () => setRenderMode(RM.isReal() ? 'holo' : 'real'));
+
+
+/* ---------------- crew POV: GTA-style possession of any unit ---------------- */
+const pov = { unit: null, t: 0, from: new THREE.Vector3(), fromLook: new THREE.Vector3(),
+  look: new THREE.Vector3(), eye: new THREE.Vector3(), idx: 0, dead: 0 };
+const POV_M = 0.1957;                       // units per metre, matching the models
+
+function povEyePos(un, out){
+  const e = (un.spec.eye || 1.7) * POV_M;
+  /* sit the viewer just behind the weapon line so the muzzle is in frame */
+  const yaw = un.spec.air ? un.yaw : un.turretYaw;
+  out.set(un.x - Math.sin(yaw) * 0.16, un.y + e, un.z - Math.cos(yaw) * 0.16);
+  return out;
+}
+function povLookTarget(un, out){
+  const yaw = un.spec.air ? un.yaw : un.turretYaw;
+  const tgt = un.target;
+  if (tgt && tgt.alive){ out.set(tgt.x, tgt.y + 0.3, tgt.z); return out; }
+  out.set(un.x + Math.sin(yaw) * 40, un.y + (un.spec.eye || 1.7) * POV_M, un.z + Math.cos(yaw) * 40);
+  return out;
+}
+function enterPov(un){
+  if (!un || !un.alive) return;
+  if (explore.on) setExplore(false);
+  pov.unit = un; pov.t = 0; pov.dead = 0;
+  pov.from.copy(camera.position);
+  pov.fromLook.set(pivot.x, pivot.y, pivot.z);
+  $('povhud').classList.add('on');
+  document.body.classList.add('povmode');
+  /* a sizeAttenuated point metres from the lens is a screen-filling smear, so
+     the ground-cover cloud stands down while the camera is on the deck */
+  grassPts.visible = false;
+  $('pov-ch').textContent = 'CH ' + String(1 + (pov.idx % 24)).padStart(2, '0');
+  $('pov-fac').textContent = BATTLE.FACTIONS[un.faction].name;
+  $('pov-fac').style.color = '#' + BATTLE.FACTIONS[un.faction].color.toString(16).padStart(6,'0');
+  $('pov-seat').textContent = un.spec.seat || un.spec.label;
+  $('pov-wpn').textContent = BATTLE.WEAPONS[un.spec.weapon].name;
+  log('POV ▸ ' + BATTLE.FACTIONS[un.faction].name + ' ' + (un.spec.seat || un.spec.label) + ' — HELMET CAM', 'sys');
+  sfx.blip(880, .06); haptic([12, 30, 12]);
+}
+function exitPov(){
+  if (!pov.unit) return;
+  pov.unit = null;
+  $('povhud').classList.remove('on');
+  document.body.classList.remove('povmode');
+  grassPts.visible = !wasteland;
+  $('pov-flash').style.opacity = '0';
+  log('POV ▸ RETURNED TO HOLO-TABLE', 'sys');
+  sfx.blip(620, .06);
+}
+function cyclePov(dir){
+  if (!BATTLE || !BATTLE.isRunning()) return;
+  const list = BATTLE.liveUnits();
+  if (!list.length) return;
+  pov.idx = ((pov.idx + dir) % list.length + list.length) % list.length;
+  enterPov(list[pov.idx]);
+}
+function povPickNearestTo(x, z){
+  if (!BATTLE || !BATTLE.isRunning()) return null;
+  const list = BATTLE.liveUnits();
+  let best = null, bd = 1e9;
+  list.forEach((un, i) => {
+    const d = (un.x - x) * (un.x - x) + (un.z - z) * (un.z - z);
+    if (d < bd) { bd = d; best = un; pov.idx = i; }
+  });
+  return bd < 900 ? best : null;
+}
+function updatePov(dt){
+  const un = pov.unit;
+  if (!un) return false;
+  if (!un.alive){
+    /* the crew you were riding just died — hold on the wreck, then hand back */
+    pov.dead += dt;
+    $('pov-flash').style.opacity = '0.85';
+    if (pov.dead > 1.6){
+      log('POV ▸ SIGNAL LOST — ' + (un.spec.seat || un.spec.label) + ' KIA', 'crit');
+      exitPov();
+      return false;
+    }
+  }
+  pov.t = Math.min(1, pov.t + dt / 1.15);
+  const k = pov.t < 1 ? (pov.t * pov.t * (3 - 2 * pov.t)) : 1;   // smoothstep fly-in
+  povEyePos(un, pov.eye);
+  povLookTarget(un, pov.look);
+  camera.position.lerpVectors(pov.from, pov.eye, k);
+  const lx = pov.fromLook.x + (pov.look.x - pov.fromLook.x) * k;
+  const ly = pov.fromLook.y + (pov.look.y - pov.fromLook.y) * k;
+  const lz = pov.fromLook.z + (pov.look.z - pov.fromLook.z) * k;
+  const sh = shake * 0.35;
+  camera.position.x += (Math.random() - .5) * sh;
+  camera.position.y += (Math.random() - .5) * sh;
+  camera.lookAt(lx, ly, lz);
+  /* keep the fly-in anchored so it does not snap when the unit moves */
+  if (pov.t >= 1){ pov.from.copy(pov.eye); pov.fromLook.copy(pov.look); }
+  $('pov-hp').style.width = Math.max(0, Math.round(un.hp / un.maxHp * 100)) + '%';
+  $('pov-hp').style.background = un.hp / un.maxHp > .5 ? 'var(--ok)' : un.hp / un.maxHp > .22 ? 'var(--c2)' : 'var(--alert)';
+  const engaged = !!(un.target && un.target.alive);
+  $('pov-dot').style.background = engaged ? 'var(--alert)' : 'rgba(255,255,255,.5)';
+  /* telemetry, refreshed on a slow beat so the numbers stay readable */
+  if ((frameN & 7) === 0){
+    const yaw = un.spec.air ? un.yaw : un.turretYaw;
+    $('pov-hdg').textContent = String(Math.round(((yaw * 180 / Math.PI) % 360 + 360) % 360)).padStart(3, '0');
+    $('pov-rng').textContent = engaged
+      ? (un.targetDist * BATTLE.M_PER_UNIT).toFixed(0).padStart(4, '0') + ' M' : '— —';
+    $('pov-state').textContent = !un.alive ? 'SIGNAL LOST'
+      : engaged ? 'TARGET · ' + BATTLE.FACTIONS[un.target.faction].name + ' ' + un.target.spec.label
+      : 'SCANNING';
+    $('pov-state').style.color = !un.alive ? 'var(--alert)' : engaged ? 'var(--c2)' : 'var(--mut)';
+  }
+  return true;
+}
+addEventListener('keydown', e => {
+  if (worldConsole && worldConsole.isOpen()) return;
+  if (e.target && e.target.closest && e.target.closest('input,textarea')) return;
+  if (pov.unit && e.key === 'Escape'){ exitPov(); e.preventDefault(); return; }
+  if (e.key === '[') cyclePov(-1);
+  if (e.key === ']') cyclePov(1);
+  if ((e.key === 'p' || e.key === 'P') && BATTLE && BATTLE.isRunning()){
+    if (pov.unit) exitPov(); else cyclePov(0);
+  }
+});
 
 /* ---------------- boot ---------------- */
 const BOOT_LINES = [
@@ -2928,6 +3308,23 @@ async function cinematic(){
     }, ms);
     cineCancel = () => { clearTimeout(id); cineCancel = null; rej('cine-abort'); };
   });
+  /* A scripted demo timed purely in milliseconds is a demo that desynchronises
+     on the first slow laptop: the next execute() lands while the last missile
+     is still in flight, gets refused, and a leg silently disappears. These legs
+     wait on STATE — weapon clear, team on the ground — with a ceiling so a
+     stuck condition can never hang the reel. */
+  const waitFor = (pred, maxMs) => new Promise((res, rej) => {
+    const t0 = performance.now();
+    let id = 0;
+    const tick = () => {
+      if (myToken !== cineToken){ cineCancel = null; return rej('cine-abort'); }
+      if (pred() || performance.now() - t0 > (maxMs || 20000)){ cineCancel = null; return res(); }
+      id = setTimeout(tick, 140);
+    };
+    cineCancel = () => { clearTimeout(id); cineCancel = null; rej('cine-abort'); };
+    tick();
+  });
+  const clear = () => waitFor(() => !state.busy, 26000);
   $('btn-cine').textContent = '■ STOP';
   try {
     toast('CINEMATIC DEMO — SIT BACK');
@@ -2938,7 +3335,11 @@ async function cinematic(){
     flyTo('city'); await step(2300);
     setTarget(14, 2); await step(1300);
     setWeapon('jassm'); await step(900);
-    execute(); await step(7600);
+    execute(); await step(2600); await clear(); await step(1800);
+    /* 1b — the same scene, lit: one toggle, no rebuild */
+    toast('PHOTOREAL TERRAIN — SAME SCENE, ONE TOGGLE');
+    setRenderMode('real'); await step(4600);
+    setRenderMode('holo'); await step(2000);
     /* 2 — multi-target salvo */
     toast('MULTI-STRIKE — FOUR AIM POINTS, ONE SALVO');
     setMulti(true);
@@ -2946,19 +3347,20 @@ async function cinematic(){
     setTarget(22, -6); await step(700);
     setTarget(0, 18);  await step(700);
     setTarget(26, 12); await step(900);
-    execute(); await step(11000);
+    execute(); await step(3200); await clear(); await step(2400);
     setMulti(false);
     /* 3 — humanitarian tasking, same interface */
     toast('SAME INTERFACE — HUMANITARIAN RESUPPLY');
     flyTo('farm'); await step(2400);
     setTarget(100, 16); await step(1100);
     setWeapon('supply'); await step(800);
-    execute(); await step(9500);
+    execute(); await step(3000); await clear(); await step(1800);
     /* 4 — team insert, then live team ops */
     flyTo('range'); await step(2400);
     setTarget(-88, -14); await step(1100);
     setWeapon('recon'); await step(800);
-    execute(); await step(5400);
+    execute(); await step(2400); await clear();
+    await waitFor(() => !!teamState, 18000); await step(1200);
     toast('TEAM OPS — SWEEP PATTERN');
     teamOrder('sweep'); await step(4200);
     toast('TEAM OPS — TAP-TO-MOVE WAYPOINT');
@@ -2966,7 +3368,14 @@ async function cinematic(){
     /* 5 — UCAV in support */
     setTarget(-70, 24); await step(1000);
     setWeapon('ucav'); await step(800);
-    execute(); await step(7800);
+    execute(); await step(3000); await clear(); await step(2200);
+    /* 6 — drop into a crew seat: the same theater, from inside it */
+    toast('CREW POV — HELMET CAM FROM ANY UNIT');
+    setBattle(true); await step(4200);
+    setRenderMode('real'); await step(900);
+    cyclePov(0); await step(6000);
+    cyclePov(1); await step(5000);
+    exitPov(); setBattle(false); setRenderMode('holo'); await step(1600);
     flyTo('overview'); await step(2600);
     toast('DEMO COMPLETE — YOUR TURN. TAP THE TERRAIN TO DESIGNATE.');
   } catch(e) {
@@ -3012,7 +3421,7 @@ function frame(){
   state.idle += dt;
   if (state.idle > 9 && !cineRunning) sphT.theta += dt*.035;
   tUni.uTime.value = perfT;
-  if (explore.on) updateExplore(dt); else applyCam(dt);
+  if (!(pov.unit && updatePov(dt))) { if (explore.on) updateExplore(dt); else applyCam(dt); }
   if (reticle.visible){
     const s = reticle.scale.x + (1 - reticle.scale.x)*Math.min(1, dt*9);
     reticle.scale.setScalar(s * (1 + Math.sin(perfT*3.6)*.02));
@@ -3065,9 +3474,10 @@ function frame(){
   renderer.setViewport(0, 0, innerWidth, innerHeight);
   renderer.clear(true, true, false);
   renderer.render(scene, camera);
-  /* render sat feed into its DOM window */
+  /* Render the sat feed into its DOM window. It is drawn straight to the GL
+     canvas, so a faded-out rail does not hide it — POV has to be checked here. */
   const sv = $('satview');
-  if (sv.offsetParent !== null){
+  if (sv.offsetParent !== null && !pov.unit){
     const r = sv.getBoundingClientRect();
     if (r.width > 10 && r.height > 10){
       const x = r.left, y = innerHeight - r.bottom;
@@ -3095,6 +3505,26 @@ addEventListener('resize', () => {
 /* demo + diagnostics API (used by the headless QA harness) */
 window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme, state, clearTarget, finishBoot,
   setMulti, teamOrder, setTeamWaypoint, loadSite, setExplore, setBattle, setRenderMode,
+  enterPov, exitPov, cyclePov, inPov: () => !!pov.unit,
+  povSeat: () => pov.unit ? (pov.unit.spec.seat || pov.unit.spec.label) : null,
+  liveUnitCount: () => BATTLE ? BATTLE.unitCount() : 0,
+  camInfo: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z }),
+  landmarkDims: () => {
+    const box = new THREE.Box3(), out = [];
+    const scan = (o, tag) => { box.setFromObject(o);
+      out.push({ tag, h: +(box.max.y - box.min.y).toFixed(2), w: +(box.max.x - box.min.x).toFixed(2) }); };
+    if (capitol.children.length) scan(capitol, 'primary');
+    landmarkExtra.children.forEach((o, i) => scan(o, 'extra' + i));
+    const tall = buildings.reduce((a, b) => Math.max(a, b.h), 0);
+    return { site: SITE.id, tallestBuilding: +tall.toFixed(2), lm: out };
+  },
+  landmarkInfo: () => ({ site: SITE.id, primary: capitol.children.length,
+    extra: landmarkExtra.children.length,
+    placed: LM ? LM.forSite(SITE.id).map(p => p.id) : [] }),
+  povInfo: () => pov.unit ? { t: pov.t, dead: pov.dead, alive: pov.unit.alive,
+    ux: pov.unit.x, uy: pov.unit.y, uz: pov.unit.z,
+    ex: pov.eye.x, ey: pov.eye.y, ez: pov.eye.z, type: pov.unit.type } : null,
+  killPovUnit: () => { if (pov.unit) { pov.unit.hp = 0; pov.unit.alive = false; } },
   renderMode: () => RM.mode, materialCount: () => RM.count(),
   battle: () => BATTLE, battleAlive: f => BATTLE ? BATTLE.alive(f) : 0,
   battleRunning: () => !!(BATTLE && BATTLE.isRunning()),

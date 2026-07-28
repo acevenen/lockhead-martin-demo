@@ -71,7 +71,7 @@ const STYLE = {
                    landmark:{name:'EIFFEL TOWER',type:'lattice',h:330} },
   london:        { layout:'organic',    block:85,  rot:0,   peak:310, falloff:1.9, density:.74, water:'river',  veg:.38, biome:'temperate',
                    pal:{ground:'#77786c',city:'#c4c8cc',accent:'#c44a4a',water:'#4f7f96',veg:'#4a7f4a'},
-                   landmark:{name:'THE SHARD',type:'spire',h:310} },
+                   landmark:{name:'ELIZABETH TOWER',type:'tower',h:96} },
   barcelona:     { layout:'grid',       block:113, rot:45,  peak:144, falloff:0.9, density:.84, water:'coast',  veg:.26, biome:'mediterranean',
                    pal:{ground:'#a08462',city:'#e8c9a0',accent:'#d8642f',water:'#2f8fb8',veg:'#5f8a4a'},
                    landmark:{name:'SAGRADA FAMILIA',type:'spires',h:172} },

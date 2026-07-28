@@ -38,6 +38,9 @@ const MOVE_SCALE = 30;
    biggest realism win in the whole model. */
 const WEAPONS = {
   rifle:      { range: u(500),  rof: 1.2,  dmg: 7,  spread: 0.10, tracer: 0.9,  vsArmour: 0.12, name: 'SMALL ARMS', burst: 1 },
+  /* M107 .50 anti-materiel: 1800 m against personnel, one deliberate shot at a
+     time. It will not kill a tank, but it ends a soft-skin crew's day. */
+  dmr:        { range: u(1800), rof: 4.6,  dmg: 34, spread: 0.012, tracer: 0.5, vsArmour: 0.30, name: 'M107 .50', burst: 1 },
   mg:         { range: u(1100), rof: 2.6,  dmg: 5,  spread: 0.08, tracer: 1.6,  vsArmour: 0.20, name: 'M240',  burst: 7, bgap: 0.09 },
   autocannon: { range: u(3000), rof: 2.2,  dmg: 12, spread: 0.05, tracer: 2.6,  vsArmour: 0.65, name: '25MM',  burst: 4, bgap: 0.30 },
   maingun:    { range: u(3500), rof: 7.5,  dmg: 78, spread: 0.02, tracer: 4.2,  vsArmour: 1.00, name: '120MM', burst: 1 },
@@ -49,14 +52,17 @@ const WEAPONS = {
 
 /* unit classes: hp, armour (0..1 damage reduction vs non-AP), speed m/s */
 const UNITS = {
-  mbt:       { model: 'abrams',  hp: 240, armour: 0.78, speed: 6.2, weapon: 'maingun',    second: 'mg',    scale: 1, label: 'MBT' },
-  ifv:       { model: 'bradley', hp: 150, armour: 0.52, speed: 6.6, weapon: 'autocannon', second: 'atgm',  scale: 1, label: 'IFV' },
-  apc:       { model: 'stryker', hp: 110, armour: 0.38, speed: 8.0, weapon: 'mg',                          scale: 1, label: 'APC' },
-  light:     { model: 'humvee',  hp: 60,  armour: 0.16, speed: 9.5, weapon: 'mg',                          scale: 1, label: 'LT VEH' },
-  artillery: { model: 'paladin', hp: 130, armour: 0.40, speed: 3.4, weapon: 'howitzer',                    scale: 1, label: 'SPH' },
-  mlrs:      { model: 'himars',  hp: 90,  armour: 0.22, speed: 7.6, weapon: 'rocket',                      scale: 1, label: 'MLRS' },
-  infantry:  { model: 'soldier', hp: 42,  armour: 0.06, speed: 1.6, weapon: 'rifle',      second: 'atgm',  scale: 1, label: 'INF' },
-  helo:      { model: 'apache',  hp: 120, armour: 0.30, speed: 22,  weapon: 'hellfire',   second: 'autocannon', scale: 1, label: 'ATK HELO', air: true },
+  mbt:       { model: 'abrams',  hp: 240, armour: 0.78, speed: 6.2, weapon: 'maingun',    second: 'mg',    scale: 1, label: 'MBT',   eye: 2.9, seat: 'TANK COMMANDER' },
+  ifv:       { model: 'bradley', hp: 150, armour: 0.52, speed: 6.6, weapon: 'autocannon', second: 'atgm',  scale: 1, label: 'IFV',   eye: 3.1, seat: 'IFV GUNNER' },
+  apc:       { model: 'stryker', hp: 110, armour: 0.38, speed: 8.0, weapon: 'mg',                          scale: 1, label: 'APC',   eye: 2.8, seat: 'VEHICLE CDR' },
+  light:     { model: 'humvee',  hp: 60,  armour: 0.16, speed: 9.5, weapon: 'mg',                          scale: 1, label: 'LT VEH', eye: 2.1, seat: 'GUNNER' },
+  artillery: { model: 'paladin', hp: 130, armour: 0.40, speed: 3.4, weapon: 'howitzer',                    scale: 1, label: 'SPH',   eye: 3.2, seat: 'GUN CHIEF' },
+  mlrs:      { model: 'himars',  hp: 90,  armour: 0.22, speed: 7.6, weapon: 'rocket',                      scale: 1, label: 'MLRS',  eye: 2.9, seat: 'LAUNCHER CREW' },
+  infantry:  { model: 'soldier', hp: 42,  armour: 0.06, speed: 1.6, weapon: 'rifle',      second: 'atgm',  scale: 1, label: 'INF',   eye: 1.68, seat: 'RIFLEMAN' },
+  /* a sniper team occupies a hide and stays in it — `hold` keeps them off the
+     advance so the POV from that seat is overwatch, not a foot chase */
+  sniper:    { model: 'soldier', pose: 'prone', hp: 34, armour: 0.04, speed: 0.9, weapon: 'dmr', scale: 1, label: 'SNIPER', eye: 0.5, seat: 'SNIPER', hold: true },
+  helo:      { model: 'apache',  hp: 120, armour: 0.30, speed: 22,  weapon: 'hellfire',   second: 'autocannon', scale: 1, label: 'ATK HELO', air: true, eye: 2.3, seat: 'PILOT' },
 };
 
 /* `tint` MULTIPLIES the model's baked vertex colours, so it has to be a light
@@ -72,7 +78,7 @@ function create(ctx) {
   const THREE_ = THREE;
 
   /* ---------------- instanced render fleets ---------------- */
-  const CAP = { mbt: 8, ifv: 8, apc: 6, light: 6, artillery: 4, mlrs: 4, infantry: 40, helo: 4 };
+  const CAP = { mbt: 8, ifv: 8, apc: 6, light: 6, artillery: 4, mlrs: 4, infantry: 40, sniper: 6, helo: 4 };
   const fleets = {};                    // fleets[type][faction] = {hull,turret,pivot,n}
   const geoCache = {};
 
@@ -80,7 +86,7 @@ function create(ctx) {
     if (geoCache[type]) return geoCache[type];
     const spec = UNITS[type];
     let g;
-    if (spec.model === 'soldier') g = { hull: mil.buildSoldier('stand', 'blu'), turret: null };
+    if (spec.model === 'soldier') g = { hull: mil.buildSoldier(spec.pose || 'stand', 'blu'), turret: null };
     else if (spec.model === 'apache') { const a = mil.buildApache(); g = { hull: a.hull, turret: a.rotor, pivot: a.rotorPivot, spin: true }; }
     else { const v = mil.VEHICLES[spec.model](); g = { hull: v.hull, turret: v.turret, pivot: v.turretPivot }; }
     geoCache[type] = g;
@@ -235,6 +241,9 @@ function create(ctx) {
         place(fac, 'infantry', -12 + sq * 22 + (i % 3) * 2.2 - 2,
           base - sign * (4 + Math.floor(i / 3) * 2.0), yaw);
       }
+      /* sniper pair in hides on either flank, well behind the line of departure */
+      place(fac, 'sniper', -30, base + sign * 16, yaw);
+      place(fac, 'sniper', 27, base + sign * 18, yaw);
       place(fac, 'helo', sq0(sign), base + sign * 20, yaw);
     };
     function sq0(sign) { return sign > 0 ? 12 : -12; }
@@ -335,7 +344,7 @@ function create(ctx) {
       const w2 = un.spec.second ? WEAPONS[un.spec.second] : null;
       const standoff = w.indirect ? w.range * 0.5 : w.range * 0.72;
 
-      if (dist > standoff) {
+      if (dist > standoff && !un.spec.hold) {
         /* close the distance */
         const sp = u(un.spec.speed) * MOVE_SCALE * dt;
         const nx = un.x + (dx / dist) * sp, nz = un.z + (dz / dist) * sp;
@@ -516,8 +525,28 @@ function create(ctx) {
   return {
     start, stop, update, state,
     isRunning: () => state.running,
-    alive, FACTIONS, UNITS, WEAPONS,
+    alive, FACTIONS, UNITS, WEAPONS, M_PER_UNIT,
     strength(fac) { return state.start[fac] ? alive(fac) / state.start[fac] : 0; },
+    /* Live units in an order built for CYCLING, not for a roster listing.
+       Grouping by type would mean eight presses of `]` and you are still
+       looking at helicopters, so the types are drained round-robin: one pass
+       through the list shows a pilot, a tank commander, a gunner, a sniper —
+       the whole combined-arms picture — before it repeats a role. */
+    liveUnits(fac) {
+      const order = ['helo', 'mbt', 'ifv', 'apc', 'artillery', 'mlrs', 'light', 'sniper', 'infantry'];
+      const bucket = new Map(order.map(t => [t, []]));
+      for (const x of state.units) {
+        if (!x.alive || (fac && x.faction !== fac)) continue;
+        (bucket.get(x.type) || bucket.get('infantry')).push(x);
+      }
+      const out = [];
+      for (let round = 0; out.length < state.units.length; round++) {
+        let added = 0;
+        for (const t of order) { const b = bucket.get(t); if (b[round]) { out.push(b[round]); added++; } }
+        if (!added) break;
+      }
+      return out;
+    },
     unitCount: () => state.units.filter(x => x.alive).length,
   };
 }

@@ -22,7 +22,7 @@
 (function (global) {
 'use strict';
 
-const ROLES = ['terrain', 'model', 'wire', 'water', 'veg', 'fx', 'overlay', 'life'];
+const ROLES = ['terrain', 'model', 'wire', 'water', 'veg', 'grass', 'fx', 'overlay', 'road', 'life'];
 
 function create(opts) {
   const scene = opts.scene, renderer = opts.renderer;
@@ -90,6 +90,16 @@ function create(opts) {
     obj.traverse(n => { if (n.material) register(n.material, role); });
     return obj;
   }
+  /* Anything rebuilt per destination (the street overlay, for one) has to drop
+     its old material here as well as dispose it, or the registry accumulates
+     dead entries that setMode still walks on every toggle. */
+  function unregister(mat) {
+    if (!mat) return;
+    if (Array.isArray(mat)) { mat.forEach(unregister); return; }
+    const i = registry.findIndex(e => e.mat === mat);
+    if (i >= 0) registry.splice(i, 1);
+    delete mat.__aegisRole;
+  }
 
   const HOLO_HUE = new THREE.Color(0x53e6ff);
   function applyHolo(e) {
@@ -106,9 +116,10 @@ function create(opts) {
         m.fog = false;
         break;
       case 'wire':
+      case 'road':
         m.transparent = true; m.opacity = b.opacity;
         m.blending = THREE.AdditiveBlending; m.depthWrite = false;
-        if (m.color) m.color.copy(b.color);
+        if (m.color && b.color) m.color.copy(b.color);
         m.fog = false;
         break;
       case 'veg':
@@ -116,7 +127,17 @@ function create(opts) {
         m.blending = THREE.AdditiveBlending; m.depthWrite = false;
         m.fog = false;
         break;
+      case 'grass':
+        /* ground cover is a soft sprite in both looks — never made opaque, or
+           a point near the camera fills the screen with a hard square */
+        m.transparent = true; m.opacity = b.opacity;
+        m.blending = THREE.AdditiveBlending; m.depthWrite = false;
+        m.fog = false;
+        break;
       case 'water':
+        /* the mask rides in the vertex colour here — additive blending turns a
+           dry vertex into nothing at all, which is exactly the falloff wanted */
+        m.vertexColors = b.vertexColors;
         m.transparent = true; m.opacity = 0.5;
         m.blending = THREE.AdditiveBlending; m.depthWrite = false;
         m.fog = false;
@@ -145,7 +166,15 @@ function create(opts) {
         m.blending = THREE.NormalBlending; m.depthWrite = true;
         m.fog = true;
         break;
+      case 'grass':
+        m.transparent = true; m.opacity = Math.min(0.7, b.opacity * 1.6);
+        m.blending = THREE.NormalBlending; m.depthWrite = false;
+        m.fog = true;
+        break;
       case 'water':
+        /* lit water is one colour shaped by its alphaMap — the vertex mask is
+           dropped, or the shoreline reads as a black fringe instead of shallows */
+        m.vertexColors = false;
         m.transparent = true; m.opacity = 0.82;
         m.blending = THREE.NormalBlending; m.depthWrite = false;
         m.fog = true;
@@ -159,6 +188,15 @@ function create(opts) {
       case 'overlay':
         m.transparent = true; m.opacity = b.opacity * 0.35;
         m.blending = THREE.NormalBlending; m.depthWrite = false;
+        m.fog = true;
+        break;
+      case 'road':
+        /* The street canvas is drawn in projection cyan. Its ALPHA is the road
+           network, so tinting the material asphalt and blending normally turns
+           the same texture into a real street grid — no second canvas. */
+        m.transparent = true; m.opacity = 0.72;
+        m.blending = THREE.NormalBlending; m.depthWrite = false;
+        if (m.color) m.color.setHex(0x2f3238);
         m.fog = true;
         break;
       default:
@@ -189,7 +227,7 @@ function create(opts) {
   function update(camera) { if (sky.visible) sky.position.copy(camera.position); }
 
   return {
-    register, registerObject, setMode, update,
+    register, registerObject, unregister, setMode, update,
     get mode() { return mode; },
     isReal: () => mode === 'real',
     count: () => registry.length,
