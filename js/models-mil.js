@@ -151,7 +151,9 @@ function buildBradley() {
    muzzle brake. Reads instantly as artillery because of barrel length.
    --------------------------------------------------------------------------- */
 function buildPaladin() {
-  const hullParts = tracks(6.1, 0.58, 0.92, 1.44, 7);
+  /* the M109 has no return rollers and minimal skirts, so its road wheels are
+     visibly exposed — a strong contrast cue against Abrams and Bradley */
+  const hullParts = tracks(6.1, 0.58, 0.92, 1.44, 7, 0x2b2f2c);
   hullParts.push({ geo: extrudeProfile([
       [m(-3.15), m(0.52)], [m(-3.15), m(1.05)], [m(-2.0), m(1.45)],
       [m(2.9), m(1.45)], [m(3.15), m(1.25)], [m(3.15), m(0.52)],
@@ -164,6 +166,10 @@ function buildPaladin() {
   /* 155 mm: 6.0 m tube + pepperpot muzzle brake */
   t.push({ geo: cyl(m(0.085), m(0.105), m(5.2), 10),
     matrix: mat([m(-4.35), m(0.95), 0], [0, 0, Math.PI / 2]), color: C.steel });
+  /* fume extractor mid-tube + stepped muzzle brake: the two lumps on a long
+     thin barrel are what read "artillery, not tank" at distance */
+  t.push({ geo: cyl(m(0.19), m(0.19), m(0.70), 10),
+    matrix: mat([m(-4.30), m(0.95), 0], [0, 0, Math.PI / 2]), color: C.steel });
   t.push({ geo: cyl(m(0.16), m(0.16), m(0.6), 8),
     matrix: mat([m(-7.20), m(0.95), 0], [0, 0, Math.PI / 2]), color: C.black });
   t.push({ geo: cyl(m(0.38), m(0.40), m(0.30), 10), matrix: mat([m(0.60), m(1.42), m(0.65)]), color: C.greenDk });
@@ -177,8 +183,10 @@ function buildPaladin() {
    --------------------------------------------------------------------------- */
 function buildStryker() {
   const parts = roadWheels(
-    [[-2.55, -1.20], [-2.55, 1.20], [-1.25, -1.20], [-1.25, 1.20],
-     [1.15, -1.20], [1.15, 1.20], [2.45, -1.20], [2.45, 1.20]], 0.55, 0.34);
+    /* axles at 1.30/2.60/4.50/5.85 m from the nose: two close pairs with a
+       wide empty gap between them — the LAV/Stryker recognition cue */
+    [[-2.18, -1.20], [-2.18, 1.20], [-0.88, -1.20], [-0.88, 1.20],
+     [1.02, -1.20], [1.02, 1.20], [2.37, -1.20], [2.37, 1.20]], 0.55, 0.34);
   parts.push({ geo: extrudeProfile([
       [m(-3.45), m(0.62)], [m(-3.30), m(1.35)], [m(-1.60), m(1.95)],
       [m(2.55), m(2.05)], [m(3.45), m(1.95)], [m(3.45), m(0.62)],

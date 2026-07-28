@@ -9,8 +9,23 @@
   },
   "brief": {
     "since": "last session",
-    "headline": "AEGIS scaled to a worldwide simulator \u2014 51 real destinations with searchable theater console, 3D vehicle/person/animal models, debris physics and sandbox exploration.",
+    "headline": "AEGIS full overhaul \u2014 force-on-force battle simulation, military model library (armour/artillery/rotary/infantry), detailed houses, and a latent geometry-merge bug fixed across every model.",
     "items": [
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS battle sim: BATTLE button deploys two 24-unit combined-arms forces (Abrams, Bradley, Stryker, Humvee, Paladin, HIMARS, Apache, rifle squads) that acquire, close and engage on published effective ranges. Belt-fed weapons fire 6-9 round bursts and pause; rifles are aimed semi-auto. Armour is checked against each weapon's AP value. Faction rings, tracers, muzzle flashes, live force-strength HUD."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS military models authored in real metres with one conversion, so soldier/Humvee/Abrams proportions are correct by construction. Includes sloped Abrams glacis and 5.3m gun, Bradley TOW box, M109 fume extractor, Stryker 2+2 axle grouping and slat armour, Apache tandem cockpit. Infantry in standing/kneeling/prone with helmet, plate carrier, ruck and rifle. Houses gained gable roofs, doors, window bays and chimneys."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "Fixed a latent bug that had been silently deleting model detail project-wide: mergeParts sized its buffers from the INDEXED vertex count before de-indexing, so overflow writes were swallowed and trailing parts vanished. The Stryker and Humvee were losing their entire hulls. Vertex counts roughly doubled after the fix."
+      },
       {
         "agent": "demo-engineer",
         "kind": "done",
@@ -35,21 +50,6 @@
         "agent": "demo-engineer",
         "kind": "done",
         "text": "AEGIS: added multi-strike salvos (up to 4 aim points, staggered, per-target BDA), a Pathfinder Team Ops panel (MOVE/HOLD/SWEEP/EXFIL with tap-to-move waypoints), a casualty model with distinct civilian vs. animal silhouettes, a destructible State Capitol, SUNDOWN full-theater leveling, and a RESET button."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS: sector intel is now live \u2014 structures standing, civ tracks, vehicles moving, herd size, tree line all count the real sim (341 -> 193 -> 0 verified across a salvo and SUNDOWN)."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS: cinematic rewritten to showcase every system, and its STOP is now instant (previously took up to 11s, so the button looked dead)."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS bugs fixed from an adversarial review + headless QA: recon scan-fx leak on redeploy, cinematic skipping its first strike when a weapon was pre-selected, tick-based log typewriter stalling on slow frames, top-bar overflow hiding RESET at laptop widths, arsenal clipping the 5th system when Team Ops opened."
       }
     ]
   },
@@ -123,9 +123,9 @@
     {
       "id": "aegis",
       "title": "AEGIS OVERWATCH",
-      "status": "WORLDWIDE ENGINE SHIPPED",
+      "status": "BATTLE SIM SHIPPED",
       "path": "../index.html",
-      "desc": "Holo-tactical command table \u2014 51 real-world theaters with searchable console, real elevation data, per-city layout/height/roof identity, 3D traffic and crowds, debris physics, sandbox exploration, 5 asset packages incl. SUNDOWN.",
+      "desc": "Holo-tactical command table \u2014 51 real-world theaters, force-on-force battle simulation with real armour/artillery/rotary/infantry models, destructible world, debris physics, sandbox exploration, 5 asset packages incl. SUNDOWN.",
       "flags": "?fastboot \u00b7 ?autodemo \u00b7 ?site=<id>"
     },
     {
@@ -154,7 +154,7 @@
       "id": "demo-engineer",
       "name": "DEMO ENGINEER",
       "status": "active",
-      "role": "Owns the demos group. AEGIS scaled to a worldwide simulator (51 sites, 3D models, debris physics, sandbox); regression, edge, layout and stress suites all green."
+      "role": "Owns the demos group. AEGIS now runs force-on-force battles on any of 51 world theaters; six-system, edge, layout and battle-stress suites all green."
     },
     {
       "id": "daily-brief",
@@ -170,7 +170,6 @@
     }
   ],
   "activity14": [
-    2,
     4,
     3,
     2,
@@ -183,6 +182,7 @@
     15,
     19,
     24,
-    31
+    31,
+    38
   ]
 }

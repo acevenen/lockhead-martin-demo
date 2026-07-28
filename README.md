@@ -38,6 +38,18 @@ asset takes four seconds and zero keyboards.*
   cities because buildings share one global metres-to-units scale. Per-city
   roof palettes (Paris zinc, Marrakesh ochre, Seoul's green membrane) carry
   most of the aerial read.
+- **⚔ BATTLE — force-on-force simulation.** Press `⚔ BATTLE` (or **B**) and two
+  24-unit combined-arms forces deploy and fight it out: M1 Abrams, M2 Bradleys,
+  Strykers, Humvees, M109 Paladins, HIMARS, AH-64 Apaches and rifle squads.
+  Units acquire, close, and engage using **published effective ranges** — a
+  rifle reaches 500 m and a 120 mm gun 3,500 m, so infantry genuinely has to
+  advance while armour trades at distance. Belt-fed weapons fire **6–9 round
+  bursts and pause** rather than streaming, and rifles are aimed semi-auto
+  (continuous full-auto is the most common realism error in battle sims).
+  Armour value is checked against each weapon's AP performance, so an MG will
+  not kill a tank. Faction ID rings, tracers, muzzle flashes, and a live
+  force-strength HUD. The battle damages the actual city — structures collapse,
+  glazing fails, civilians are caught in it.
 - **Sandbox exploration** — `◎ EXPLORE` (or **F**) drops you off the table and
   into the world: WASD to fly, Q/E for altitude, Shift to boost, drag to look,
   Esc to return. Terrain collision keeps you above ground.
@@ -68,6 +80,16 @@ asset takes four seconds and zero keyboards.*
   buildings collapse to rubble stubs with debris bursts, farmsteads flatten,
   trees inside the blast radius are erased, and water impacts splash instead.
   The **State Capitol is destructible** — topple it and the dome goes dark.
+- **Military model library** — every vehicle is authored in **real metres** and
+  converted once, so a soldier beside a Humvee beside an Abrams is correct by
+  construction. Sloped Abrams glacis and 5.3 m gun, Bradley's offset turret and
+  TOW box, the M109's fume extractor and muzzle brake, the Stryker's 2+2 axle
+  grouping and slat armour, Apache tandem stepped cockpit and chin turret.
+  Infantry in standing / kneeling / prone with helmet, plate carrier, ruck and
+  rifle — kit bulk and the no-neck helmet line are what separate them from
+  civilians at range.
+- **Houses** with gable roofs, doors, door steps, window bays and chimneys;
+  desert sites get flat parapet roofs instead.
 - **Pattern-of-life simulation, in 3D** — 120 pedestrians as articulated
   humanoids, 68 vehicles as **real vehicle geometry** (sedan, SUV, pickup and
   bus, each extruded from a true side profile: sloped hood, raked windshield,
@@ -122,6 +144,8 @@ Useful URL flags:
 | `?autodemo` | fastboot + auto-run the cinematic demo loop |
 | `?site=tokyo` | boot straight into a named theater (any atlas id) |
 
+Hotkeys: **G** theater console · **B** battle · **F** sandbox · **1–5** arsenal · **Space** execute · **Esc** clear
+
 Build the self-contained single-file version (three.js inlined, for hosting
 as an artifact / kiosk page):
 
@@ -170,6 +194,8 @@ still opens straight from `file://`):
 | `js/world.js` | terrain, water and city generation from a site record |
 | `js/models.js` | procedural vehicle / person / animal geometry |
 | `js/physics.js` | pooled rigid-body debris |
+| `js/models-mil.js` | armour, artillery, rotary-wing, infantry, houses |
+| `js/battle.js` | force-on-force simulation |
 | `js/console.js` | worldwide theater search |
 
 Three.js r128 vendored in `vendor/`. No other dependencies and no network

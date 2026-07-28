@@ -279,6 +279,23 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
 #explorehud.on{display:flex}
 #explorehud b{color:var(--ok);font-weight:400}
 
+
+/* ---------- battle HUD ---------- */
+#btn-battle.on{color:#12040a;background:var(--alert);border-color:var(--alert)}
+#battlehud{position:fixed;left:50%;top:96px;transform:translateX(-50%);z-index:47;display:none;
+  min-width:min(430px,88vw);background:var(--panel2);border:1px solid var(--line);padding:9px 13px;
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+#battlehud.on{display:block}
+#bh-top{display:flex;align-items:center;gap:10px;font-size:9px;letter-spacing:.18em;color:var(--mut)}
+#bh-top .st{margin-left:auto;color:var(--alert)}
+.bh-row{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:9px;letter-spacing:.12em}
+.bh-nm{width:58px;font-family:var(--disp);letter-spacing:.16em}
+.bh-bar{flex:1;height:7px;background:rgba(255,255,255,.09);position:relative;overflow:hidden}
+.bh-fill{position:absolute;inset:0 auto 0 0;transition:width .3s}
+.bh-n{width:48px;text-align:right;font-variant-numeric:tabular-nums;color:#dff6ff}
+#bh-blu .bh-nm{color:#5fb8ff}#bh-blu .bh-fill{background:#5fb8ff}
+#bh-op .bh-nm{color:#ff6b5a}#bh-op .bh-fill{background:#ff6b5a}
+
 /* ---------- mobile ---------- */
 @media (max-width:940px){
   #topbar{padding:8px 8px 0;flex-wrap:wrap;gap:6px}
@@ -360,6 +377,7 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
     <button class="iconbtn" id="btn-cine">▶ CINEMATIC</button>
     <button class="iconbtn" id="btn-theme">MK-II CYAN</button>
     <button class="iconbtn off" id="btn-audio">AUDIO</button>
+    <button class="iconbtn" id="btn-battle">⚔<span class="lbl"> BATTLE</span></button>
     <button class="iconbtn" id="btn-explore">◎<span class="lbl"> EXPLORE</span></button>
     <button class="iconbtn" id="btn-reset">⟲<span class="lbl"> RESET</span></button>
   </div>
@@ -457,6 +475,11 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
   </div>
 </div>
 <div id="explorehud"><span><b>W A S D</b> FLY</span><span><b>Q E</b> UP / DOWN</span><span><b>SHIFT</b> BOOST</span><span><b>DRAG</b> LOOK</span><span><b>ESC</b> EXIT</span></div>
+<div id="battlehud">
+  <div id="bh-top"><span>FORCE-ON-FORCE · SIMULATION</span><span class="st" id="bh-state">ENGAGED</span></div>
+  <div class="bh-row" id="bh-blu"><span class="bh-nm">BLUFOR</span><span class="bh-bar"><span class="bh-fill"></span></span><span class="bh-n">0/0</span></div>
+  <div class="bh-row" id="bh-op"><span class="bh-nm">OPFOR</span><span class="bh-bar"><span class="bh-fill"></span></span><span class="bh-n">0/0</span></div>
+</div>
 <div id="whiteout"></div>
 <div id="toast"></div>
 
@@ -465,6 +488,8 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
 <script src="js/models.js"></script>
 <script src="js/physics.js"></script>
 <script src="js/world.js"></script>
+<script src="js/models-mil.js"></script>
+<script src="js/battle.js"></script>
 <script src="js/console.js"></script>
 <script>
 'use strict';
@@ -2633,6 +2658,7 @@ function loadSite(id){
   clearTarget();
   teardownTeam();
   if (explore.on) setExplore(false);
+  if (BATTLE && BATTLE.isRunning()) setBattle(false);
   wasteland = false;
   capitolAlive = true;
   fx.length = 0;
@@ -2680,6 +2706,7 @@ addEventListener('keydown', e => {
     if ('wasdqe'.includes(k) || k === 'shift'){ explore.keys[k] = true; e.preventDefault(); }
   }
   if (k === 'f') setExplore(!explore.on);
+  if (k === 'b') setBattle(!(BATTLE && BATTLE.isRunning()));
 });
 addEventListener('keyup', e => { explore.keys[e.key.toLowerCase()] = false; });
 function updateExplore(dt){
@@ -2707,6 +2734,66 @@ function updateExplore(dt){
   camera.lookAt(explore.pos.x + fwd.x, explore.pos.y + fwd.y, explore.pos.z + fwd.z);
   const ll = fmtLL(explore.pos.x, explore.pos.z);
   $('t-sec').textContent = 'EXPLORE';
+}
+
+
+/* ---------------- battle simulation ---------------- */
+let BATTLE = null;
+function ensureBattle(){
+  if (BATTLE) return BATTLE;
+  BATTLE = window.AegisBattle.create({
+    scene, sampleH, log,
+    models: window.AegisModels, mil: window.AegisMil,
+    /* battle impacts reuse the same destruction chain as the arsenal, so a
+       tank brewing up shakes the table and throws real debris */
+    onImpact(x, y, z, scale, kill){
+      if (DEBRIS) DEBRIS.explosion(x, y + .2, z, scale);
+      if (kill){
+        explosion(new THREE.Vector3(x, y, z), scale * 0.55, true);
+        shake = Math.max(shake, 0.5 * scale);
+      }
+    },
+  });
+  return BATTLE;
+}
+function terrainOkForUnit(x, z){
+  if (Math.abs(x) > 142 || Math.abs(z) > 94) return false;
+  if (WAT.has && WAT.mask(x, z) > 0.18) return false;
+  return true;
+}
+function setBattle(on){
+  const B = ensureBattle();
+  if (on){
+    if (state.busy){ toast('MISSION IN FLIGHT — CANNOT START BATTLE'); return; }
+    /* fight over open ground near the city edge, not inside the tower core */
+    const c = { x: CITY.x + (SITE.layout === 'none' ? 0 : CITY.r * 0.9), z: CITY.z };
+    if (!terrainOkForUnit(c.x, c.z)) { c.x = 0; c.z = 0; }
+    B.start(c, terrainOkForUnit);
+    $('battlehud').classList.add('on');
+    $('btn-battle').classList.add('on');
+    $('bh-state').textContent = 'ENGAGED';
+    flyTo('city');
+    pivotT.set(c.x, 0, c.z); sphT.r = 38; sphT.phi = .74; sphT.theta = .55;
+    toast('FORCE-ON-FORCE — SIMULATED ENGAGEMENT');
+  } else {
+    B.stop();
+    $('battlehud').classList.remove('on');
+    $('btn-battle').classList.remove('on');
+    log('BATTLE ▸ ENDEX — FORCES WITHDRAWN', 'sys');
+  }
+  sfx.blip(on ? 520 : 760, .07); haptic(on ? [30,60,30] : 12);
+}
+$('btn-battle').addEventListener('click', () => setBattle(!(BATTLE && BATTLE.isRunning())));
+function updateBattleHud(){
+  if (!BATTLE || !BATTLE.isRunning()) return;
+  const st = BATTLE.state;
+  for (const fac of ['blu','op']){
+    const row = $('bh-' + fac);
+    const n = BATTLE.alive(fac), tot = st.start[fac] || 1;
+    row.querySelector('.bh-fill').style.width = Math.round(n/tot*100) + '%';
+    row.querySelector('.bh-n').textContent = n + '/' + tot;
+  }
+  $('bh-state').textContent = st.over ? 'ENDEX' : 'ENGAGED';
 }
 
 /* ---------------- boot ---------------- */
@@ -2867,6 +2954,7 @@ function frame(){
   updateLife(dt);
   updateTeam(dt);
   if (DEBRIS) DEBRIS.update(dt);
+  if (BATTLE && BATTLE.isRunning()){ BATTLE.update(dt); updateBattleHud(); }
   if (lakeAlive) lakeRipples.forEach(r => {
     const t = (perfT*.22 + r.userData.ph) % 1;
     r.scale.setScalar(1 + t*(LAKE.r - 1));
@@ -2929,7 +3017,9 @@ addEventListener('resize', () => {
 
 /* demo + diagnostics API (used by the headless QA harness) */
 window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme, state, clearTarget, finishBoot,
-  setMulti, teamOrder, setTeamWaypoint, loadSite, setExplore,
+  setMulti, teamOrder, setTeamWaypoint, loadSite, setExplore, setBattle,
+  battle: () => BATTLE, battleAlive: f => BATTLE ? BATTLE.alive(f) : 0,
+  battleRunning: () => !!(BATTLE && BATTLE.isRunning()),
   isExploring: () => explore.on,
   site: () => SITE, buildingCount: () => buildings.length, atlasSize: () => ATLAS.length,
   hasTeam: () => !!teamState, isWasteland: () => wasteland,

@@ -291,8 +291,11 @@ const EMBEDDED_STATE = {
   user:{name:"", honorific:"sir"},
   brief:{
     since:"last session",
-    headline:"AEGIS scaled to a worldwide simulator — 51 real destinations with searchable theater console, 3D vehicle/person/animal models, debris physics and sandbox exploration.",
+    headline:"AEGIS full overhaul — force-on-force battle simulation, military model library (armour/artillery/rotary/infantry), detailed houses, and a latent geometry-merge bug fixed across every model.",
     items:[
+      {agent:"demo-engineer", kind:"done", text:"AEGIS battle sim: BATTLE button deploys two 24-unit combined-arms forces (Abrams, Bradley, Stryker, Humvee, Paladin, HIMARS, Apache, rifle squads) that acquire, close and engage on published effective ranges. Belt-fed weapons fire 6-9 round bursts and pause; rifles are aimed semi-auto. Armour is checked against each weapon's AP value. Faction rings, tracers, muzzle flashes, live force-strength HUD."},
+      {agent:"demo-engineer", kind:"done", text:"AEGIS military models authored in real metres with one conversion, so soldier/Humvee/Abrams proportions are correct by construction. Includes sloped Abrams glacis and 5.3m gun, Bradley TOW box, M109 fume extractor, Stryker 2+2 axle grouping and slat armour, Apache tandem cockpit. Infantry in standing/kneeling/prone with helmet, plate carrier, ruck and rifle. Houses gained gable roofs, doors, window bays and chimneys."},
+      {agent:"demo-engineer", kind:"done", text:"Fixed a latent bug that had been silently deleting model detail project-wide: mergeParts sized its buffers from the INDEXED vertex count before de-indexing, so overflow writes were swallowed and trailing parts vanished. The Stryker and Humvee were losing their entire hulls. Vertex counts roughly doubled after the fix."},
       {agent:"demo-engineer", kind:"done", text:"AEGIS worldwide: 51 destinations across all 7 regions, each built from real coordinates and a real ETOPO1 elevation grid fetched at build time and baked in, so it still runs air-gapped. Searchable theater console (G) loads any site in ~2s."},
       {agent:"demo-engineer", kind:"done", text:"AEGIS city identity: 8 street-grid archetypes with real bearings (Manhattan 29 deg, Barcelona 45 deg) and the empirical GHSL height gradient, so Paris reads as a 22m cap, Hong Kong a 96m wall and Dubai an 11m villa carpet with an 828m needle."},
       {agent:"demo-engineer", kind:"done", text:"AEGIS graphics: vehicles rebuilt from true extruded side profiles (sloped hood, raked windshield, wheels with rims, lamps) in 4 types, humanoid pedestrians, antlered wildlife, window-textured buildings — all instanced. Added pooled rigid-body debris (glass, concrete, metal, embers) and a WASD sandbox mode."},
@@ -332,7 +335,7 @@ const EMBEDDED_STATE = {
      proposed:"Fill in jarvis/knowledge/values.md and business.md when you have a moment.", needsUser:true}
   ],
   demos:[
-    {id:"aegis", title:"AEGIS OVERWATCH", status:"WORLDWIDE ENGINE SHIPPED", path:"../index.html",
+    {id:"aegis", title:"AEGIS OVERWATCH", status:"BATTLE SIM SHIPPED", path:"../index.html",
      desc:"Holo-tactical command table — Denver Front Range theater, sat-uplink window, 5 asset packages incl. SUNDOWN, multi-strike salvos, Pathfinder team ops, destructible world with casualty model, live sector intel, cinematic mode.",
      flags:"?fastboot · ?autodemo"},
     {id:"jarvis", title:"JARVIS COMMAND HUD", status:"YOU ARE HERE", path:"index.html",
@@ -350,7 +353,7 @@ const EMBEDDED_STATE = {
     {id:"biz-ops", name:"BIZ OPS", status:"standby",
      role:"Business problems and roadblocks: triage, propose solutions, flag what needs your call."}
   ],
-  activity14:[2,4,3,2,5,4,6,8,9,12,15,19,24,31]
+  activity14:[4,3,2,5,4,6,8,9,12,15,19,24,31,38]
 };
 
 let STATE = EMBEDDED_STATE;
