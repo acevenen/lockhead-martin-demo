@@ -291,8 +291,12 @@ const EMBEDDED_STATE = {
   user:{name:"", honorific:"sir"},
   brief:{
     since:"last session",
-    headline:"AEGIS Overwatch expanded to a living, destructible theater — multi-strike salvos, team ops, casualty model, SUNDOWN, reset. Sentinel hardening merged, main green. JARVIS HUD deployed.",
+    headline:"AEGIS scaled to a worldwide simulator — 51 real destinations with searchable theater console, 3D vehicle/person/animal models, debris physics and sandbox exploration.",
     items:[
+      {agent:"demo-engineer", kind:"done", text:"AEGIS worldwide: 51 destinations across all 7 regions, each built from real coordinates and a real ETOPO1 elevation grid fetched at build time and baked in, so it still runs air-gapped. Searchable theater console (G) loads any site in ~2s."},
+      {agent:"demo-engineer", kind:"done", text:"AEGIS city identity: 8 street-grid archetypes with real bearings (Manhattan 29 deg, Barcelona 45 deg) and the empirical GHSL height gradient, so Paris reads as a 22m cap, Hong Kong a 96m wall and Dubai an 11m villa carpet with an 828m needle."},
+      {agent:"demo-engineer", kind:"done", text:"AEGIS graphics: vehicles rebuilt from true extruded side profiles (sloped hood, raked windshield, wheels with rims, lamps) in 4 types, humanoid pedestrians, antlered wildlife, window-textured buildings — all instanced. Added pooled rigid-body debris (glass, concrete, metal, embers) and a WASD sandbox mode."},
+      {agent:"demo-engineer", kind:"done", text:"AEGIS bugs fixed this round: city fabric filling from a map corner instead of the core, water buried under terrain, buildings inheriting per-site terrain exaggeration (which inverted Paris vs Dubai), toolbar overflow hiding RESET on phones, and salvo log flooding."},
       {agent:"demo-engineer", kind:"done", text:"AEGIS: added multi-strike salvos (up to 4 aim points, staggered, per-target BDA), a Pathfinder Team Ops panel (MOVE/HOLD/SWEEP/EXFIL with tap-to-move waypoints), a casualty model with distinct civilian vs. animal silhouettes, a destructible State Capitol, SUNDOWN full-theater leveling, and a RESET button."},
       {agent:"demo-engineer", kind:"done", text:"AEGIS: sector intel is now live — structures standing, civ tracks, vehicles moving, herd size, tree line all count the real sim (341 -> 193 -> 0 verified across a salvo and SUNDOWN)."},
       {agent:"demo-engineer", kind:"done", text:"AEGIS: cinematic rewritten to showcase every system, and its STOP is now instant (previously took up to 11s, so the button looked dead)."},
@@ -328,7 +332,7 @@ const EMBEDDED_STATE = {
      proposed:"Fill in jarvis/knowledge/values.md and business.md when you have a moment.", needsUser:true}
   ],
   demos:[
-    {id:"aegis", title:"AEGIS OVERWATCH", status:"LIVING THEATER SHIPPED", path:"../index.html",
+    {id:"aegis", title:"AEGIS OVERWATCH", status:"WORLDWIDE ENGINE SHIPPED", path:"../index.html",
      desc:"Holo-tactical command table — Denver Front Range theater, sat-uplink window, 5 asset packages incl. SUNDOWN, multi-strike salvos, Pathfinder team ops, destructible world with casualty model, live sector intel, cinematic mode.",
      flags:"?fastboot · ?autodemo"},
     {id:"jarvis", title:"JARVIS COMMAND HUD", status:"YOU ARE HERE", path:"index.html",
@@ -346,7 +350,7 @@ const EMBEDDED_STATE = {
     {id:"biz-ops", name:"BIZ OPS", status:"standby",
      role:"Business problems and roadblocks: triage, propose solutions, flag what needs your call."}
   ],
-  activity14:[3,2,4,3,2,5,4,6,8,9,12,15,19,24]
+  activity14:[2,4,3,2,5,4,6,8,9,12,15,19,24,31]
 };
 
 let STATE = EMBEDDED_STATE;

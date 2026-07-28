@@ -15,9 +15,19 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = process.argv[2] || join(root, 'dist', 'artifact.html');
 
 let html = readFileSync(join(root, 'index.html'), 'utf8');
-const three = readFileSync(join(root, 'vendor', 'three.min.js'), 'utf8');
 
-html = html.replace('<script src="vendor/three.min.js"></script>', () => `<script>\n${three}\n</script>`);
+/* inline every local script so the published page is a single self-contained
+   file — the artifact CSP blocks external fetches, and this also keeps the
+   file:// build working from one document */
+const LOCAL = /<script src="((?:vendor|js)\/[^"]+)"><\/script>/g;
+let inlined = 0;
+html = html.replace(LOCAL, (_m, rel) => {
+  const code = readFileSync(join(root, rel), 'utf8');
+  inlined++;
+  return `<script>\n/* inlined: ${rel} */\n${code}\n</script>`;
+});
+if (!inlined) throw new Error('no local scripts inlined — check the tag pattern');
+console.log(`inlined ${inlined} local scripts`);
 
 const SKELETON = [
   /^<!DOCTYPE html>\s*$/i,

@@ -270,12 +270,28 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
   .wc-sub,.wc-meta{grid-column:1/-1;font-size:8.5px}
 }
 
+
+/* ---------- sandbox mode ---------- */
+#btn-explore.on{color:#04121a;background:var(--ok);border-color:var(--ok)}
+#explorehud{position:fixed;left:50%;bottom:74px;transform:translateX(-50%);z-index:46;display:none;
+  gap:14px;padding:7px 16px;font-size:8.5px;letter-spacing:.16em;color:var(--mut);
+  background:var(--panel);border:1px solid rgba(87,255,160,.4)}
+#explorehud.on{display:flex}
+#explorehud b{color:var(--ok);font-weight:400}
+
 /* ---------- mobile ---------- */
 @media (max-width:940px){
   #topbar{padding:8px 8px 0;flex-wrap:wrap;gap:6px}
   #brand .t1{font-size:12px;letter-spacing:.2em}
-  #tstatus{display:flex;order:2;margin-left:auto;padding:2px;gap:5px}
+  /* six controls have to fit a 390px phone without a scrollbar: drop the
+     wordy parts, keep the glyphs, and let the theater name stay visible */
+  #tstatus{display:flex;order:2;margin-left:auto;padding:2px;gap:4px;flex-wrap:nowrap}
   #tstatus .pill{display:none}
+  #tstatus .iconbtn{flex:none;padding:5px 6px;font-size:8.5px;letter-spacing:.06em}
+  #tstatus .lbl{display:none}
+  #btn-theme{display:none}
+  #btn-cine{font-size:0;padding:5px 8px}
+  #btn-cine::first-letter{font-size:11px}
   .iconbtn{padding:5px 7px;font-size:9px}
   #sectors{margin:0;order:3;width:100%;justify-content:flex-start;overflow-x:auto}
   .secbtn{padding:7px 10px;font-size:9.5px;flex:none}
@@ -340,11 +356,12 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
   <div id="tstatus">
     <span class="pill" id="clock">--:--:-- Z</span>
     <span class="pill">SAT-LINK <b>▮▮▮▮▮</b></span>
-    <button class="iconbtn" id="btn-world">🌐 THEATER: <b id="wc-label">DENVER</b></button>
+    <button class="iconbtn" id="btn-world">🌐<span class="lbl"> THEATER:</span> <b id="wc-label">DENVER</b></button>
     <button class="iconbtn" id="btn-cine">▶ CINEMATIC</button>
     <button class="iconbtn" id="btn-theme">MK-II CYAN</button>
     <button class="iconbtn off" id="btn-audio">AUDIO</button>
-    <button class="iconbtn" id="btn-reset">⟲ RESET</button>
+    <button class="iconbtn" id="btn-explore">◎<span class="lbl"> EXPLORE</span></button>
+    <button class="iconbtn" id="btn-reset">⟲<span class="lbl"> RESET</span></button>
   </div>
 </header>
 
@@ -439,6 +456,7 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
     <div id="wc-hint"><span><b>↑↓</b> BROWSE</span><span><b>ENTER</b> DEPLOY</span><span><b>ESC</b> CLOSE</span><span><b>G</b> OPEN CONSOLE</span></div>
   </div>
 </div>
+<div id="explorehud"><span><b>W A S D</b> FLY</span><span><b>Q E</b> UP / DOWN</span><span><b>SHIFT</b> BOOST</span><span><b>DRAG</b> LOOK</span><span><b>ESC</b> EXIT</span></div>
 <div id="whiteout"></div>
 <div id="toast"></div>
 
@@ -1452,6 +1470,11 @@ cvs.addEventListener('pointermove', e => {
   p.x = e.clientX; p.y = e.clientY;
   state.idle = 0;
   if (ptrs.size === 1){
+    if (explore.on){
+      explore.yaw -= dx * .0042;
+      explore.pitch = Math.min(1.35, Math.max(-1.35, explore.pitch - dy*.0035));
+      return;
+    }
     sphT.theta -= dx * .0052;
     sphT.phi = Math.min(1.34, Math.max(.22, sphT.phi - dy*.0042));
   } else if (ptrs.size === 2){
@@ -1736,6 +1759,7 @@ function destroyStructures(pos, radius){
     b.alive = false; count++;
     const lean = (Math.random()-.5)*1.1, stub = b.h*.08;
     debrisBurst(b.x, b.y + b.h*.5, b.z);
+    if (DEBRIS) DEBRIS.structureCollapse(b.x, b.y + b.h*.5, b.z, Math.max(.5, Math.min(2.4, b.h*.6)));
     let t = 0;
     addFx({ update(dt){
       t += dt/.7;
@@ -1778,6 +1802,23 @@ function destroyStructures(pos, radius){
     p.dead = true; flora = true; bushMesh.setMatrixAt(i, zero);
   });
   if (flora){ treeMesh.instanceMatrix.needsUpdate = true; bushMesh.instanceMatrix.needsUpdate = true; }
+  /* survivors just outside the lethal ring lose their glazing to overpressure */
+  if (DEBRIS){
+    let blown = 0;
+    for (const b of buildings){
+      if (!b.alive || blown > 14) continue;
+      const d = Math.hypot(b.x-pos.x, b.z-pos.z);
+      if (d > radius && d < radius*2.3){
+        DEBRIS.glassBlowout(b.x, b.y + b.h*.65, b.z, 5, 1.1);
+        blown++;
+      }
+    }
+    /* a salvo would otherwise post this once per warhead and flood the log */
+    if (blown && perfT - (destroyStructures.lastGlass || -9) > 3){
+      destroyStructures.lastGlass = perfT;
+      log(`BDA ▸ GLAZING FAILURE ON ${blown} STRUCTURES`, 'warn');
+    }
+  }
   if (capitolAlive && Math.hypot(CAPITOL.x-pos.x, CAPITOL.z-pos.z) < radius + 2.5){
     count++;
     destroyCapitol();
@@ -1827,7 +1868,15 @@ function scatterLife(pos, radius){
   });
   npcSys.cattr.needsUpdate = true;
   aniSys.cattr.needsUpdate = true;
-  if (kiaC + kiaF > 0) log(`SIM ▸ CASUALTIES: ${kiaC} CIV · ${kiaF} FAUNA — TRAINING METRIC`, 'crit');
+  if (kiaC + kiaF > 0){
+    scatterLife.kiaC = (scatterLife.kiaC || 0) + kiaC;
+    scatterLife.kiaF = (scatterLife.kiaF || 0) + kiaF;
+    if (perfT - (scatterLife.lastLog || -9) > 3){
+      scatterLife.lastLog = perfT;
+      log(`SIM ▸ CASUALTIES: ${scatterLife.kiaC} CIV · ${scatterLife.kiaF} FAUNA — TRAINING METRIC`, 'crit');
+      scatterLife.kiaC = 0; scatterLife.kiaF = 0;
+    }
+  }
   if (fled > 4) log('POL ▸ CIV TRACKS DISPERSING FROM BLAST ZONE', 'warn');
 }
 
@@ -1858,6 +1907,7 @@ function explosion(pos, s, quiet){
     blending:THREE.AdditiveBlending, depthWrite:false }));
   parts.frustumCulled = false; grp.add(parts);
   if (!quiet){ sfx.boom(); haptic([60, 40, 120]); }
+  if (DEBRIS) DEBRIS.explosion(pos.x, pos.y + .4, pos.z, s);
   shake = Math.max(shake, 1.5*s);
   /* the land takes the hit: crater + collapse + pattern-of-life reaction */
   const overWater = lakeMask(pos.x, pos.z) > .25 || riverMask(pos.x, pos.z) > .5;
@@ -2496,7 +2546,7 @@ function log(text, cls){
   const span = document.createElement('span'); li.appendChild(span);
   const el = $('log');
   el.insertBefore(li, el.firstChild);
-  while (el.children.length > 26){
+  while (el.children.length > 40){
     const gone = el.lastChild;
     if (gone._iv) clearInterval(gone._iv);
     el.removeChild(gone);
@@ -2582,6 +2632,7 @@ function loadSite(id){
   if (state.busy){ toast('MISSION IN FLIGHT — CANNOT RETASK THEATER'); return; }
   clearTarget();
   teardownTeam();
+  if (explore.on) setExplore(false);
   wasteland = false;
   capitolAlive = true;
   fx.length = 0;
@@ -2597,6 +2648,65 @@ function loadSite(id){
   flyTo('overview');
   toast(SITE.name.toUpperCase() + ' — ' + SITE.sub + ' · ' + (SITE.elevMax-SITE.elevMin) + ' M RELIEF');
   sfx.lock(); haptic([14, 40, 20]);
+}
+
+
+/* ---------------- sandbox: free-fly exploration ---------------- */
+const explore = { on: false, pos: new THREE.Vector3(), yaw: 0, pitch: -0.25, keys: Object.create(null) };
+function setExplore(v){
+  explore.on = v;
+  $('btn-explore').classList.toggle('on', v);
+  $('explorehud').classList.toggle('on', v);
+  if (v){
+    /* drop in just above the ground where the operator is already looking */
+    explore.pos.copy(pivot);
+    explore.pos.y = sampleH(pivot.x, pivot.z) + 6;
+    explore.yaw = sph.theta + Math.PI;
+    explore.pitch = -0.22;
+    toast('SANDBOX — W A S D TO FLY, ESC TO RETURN TO THE TABLE');
+    log('SIM ▸ FREE-EXPLORE ENGAGED · GROUND REFERENCE', 'sys');
+  } else {
+    log('SIM ▸ RETURNED TO HOLO-TABLE', 'sys');
+  }
+  sfx.blip(v ? 900 : 620, .06); haptic(10);
+}
+$('btn-explore').addEventListener('click', () => setExplore(!explore.on));
+addEventListener('keydown', e => {
+  if (worldConsole && worldConsole.isOpen()) return;
+  if (e.target && e.target.closest && e.target.closest('input,textarea')) return;
+  const k = e.key.toLowerCase();
+  if (explore.on){
+    if (k === 'escape'){ setExplore(false); return; }
+    if ('wasdqe'.includes(k) || k === 'shift'){ explore.keys[k] = true; e.preventDefault(); }
+  }
+  if (k === 'f') setExplore(!explore.on);
+});
+addEventListener('keyup', e => { explore.keys[e.key.toLowerCase()] = false; });
+function updateExplore(dt){
+  if (!explore.on) return;
+  const K = explore.keys;
+  const boost = (K['shift'] || explore.shiftHeld) ? 3.4 : 1;
+  const spd = 22 * boost * dt;
+  const cy = Math.cos(explore.yaw), sy = Math.sin(explore.yaw);
+  const cp = Math.cos(explore.pitch), sp2 = Math.sin(explore.pitch);
+  const fwd = new THREE.Vector3(sy * cp, sp2, cy * cp).normalize();
+  const right = new THREE.Vector3(cy, 0, -sy);
+  if (K['w']) explore.pos.addScaledVector(fwd, spd);
+  if (K['s']) explore.pos.addScaledVector(fwd, -spd);
+  if (K['a']) explore.pos.addScaledVector(right, -spd);
+  if (K['d']) explore.pos.addScaledVector(right, spd);
+  if (K['e']) explore.pos.y += spd;
+  if (K['q']) explore.pos.y -= spd;
+  explore.pos.x = Math.min(150, Math.max(-150, explore.pos.x));
+  explore.pos.z = Math.min(100, Math.max(-100, explore.pos.z));
+  /* never sink through the terrain */
+  const floor = sampleH(explore.pos.x, explore.pos.z) + 0.9;
+  if (explore.pos.y < floor) explore.pos.y = floor;
+  if (explore.pos.y > 140) explore.pos.y = 140;
+  camera.position.copy(explore.pos);
+  camera.lookAt(explore.pos.x + fwd.x, explore.pos.y + fwd.y, explore.pos.z + fwd.z);
+  const ll = fmtLL(explore.pos.x, explore.pos.z);
+  $('t-sec').textContent = 'EXPLORE';
 }
 
 /* ---------------- boot ---------------- */
@@ -2666,6 +2776,8 @@ async function cinematic(){
   try {
     toast('CINEMATIC DEMO — SIT BACK');
     setMulti(false);
+    /* 0 — establish that this is a worldwide system, not one map */
+    if (SITE.id !== 'hongkong'){ loadSite('hongkong'); await step(3200); }
     /* 1 — single precision strike downtown */
     flyTo('city'); await step(2300);
     setTarget(14, 2); await step(1300);
@@ -2744,7 +2856,7 @@ function frame(){
   state.idle += dt;
   if (state.idle > 9 && !cineRunning) sphT.theta += dt*.035;
   tUni.uTime.value = perfT;
-  applyCam(dt);
+  if (explore.on) updateExplore(dt); else applyCam(dt);
   if (reticle.visible){
     const s = reticle.scale.x + (1 - reticle.scale.x)*Math.min(1, dt*9);
     reticle.scale.setScalar(s * (1 + Math.sin(perfT*3.6)*.02));
@@ -2754,6 +2866,7 @@ function frame(){
   for (let i=fx.length-1; i>=0; i--){ if (fx[i].update(dt) === false) fx.splice(i, 1); }
   updateLife(dt);
   updateTeam(dt);
+  if (DEBRIS) DEBRIS.update(dt);
   if (lakeAlive) lakeRipples.forEach(r => {
     const t = (perfT*.22 + r.userData.ph) % 1;
     r.scale.setScalar(1 + t*(LAKE.r - 1));
@@ -2816,7 +2929,8 @@ addEventListener('resize', () => {
 
 /* demo + diagnostics API (used by the headless QA harness) */
 window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme, state, clearTarget, finishBoot,
-  setMulti, teamOrder, setTeamWaypoint, loadSite,
+  setMulti, teamOrder, setTeamWaypoint, loadSite, setExplore,
+  isExploring: () => explore.on,
   site: () => SITE, buildingCount: () => buildings.length, atlasSize: () => ATLAS.length,
   hasTeam: () => !!teamState, isWasteland: () => wasteland,
   npcsDead: () => npcs.filter(p => p.dead).length,
