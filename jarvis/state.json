@@ -1,7 +1,7 @@
 {
   "meta": {
     "updated": "2026-07-28",
-    "updatedBy": "demo-engineer"
+    "updatedBy": "jarvis-chief-of-staff"
   },
   "user": {
     "name": "",
@@ -9,8 +9,23 @@
   },
   "brief": {
     "since": "last session",
-    "headline": "AEGIS full overhaul \u2014 force-on-force battle simulation, military model library (armour/artillery/rotary/infantry), detailed houses, and a latent geometry-merge bug fixed across every model.",
+    "headline": "Sentinel Spotter shipped — look at a device you own, get its identity, real risk, and a fix list. AEGIS battle sim overhaul landed.",
     "items": [
+      {
+        "agent": "sentinel-lead",
+        "kind": "done",
+        "text": "Shipped Spotter (PR #5): glasses-native device intelligence. Fuses what you see with passive network signals into a confidence-scored identity — a single sensor can never confirm one — then scores risk by real exposure rather than raw CVSS and emits a ranked plain-language fix list. 42 tests; build/vet/race/lint green."
+      },
+      {
+        "agent": "sentinel-lead",
+        "kind": "done",
+        "text": "Spotter closes a verified authz gap: Policy.Authorize skips Scope.Decide for passive actions, so a deny-listed device was still assessable. ScopeGuard applies scope to every Spotter action and normalizes MAC separator forms (AA-BB-CC vs aa:bb:cc silently failed to match, and --scope documents accepting a BSSID)."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "Built the Spotter glasses HUD concept (spotter/index.html) — renders the exact `sentinel spot --format hud` JSON, walks confirmed / LAN-only / conflicting-evidence / not-mine / unrecognized states, with voice and progressive disclosure."
+      },
       {
         "agent": "demo-engineer",
         "kind": "done",
@@ -35,21 +50,6 @@
         "agent": "demo-engineer",
         "kind": "done",
         "text": "AEGIS city identity: 8 street-grid archetypes with real bearings (Manhattan 29 deg, Barcelona 45 deg) and the empirical GHSL height gradient, so Paris reads as a 22m cap, Hong Kong a 96m wall and Dubai an 11m villa carpet with an 828m needle."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS graphics: vehicles rebuilt from true extruded side profiles (sloped hood, raked windshield, wheels with rims, lamps) in 4 types, humanoid pedestrians, antlered wildlife, window-textured buildings \u2014 all instanced. Added pooled rigid-body debris (glass, concrete, metal, embers) and a WASD sandbox mode."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS bugs fixed this round: city fabric filling from a map corner instead of the core, water buried under terrain, buildings inheriting per-site terrain exaggeration (which inverted Paris vs Dubai), toolbar overflow hiding RESET on phones, and salvo log flooding."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS: added multi-strike salvos (up to 4 aim points, staggered, per-target BDA), a Pathfinder Team Ops panel (MOVE/HOLD/SWEEP/EXFIL with tap-to-move waypoints), a casualty model with distinct civilian vs. animal silhouettes, a destructible State Capitol, SUNDOWN full-theater leveling, and a RESET button."
       }
     ]
   },
@@ -57,18 +57,32 @@
     {
       "id": "sentinel",
       "label": "SENTINEL DEVELOPMENT",
-      "status": "P0 \u00b7 ACTIVE",
-      "progress": 0.55,
-      "next": "CI green, two hardening rounds merged. Next milestone (your steer): audit-chain tamper tests + central authorization-contract fuzzing."
+      "status": "P0 · ACTIVE",
+      "progress": 0.68,
+      "next": "Spotter v1 merged-ready. v2 (your steer): one authorized unicast probe to corroborate identity + read firmware, gated through authz and written to the audit chain."
     }
   ],
   "tasks": [
+    {
+      "title": "Sentinel PR #5 — review + merge Spotter",
+      "project": "SENTINEL",
+      "priority": "P0",
+      "status": "in-review",
+      "note": "Device identification, exposure-aware risk, remediation ranking, HUD contract, authz guard. 42 tests green."
+    },
+    {
+      "title": "Spotter v2 — authorized network corroboration",
+      "project": "SENTINEL",
+      "priority": "P0",
+      "status": "open",
+      "note": "One unicast probe to confirm identity and read firmware; active, scope-gated, audit-logged."
+    },
     {
       "title": "Sentinel: audit-chain tamper tests",
       "project": "SENTINEL",
       "priority": "P0",
       "status": "open",
-      "note": "Proposed next milestone \u2014 verify the hash-chained audit log rejects reordered/edited/truncated events."
+      "note": "Proposed next milestone — verify the hash-chained audit log rejects reordered/edited/truncated events."
     },
     {
       "title": "Sentinel: central authorization-contract fuzzing",
@@ -89,21 +103,21 @@
       "project": "JARVIS",
       "priority": "P2",
       "status": "open",
-      "note": "Settings panel \u2192 key + voice ID. Falls back to en-GB system voice."
+      "note": "Settings panel → key + voice ID. Falls back to en-GB system voice."
     },
     {
       "title": "Fill in values.md + business.md knowledge base",
       "project": "JARVIS",
       "priority": "P2",
       "status": "open",
-      "note": "jarvis/knowledge/ \u2014 the team checks decisions against it; blanks force escalations."
+      "note": "jarvis/knowledge/ — the team checks decisions against it; blanks force escalations."
     }
   ],
   "roadblocks": [
     {
       "title": "Sentinel next milestone needs direction",
       "impact": "The team can keep hardening autonomously, but a named milestone focuses P0.",
-      "proposed": "Approve the proposed track \u2014 audit-chain tamper tests + authorization-contract fuzzing \u2014 or name your own.",
+      "proposed": "Approve the proposed track — audit-chain tamper tests + authorization-contract fuzzing — or name your own.",
       "needsUser": true
     },
     {
@@ -125,8 +139,16 @@
       "title": "AEGIS OVERWATCH",
       "status": "BATTLE SIM SHIPPED",
       "path": "../index.html",
-      "desc": "Holo-tactical command table \u2014 51 real-world theaters, force-on-force battle simulation with real armour/artillery/rotary/infantry models, destructible world, debris physics, sandbox exploration, 5 asset packages incl. SUNDOWN.",
-      "flags": "?fastboot \u00b7 ?autodemo \u00b7 ?site=<id>"
+      "desc": "Holo-tactical command table — 51 real-world theaters, force-on-force battle simulation with real armour/artillery/rotary/infantry models, destructible world, debris physics, sandbox exploration, 5 asset packages incl. SUNDOWN.",
+      "flags": "?fastboot · ?autodemo · ?site=<id>"
+    },
+    {
+      "id": "spotter",
+      "title": "SENTINEL SPOTTER HUD",
+      "status": "NEW",
+      "path": "../spotter/index.html",
+      "desc": "Glasses view: look at a device you own, get identity, real risk and a fix list. Renders the live `sentinel spot --format hud` contract.",
+      "flags": "keys 1-5 · d detail · space re-acquire"
     },
     {
       "id": "jarvis",
@@ -148,7 +170,7 @@
       "id": "sentinel-lead",
       "name": "SENTINEL LEAD",
       "status": "active",
-      "role": "Owns Priority One. Two hardening rounds merged (parsers + authorization gate); CI restored to green."
+      "role": "Owns Priority One. Shipped parser hardening, the authorization-gate tests, and Spotter device intelligence; CI green."
     },
     {
       "id": "demo-engineer",
@@ -170,7 +192,6 @@
     }
   ],
   "activity14": [
-    4,
     3,
     2,
     5,
@@ -183,6 +204,7 @@
     19,
     24,
     31,
-    38
+    38,
+    22
   ]
 }
