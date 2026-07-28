@@ -15,16 +15,25 @@
 
 /* ---------- merge helper (r128 core has no BufferGeometryUtils) ---------- */
 function mergeParts(parts) {
+  /* De-index FIRST, then size the buffers. Box/Cylinder/Sphere geometries are
+     indexed: a BoxGeometry reports 24 positions but expands to 36 once
+     de-indexed. Sizing from the indexed count under-allocates, and the writes
+     past the end are silently dropped by Float32Array — which quietly deletes
+     whatever parts happen to come last. */
+  const flat = parts.map(p => ({
+    src: p,
+    geo: p.geo.index ? p.geo.toNonIndexed() : p.geo,
+  }));
   let vTotal = 0;
-  for (const p of parts) vTotal += p.geo.attributes.position.count;
+  for (const f of flat) vTotal += f.geo.attributes.position.count;
   const P = new Float32Array(vTotal * 3);
   const N = new Float32Array(vTotal * 3);
   const C = new Float32Array(vTotal * 3);
   const nm = new THREE.Matrix3();
   const v = new THREE.Vector3();
   let o = 0;
-  for (const p of parts) {
-    const g = p.geo.index ? p.geo.toNonIndexed() : p.geo;
+  for (const f of flat) {
+    const p = f.src, g = f.geo;
     const pos = g.attributes.position, nor = g.attributes.normal;
     const m = p.matrix || new THREE.Matrix4();
     nm.setFromMatrix4(m).invert().transpose();
