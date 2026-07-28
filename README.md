@@ -49,7 +49,40 @@ asset takes four seconds and zero keyboards.*
   Armour value is checked against each weapon's AP performance, so an MG will
   not kill a tank. Faction ID rings, tracers, muzzle flashes, and a live
   force-strength HUD. The battle damages the actual city — structures collapse,
-  glazing fails, civilians are caught in it.
+  glazing fails, civilians are caught in it. A **sniper team** occupies a hide
+  on each flank with an M107 at 1,800 m and holds it rather than joining the
+  advance.
+- **◐ HOLO / ◑ REAL — two complete looks over one scene** (button, or **H**).
+  HOLO is the tactical projection: additive wireframe terrain, unlit models
+  washed to a single hue, black void. REAL is a lit world: shaded ground in the
+  destination's own albedo, sky gradient, distance fog, sun and bounce fill,
+  draped asphalt streets, and models in their authored colours. Modes swap
+  **material state, never geometry** — nothing is rebuilt, toggling is instant,
+  and the simulation cannot desync. Every material is registered once with a
+  role, so anything added later gets both looks for free.
+- **Crew POV — pop into any unit's seat.** During a battle, tap a unit or press
+  `[` / `]` and the camera flies from the table into that crew's head over
+  1.15 s, GTA-style. Helmet-cam framing with the table UI cleared away, live
+  HP, heading, and range to that unit's own target, and a signal-lost hand-back
+  when the crew is killed. Eye height comes from the unit class, so a prone
+  sniper, a tank commander in the hatch and an Apache pilot are all at their
+  real heights. Cycling walks the combined-arms picture rather than one type at
+  a time: nine presses gives pilot, tank commander, IFV gunner, vehicle
+  commander, gun chief, launcher crew, gunner, sniper, rifleman.
+- **Real landmarks, one-to-one.** Eighteen structures authored in real metres
+  and merged to a single geometry each — the **Golden Gate** (227 m towers,
+  1,280 m main span, parabolic cables), **Salesforce Tower**, the **Statue of
+  Liberty** on its eleven-point Fort Wood star, the **Empire State**, the
+  **Eiffel Tower** with its splayed bezier legs, **Mount Fuji** with the
+  concave sweep that separates it from a party hat, **Tokyo Skytree**, the
+  **Elizabeth Tower**, the **Colosseum** with 50 arch bays and a half-ruined
+  third order, **Giza**, the **Sydney Opera House**, **Burj Khalifa** with its
+  spiralling setbacks, **Christ the Redeemer**, the **Taj Mahal**, the
+  **Sagrada Família**, and a capitol. Twelve destinations place them at their
+  real offsets from the city centre — go to San Francisco and the bridge is
+  across the bay from the Salesforce Tower; go to Tokyo and Fuji is on the
+  horizon behind the Skytree. The landmark the intel panel names is the one
+  wired to the strike and BDA path, and the rest topple too.
 - **Sandbox exploration** — `◎ EXPLORE` (or **F**) drops you off the table and
   into the world: WASD to fly, Q/E for altitude, Shift to boost, drag to look,
   Esc to return. Terrain collision keeps you above ground.
@@ -123,7 +156,10 @@ asset takes four seconds and zero keyboards.*
 - **⟲ RESET** restores the entire simulation to pristine state.
 - **Two hologram palettes** — MK-II Cyan (ops) and MK-I Amber (the garage).
 - **Cinematic mode** — a scripted end-to-end demo run for walk-in showings
-  (`▶ CINEMATIC` button, or open with `?autodemo`). Press again to stop.
+  (`▶ CINEMATIC` button, or open with `?autodemo`). Press again to stop. The
+  reel waits on simulation *state* between legs — weapon clear, team on the
+  ground — rather than on fixed timers, so it does not desynchronise and start
+  dropping legs on a slower machine.
 - Boot sequence, synth SFX (WebAudio, muted by default), haptics via the
   Vibration API on phones, full touch support (pinch zoom / drag orbit /
   two-finger pan / tap target).
@@ -144,7 +180,8 @@ Useful URL flags:
 | `?autodemo` | fastboot + auto-run the cinematic demo loop |
 | `?site=tokyo` | boot straight into a named theater (any atlas id) |
 
-Hotkeys: **G** theater console · **B** battle · **F** sandbox · **1–5** arsenal · **Space** execute · **Esc** clear
+Hotkeys: **G** theater console · **B** battle · **H** holo/real · **P** crew POV ·
+**[** **]** cycle crew · **F** sandbox · **1–5** arsenal · **Space** execute · **Esc** clear
 
 Build the self-contained single-file version (three.js inlined, for hosting
 as an artifact / kiosk page):
@@ -169,7 +206,12 @@ node tools/build-artifact.mjs dist/artifact.html
    tasking."
 6. Insert `PATHFINDER` on the ridgeline, then drive them with Team Ops: SWEEP,
    then MOVE to a new waypoint and watch them walk it.
-7. Toggle MK-I Amber. If the room wants the big one: `SUNDOWN`, then ⟲ RESET.
+7. **Press H.** The hologram becomes a lit world — same scene, same sim, one
+   toggle. Press it again to go back.
+8. **Press B**, let the two forces make contact, then press `]`. You are in a
+   tank commander's hatch. Press `]` again for a sniper's hide, again for an
+   Apache cockpit. Esc returns to the table.
+9. Toggle MK-I Amber. If the room wants the big one: `SUNDOWN`, then ⟲ RESET.
    Book the meeting.
 
 ## Production integration path
@@ -185,7 +227,7 @@ node tools/build-artifact.mjs dist/artifact.html
 
 ## Stack
 
-`index.html` plus five plain scripts in `js/` (no bundler, no modules, so it
+`index.html` plus nine plain scripts in `js/` (no bundler, no modules, so it
 still opens straight from `file://`):
 
 | File | Role |
@@ -196,6 +238,8 @@ still opens straight from `file://`):
 | `js/physics.js` | pooled rigid-body debris |
 | `js/models-mil.js` | armour, artillery, rotary-wing, infantry, houses |
 | `js/battle.js` | force-on-force simulation |
+| `js/landmarks.js` | 18 real-world landmark models + per-site placements |
+| `js/rendermode.js` | the holo/real material authority |
 | `js/console.js` | worldwide theater search |
 
 Three.js r128 vendored in `vendor/`. No other dependencies and no network

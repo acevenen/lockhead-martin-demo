@@ -9,8 +9,38 @@
   },
   "brief": {
     "since": "last session",
-    "headline": "AEGIS full overhaul \u2014 force-on-force battle simulation, military model library (armour/artillery/rotary/infantry), detailed houses, and a latent geometry-merge bug fixed across every model.",
+    "headline": "AEGIS dual render modes (holo / photoreal), GTA-style crew POV into any unit on the battlefield, and a library of 18 real world landmarks placed on 12 destinations.",
     "items": [
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS render modes: one scene graph, two complete looks. HOLO is the tactical projection; REAL is a lit world with sky gradient, distance fog, sun and bounce fill, draped asphalt streets and models in their authored colours. Modes swap material state, never geometry, so toggling is instant and the simulation cannot desync. Every material registers once with a role, so anything added later gets both looks for free. Button, or H."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS crew POV: during a battle, tap a unit or press [ / ] and the camera flies from the table into that crew's head over 1.15 s. Helmet-cam framing with the table UI cleared, live HP, heading and range to that unit's own target, and a signal-lost hand-back when the crew is killed. Eye height comes from the unit class, so a prone sniper, a tank commander in the hatch and an Apache pilot are all at their real heights. Cycling walks the combined-arms picture: nine presses gives pilot, tank commander, IFV gunner, vehicle commander, gun chief, launcher crew, gunner, sniper, rifleman."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS landmarks: 18 structures authored in real metres and merged to one geometry each — Golden Gate, Salesforce, Liberty, Empire State, Eiffel, Fuji, Skytree, Elizabeth Tower, Colosseum, Giza, Opera House, Burj Khalifa, Christ the Redeemer, Taj Mahal, Sagrada Família, capitol, plus generic tower and peak fallbacks. Twelve destinations place them at real offsets from the city centre; the landmark the intel panel names is the one wired to the strike and BDA path, and the rest topple too."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS added a sniper class — prone soldier model, M107 at 1800 m, and a hold flag so the team occupies a hide instead of joining the advance. That makes the sniper seat a genuinely different experience from the rifleman seat, which was the point of adding it."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS bugs that only showed up once the camera dropped to eye level: the water surface masked its shape with vertex colour, which is free in an additive hologram and an opaque black plane over the whole map in a lit one (alphaMap now); ground cover was square opaque points that filled the screen from a metre away; road and field overlays were flat quads at a fixed height so half the network sank under rises (they drape now); a collapsed building pointed its window texture at the sky (footprint shrinks, rubble mound settles over it); and the satellite inset renders straight to the GL canvas, so a faded rail did not hide it in POV."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS cinematic reel was timed purely in milliseconds and had started desynchronising — the salvo and both team-ops legs were being refused as system-busy and silently vanishing. It waits on simulation state now, with a ceiling, and gained a photoreal-toggle beat and a crew-POV beat. All six legs verified green."
+      },
       {
         "agent": "demo-engineer",
         "kind": "done",
@@ -30,26 +60,6 @@
         "agent": "demo-engineer",
         "kind": "done",
         "text": "AEGIS worldwide: 51 destinations across all 7 regions, each built from real coordinates and a real ETOPO1 elevation grid fetched at build time and baked in, so it still runs air-gapped. Searchable theater console (G) loads any site in ~2s."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS city identity: 8 street-grid archetypes with real bearings (Manhattan 29 deg, Barcelona 45 deg) and the empirical GHSL height gradient, so Paris reads as a 22m cap, Hong Kong a 96m wall and Dubai an 11m villa carpet with an 828m needle."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS graphics: vehicles rebuilt from true extruded side profiles (sloped hood, raked windshield, wheels with rims, lamps) in 4 types, humanoid pedestrians, antlered wildlife, window-textured buildings \u2014 all instanced. Added pooled rigid-body debris (glass, concrete, metal, embers) and a WASD sandbox mode."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS bugs fixed this round: city fabric filling from a map corner instead of the core, water buried under terrain, buildings inheriting per-site terrain exaggeration (which inverted Paris vs Dubai), toolbar overflow hiding RESET on phones, and salvo log flooding."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS: added multi-strike salvos (up to 4 aim points, staggered, per-target BDA), a Pathfinder Team Ops panel (MOVE/HOLD/SWEEP/EXFIL with tap-to-move waypoints), a casualty model with distinct civilian vs. animal silhouettes, a destructible State Capitol, SUNDOWN full-theater leveling, and a RESET button."
       }
     ]
   },
@@ -57,7 +67,7 @@
     {
       "id": "sentinel",
       "label": "SENTINEL DEVELOPMENT",
-      "status": "P0 \u00b7 ACTIVE",
+      "status": "P0 · ACTIVE",
       "progress": 0.55,
       "next": "CI green, two hardening rounds merged. Next milestone (your steer): audit-chain tamper tests + central authorization-contract fuzzing."
     }
@@ -68,7 +78,7 @@
       "project": "SENTINEL",
       "priority": "P0",
       "status": "open",
-      "note": "Proposed next milestone \u2014 verify the hash-chained audit log rejects reordered/edited/truncated events."
+      "note": "Proposed next milestone — verify the hash-chained audit log rejects reordered/edited/truncated events."
     },
     {
       "title": "Sentinel: central authorization-contract fuzzing",
@@ -82,28 +92,28 @@
       "project": "DEMOS",
       "priority": "P1",
       "status": "open",
-      "note": "?autodemo runs the scripted loop (~3 min): strike, 4-target salvo, airdrop, team insert + sweep + waypoint move, UCAV. Press the button again to stop."
+      "note": "?autodemo runs the scripted loop (~3 min): strike, photoreal toggle, 4-target salvo, airdrop, team insert + sweep + waypoint move, UCAV, then a crew-POV pass. Press the button again to stop."
     },
     {
       "title": "Configure ElevenLabs key for authentic JARVIS voice",
       "project": "JARVIS",
       "priority": "P2",
       "status": "open",
-      "note": "Settings panel \u2192 key + voice ID. Falls back to en-GB system voice."
+      "note": "Settings panel → key + voice ID. Falls back to en-GB system voice."
     },
     {
       "title": "Fill in values.md + business.md knowledge base",
       "project": "JARVIS",
       "priority": "P2",
       "status": "open",
-      "note": "jarvis/knowledge/ \u2014 the team checks decisions against it; blanks force escalations."
+      "note": "jarvis/knowledge/ — the team checks decisions against it; blanks force escalations."
     }
   ],
   "roadblocks": [
     {
       "title": "Sentinel next milestone needs direction",
       "impact": "The team can keep hardening autonomously, but a named milestone focuses P0.",
-      "proposed": "Approve the proposed track \u2014 audit-chain tamper tests + authorization-contract fuzzing \u2014 or name your own.",
+      "proposed": "Approve the proposed track — audit-chain tamper tests + authorization-contract fuzzing — or name your own.",
       "needsUser": true
     },
     {
@@ -123,10 +133,10 @@
     {
       "id": "aegis",
       "title": "AEGIS OVERWATCH",
-      "status": "BATTLE SIM SHIPPED",
+      "status": "POV + LANDMARKS SHIPPED",
       "path": "../index.html",
-      "desc": "Holo-tactical command table \u2014 51 real-world theaters, force-on-force battle simulation with real armour/artillery/rotary/infantry models, destructible world, debris physics, sandbox exploration, 5 asset packages incl. SUNDOWN.",
-      "flags": "?fastboot \u00b7 ?autodemo \u00b7 ?site=<id>"
+      "desc": "Holo-tactical command table — 51 real-world theaters, toggleable holographic and photoreal looks, 18 real landmarks, force-on-force battle simulation with GTA-style crew POV into any unit, destructible world, debris physics, sandbox exploration, 5 asset packages incl. SUNDOWN.",
+      "flags": "?fastboot · ?autodemo · ?site=<id> · H holo/real · [ ] crew POV"
     },
     {
       "id": "jarvis",
@@ -154,7 +164,7 @@
       "id": "demo-engineer",
       "name": "DEMO ENGINEER",
       "status": "active",
-      "role": "Owns the demos group. AEGIS now runs force-on-force battles on any of 51 world theaters; six-system, edge, layout and battle-stress suites all green."
+      "role": "Owns the demos group. AEGIS now runs two complete render looks over one scene, drops the operator into any crew seat mid-battle, and stands 18 real landmarks on 12 destinations. POV, cinematic, six-system, edge, layout, battle-stress, render-mode and artifact suites all green."
     },
     {
       "id": "daily-brief",
@@ -170,7 +180,6 @@
     }
   ],
   "activity14": [
-    4,
     3,
     2,
     5,
@@ -183,6 +192,7 @@
     19,
     24,
     31,
-    38
+    38,
+    41
   ]
 }
