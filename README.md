@@ -1,3 +1,6 @@
+> **This repo also hosts [J.A.R.V.I.S](jarvis/README.md)** — the personal
+> voice command HUD that manages this workspace. `open jarvis/index.html`.
+
 # AEGIS OVERWATCH — Holo-Tactical Concept Demo
 
 A single-file, Tony-Stark-grade holographic command table built for a
