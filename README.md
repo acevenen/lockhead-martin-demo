@@ -67,6 +67,10 @@ asset takes four seconds and zero keyboards.*
   markers track selected civilians, and a status ticker keeps reporting on the
   theater between strikes: power load, traffic flow, herd activity, soil
   moisture, weather.
+- **Live sector intel** — the intel panel counts the real world, not a script:
+  structures standing, civilian tracks alive, vehicles moving, herd size, tree
+  line. Watch it fall (341 → 193 → 0) as you work, with landmark lock flipping
+  to "LANDMARK LOST" and ROE switching when there's nothing left to protect.
 - **Mission log** with military brevity codes, dual-key authorize flow,
   EXECUTE button, keyboard shortcuts (1–5, Space, Esc).
 - **⟲ RESET** restores the entire simulation to pristine state.

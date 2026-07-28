@@ -1161,20 +1161,52 @@ function applyCam(dt){
   if (camera.position.y < floor) camera.position.y = floor;
   camera.lookAt(pivot.x + sx*.4, pivot.y, pivot.z + sz*.4);
 }
+/* live counters so the intel panel reflects the theater's actual state */
+const alive = {
+  structures: () => buildings.reduce((n, b) => n + (b.alive ? 1 : 0), 0) + (capitolAlive ? 1 : 0),
+  civ: () => npcs.reduce((n, p) => n + (p.dead ? 0 : 1), 0),
+  fauna: () => animals.reduce((n, a) => n + (a.dead ? 0 : 1), 0),
+  moving: () => cars.reduce((n, c) => n + (c.halt > 0 ? 0 : 1), 0),
+  farms: () => farmsteads.reduce((n, f) => n + (f.alive ? 1 : 0), 0),
+  trees: () => treePts.reduce((n, p) => n + (p.dead ? 0 : 1), 0),
+};
 const SECTORS = {
   overview:{ name:'THEATER OVERVIEW', coords:'FRONT RANGE · COLORADO · 39.72°N 105.00°W',
     pivot:[0,0], r:250, phi:.95, theta:.85,
-    intel:['THREE-BIOME SYNTHETIC RANGE · 120 × 80 KM','GOOGLE EARTH MESH FUSION: 94.7% TILE LOCK','PATTERN-OF-LIFE: 190 TRACKS · ECO-SIM ACTIVE','ASSETS: KEYHOLE 7 · VECTIS CAP 2 · C-130J'] },
+    intel:['THREE-BIOME SYNTHETIC RANGE · 120 × 80 KM',
+      () => wasteland ? 'MESH RESURVEY PENDING · SURFACE ALTERED' : 'GOOGLE EARTH MESH FUSION: 94.7% TILE LOCK',
+      () => `PATTERN-OF-LIFE: ${alive.civ() + alive.fauna()} TRACKS · ${wasteland ? 'ECO-SIM COLLAPSED' : 'ECO-SIM ACTIVE'}`,
+      'ASSETS: KEYHOLE 7 · VECTIS CAP 2 · C-130J'] },
   city:{ name:'SECTOR ALPHA — DENVER METRO GRID', coords:'39.7392°N 104.9903°W · ELEV 1,609 M',
     pivot:[8,6], r:74, phi:.8, theta:.55,
-    intel:['STRUCTURES: 340 · CIV TRACKS: 112 · VEHICLES: 61','LANDMARK LOCK: STATE CAPITOL · GOLD DOME','ROE: WEAPONS TIGHT · PID REQUIRED · COLLATERAL HIGH'] },
+    intel:[() => `STRUCTURES: ${alive.structures()} · CIV TRACKS: ${alive.civ()} · MOVING: ${alive.moving()}`,
+      () => capitolAlive ? 'LANDMARK LOCK: STATE CAPITOL · GOLD DOME' : 'LANDMARK LOST: STATE CAPITOL DESTROYED',
+      () => wasteland ? 'ROE: N/A · NO SURVIVING INFRASTRUCTURE'
+                      : 'ROE: WEAPONS TIGHT · PID REQUIRED · COLLATERAL HIGH'] },
   range:{ name:'SECTOR BRAVO — FRONT RANGE', coords:'39.5883°N 105.6438°W · PEAK 4,348 M',
     pivot:[-92,-10], r:118, phi:.88, theta:1.25,
-    intel:['RIDGELINE CONCEALMENT HIGH · IR CONTRAST LOW','PASS CHOKEPOINTS: 2 · ELK HERD: 8 TRACKED','WX: CLEAR · WINDS 240/15KT'] },
+    intel:[() => wasteland ? 'RIDGELINE FLATTENED · NO CONCEALMENT'
+                           : 'RIDGELINE CONCEALMENT HIGH · IR CONTRAST LOW',
+      () => `PASS CHOKEPOINTS: 2 · HERD: ${alive.fauna()} TRACKED`,
+      () => wasteland ? 'WX: ASH ADVISORY · VISIBILITY POOR' : 'WX: CLEAR · WINDS 240/15KT'] },
   farm:{ name:'SECTOR CHARLIE — EASTERN AGRI-BELT', coords:'39.7500°N 104.4500°W · ELEV 1,530 M',
     pivot:[100,12], r:96, phi:.78, theta:.42,
-    intel:['FARMSTEADS: 10 · CENTER-PIVOT SITES: 38 · CROPS ACTIVE','DZ SUITABILITY: EXCELLENT · FLAT ±2 M','CIV PRESENCE SPARSE · CLEARED FOR AIRDROP (SIM)'] }
+    intel:[() => `FARMSTEADS: ${alive.farms()} · CENTER-PIVOT SITES: 38 · ${wasteland ? 'CROPS DESTROYED' : 'CROPS ACTIVE'}`,
+      () => `DZ SUITABILITY: EXCELLENT · TREE LINE: ${alive.trees()}`,
+      () => wasteland ? 'AREA STERILE · NO CIV PRESENCE'
+                      : 'CIV PRESENCE SPARSE · CLEARED FOR AIRDROP (SIM)'] }
 };
+function renderIntel(){
+  const s = SECTORS[state.sector]; if (!s) return;
+  const el = $('intel-lines');
+  s.intel.forEach((t, i) => {
+    const txt = typeof t === 'function' ? t() : t;
+    let d = el.children[i];
+    if (!d){ d = document.createElement('div'); el.appendChild(d); }
+    if (d.textContent !== txt) d.textContent = txt;
+  });
+  while (el.children.length > s.intel.length) el.removeChild(el.lastChild);
+}
 function flyTo(id){
   const s = SECTORS[id]; if (!s) return;
   state.sector = id;
@@ -1184,7 +1216,7 @@ function flyTo(id){
   $('intel-name').textContent = s.name;
   $('intel-coords').textContent = s.coords;
   $('intel-lines').innerHTML = '';
-  s.intel.forEach(t => { const d = document.createElement('div'); d.textContent = t; $('intel-lines').appendChild(d); });
+  renderIntel();
   log('CAM ▸ ' + s.name, 'sys');
   sfx.blip(660, .05); haptic(8);
 }
@@ -1354,7 +1386,9 @@ function clearTarget(){
 }
 function setWeapon(id){ if (state.weapon !== id) selectWeapon(id); }
 function execute(){
-  if (!state.targets.length || !state.weapon || state.busy) return;
+  if (state.busy){ toast('SYSTEM BUSY — MISSION IN FLIGHT'); return; }
+  if (!state.targets.length){ toast('NO TARGET — TAP THE TERRAIN TO DESIGNATE'); return; }
+  if (!state.weapon){ toast('NO SYSTEM ARMED — SELECT FROM ARSENAL'); return; }
   state.busy = true;
   const ex = $('execute');
   ex.classList.add('busy'); ex.textContent = 'AUTHORIZING…';
@@ -1364,7 +1398,8 @@ function execute(){
   /* recon inserts one team; SUNDOWN takes a single ground zero */
   const list = (wpn === 'recon' || wpn === 'nuke')
     ? [state.targets[state.targets.length-1]] : [...state.targets];
-  if (wpn === 'nuke' && state.targets.length > 1) log('SUNDOWN ▸ SINGLE GZ — LAST DESIGNATE USED', 'warn');
+  if (state.targets.length > 1 && wpn === 'nuke') log('SUNDOWN ▸ SINGLE GZ — LAST DESIGNATE USED', 'warn');
+  if (state.targets.length > 1 && wpn === 'recon') log('PATHFINDER ▸ SINGLE LZ — LAST DESIGNATE USED', 'warn');
   log(kinetic ? 'AUTH ▸ DUAL-KEY CONFIRMED · SIM SANDBOX' : 'AUTH ▸ TASKING CONFIRMED · SIM SANDBOX',
     kinetic ? 'crit' : 'sys');
   setTimeout(() => {
@@ -2307,6 +2342,7 @@ setInterval(() => {
   const s = `${z(d.getUTCHours())}:${z(d.getUTCMinutes())}:${z(d.getUTCSeconds())} Z`;
   $('clock').textContent = s;
   $('sat-t').textContent = s;
+  if (booted) renderIntel();
 }, 500);
 
 /* compass + scale */
