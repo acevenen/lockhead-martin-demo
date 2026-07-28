@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>SENTINEL SPOTTER — Glasses HUD Concept</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23ff9a3c' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23ff9a3c'/%3E%3C/svg%3E">
+<style>
+/* ============================================================
+   SENTINEL SPOTTER — what you see through the glasses.
+   Renders the exact HUDCard JSON emitted by `sentinel spot
+   --format hud`. No business logic here: the HUD shows state,
+   it never decides state.
+   ============================================================ */
+:root{
+  --bg:#0a0602;
+  --c1:#ff9a3c; --c1-dim:rgba(255,154,60,.55); --c1-hot:#ffd9a0;
+  --ok:#6dff9e; --watch:#ffd166; --warn:#ff9a3c; --alert:#ff4d5e;
+  --ink:#f5ead9; --ink2:#c9b393; --mut:#8a7457;
+  --line:rgba(255,154,60,.32); --line-soft:rgba(255,154,60,.14);
+  --panel:rgba(20,10,3,.80);
+  --glow:0 0 12px rgba(255,154,60,.35);
+  --mono:ui-monospace,'SFMono-Regular','Cascadia Mono','Roboto Mono',Menlo,Consolas,monospace;
+  --disp:'Bahnschrift','Arial Narrow','Avenir Next Condensed','Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#000;color:var(--ink);
+  font-family:var(--mono);font-size:13px;-webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent}
+button{font-family:var(--mono);cursor:pointer}
+
+/* ---------- the world behind the glass ---------- */
+#world{position:fixed;inset:0;overflow:hidden;
+  background:
+    radial-gradient(ellipse at 50% 40%, #1d2733 0%, #0d1319 55%, #05080b 100%);}
+#room{position:absolute;inset:0}
+/* a suggestion of a room: floor line + wall seam */
+#room::before{content:'';position:absolute;left:0;right:0;bottom:26%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(150,180,210,.18) 20%,rgba(150,180,210,.18) 80%,transparent)}
+#room::after{content:'';position:absolute;top:0;bottom:0;left:22%;width:1px;
+  background:linear-gradient(180deg,transparent,rgba(150,180,210,.12) 30%,rgba(150,180,210,.12) 70%,transparent)}
+
+/* the camera we are looking at */
+#target{position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);
+  transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+#target svg{display:block;filter:drop-shadow(0 6px 24px rgba(0,0,0,.6))}
+body.zoom #target{transform:translate(-50%,-50%) scale(1.16)}
+
+/* ---------- glasses optics ---------- */
+#optics{position:fixed;inset:0;pointer-events:none;z-index:30}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:31;
+  background:radial-gradient(ellipse at 50% 45%,transparent 46%,rgba(3,6,10,.82) 100%)}
+#scanlines{position:fixed;inset:0;pointer-events:none;z-index:32;mix-blend-mode:screen;opacity:.35;
+  background:repeating-linear-gradient(0deg,rgba(255,190,120,.05) 0 1px,transparent 1px 3px)}
+
+/* ---------- reticle ---------- */
+#reticle{position:absolute;left:50%;top:36%;width:190px;height:190px;
+  transform:translate(-50%,-50%);pointer-events:none;z-index:33;
+  transition:opacity .4s}
+#reticle .ring{position:absolute;inset:0;border:1px solid var(--accent,var(--c1));
+  border-radius:50%;opacity:.5}
+#reticle .ring.r2{inset:14px;border-style:dashed;opacity:.28;
+  animation:spin 22s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#reticle .brk{position:absolute;width:26px;height:26px;border:2px solid var(--accent,var(--c1));
+  box-shadow:0 0 10px var(--c1-dim)}
+#reticle .tl{top:-6px;left:-6px;border-right:0;border-bottom:0}
+#reticle .tr{top:-6px;right:-6px;border-left:0;border-bottom:0}
+#reticle .bl{bottom:-6px;left:-6px;border-right:0;border-top:0}
+#reticle .br{bottom:-6px;right:-6px;border-left:0;border-top:0}
+body.acquiring #reticle .brk{animation:pulse 1.1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+/* sweep line while acquiring */
+#sweep{position:absolute;left:0;right:0;height:2px;top:0;
+  background:linear-gradient(90deg,transparent,var(--c1),transparent);
+  box-shadow:0 0 14px var(--c1);opacity:0}
+body.acquiring #sweep{opacity:.9;animation:sweep 1.5s cubic-bezier(.4,0,.6,1) infinite}
+@keyframes sweep{0%{top:4%}100%{top:96%}}
+
+/* ---------- the HUD card ---------- */
+#card{position:fixed;left:50%;bottom:16%;transform:translateX(-50%);
+  width:min(430px,88vw);z-index:36;
+  background:var(--panel);border:1px solid var(--line);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+  opacity:0;transition:opacity .35s, transform .35s;pointer-events:none}
+#card.show{opacity:1;pointer-events:auto}
+#card .bar{height:2px;background:var(--accent,var(--c1));box-shadow:0 0 12px var(--accent,var(--c1))}
+#card .inner{padding:12px 15px 13px}
+#card .state{display:flex;align-items:center;gap:8px;font-family:var(--disp);
+  font-size:10px;letter-spacing:.3em;color:var(--accent,var(--c1));margin-bottom:7px}
+#card .state .dot{width:7px;height:7px;background:var(--accent,var(--c1));
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);box-shadow:0 0 8px var(--accent,var(--c1))}
+#card .state .conf{margin-left:auto;color:var(--mut);letter-spacing:.16em}
+#l1{font-family:var(--disp);font-size:23px;letter-spacing:.06em;color:var(--ink);
+  text-shadow:0 0 14px var(--c1-dim);line-height:1.15}
+#l2{font-size:12px;color:var(--ink2);margin-top:5px;letter-spacing:.03em}
+#l3{margin-top:9px;padding-top:9px;border-top:1px solid var(--line-soft);
+  font-size:12px;color:var(--c1-hot);display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+#l3::before{content:'▸';color:var(--accent,var(--c1));flex:none}
+#notice{margin-top:9px;font-size:9px;line-height:1.45;color:var(--mut);letter-spacing:.02em}
+
+/* risk pips */
+#pips{display:flex;gap:3px;margin-top:9px}
+#pips i{flex:1;height:3px;background:rgba(255,255,255,.09)}
+#pips i.on{background:var(--accent,var(--c1));box-shadow:0 0 8px var(--accent,var(--c1))}
+
+/* ---------- detail sheet (progressive disclosure) ---------- */
+#sheet{position:fixed;left:50%;bottom:16%;transform:translateX(-50%) translateY(14px);
+  width:min(430px,88vw);max-height:56vh;z-index:37;overflow-y:auto;
+  background:rgba(14,7,2,.94);border:1px solid var(--line);
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));
+  opacity:0;pointer-events:none;transition:opacity .3s,transform .3s}
+#sheet.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0)}
+#sheet::-webkit-scrollbar{width:3px}#sheet::-webkit-scrollbar-thumb{background:var(--line)}
+#sheet .hd{padding:9px 14px;border-bottom:1px solid var(--line-soft);
+  font-family:var(--disp);letter-spacing:.26em;font-size:10px;color:var(--c1);
+  position:sticky;top:0;background:rgba(14,7,2,.98)}
+#sheet .row{padding:9px 14px;border-bottom:1px solid var(--line-soft)}
+#sheet .row:last-child{border-bottom:0}
+#sheet .row .t{display:flex;gap:8px;align-items:baseline}
+#sheet .row .t b{font-weight:normal;color:var(--ink);font-size:12px}
+#sheet .row .t .sev{margin-left:auto;font-size:9px;letter-spacing:.14em;padding:1px 6px;
+  border:1px solid currentColor}
+.sev.critical,.sev.high{color:var(--alert)}.sev.medium{color:var(--warn)}
+.sev.low{color:var(--watch)}.sev.none{color:var(--ok)}
+#sheet .row .d{font-size:11px;color:var(--ink2);margin-top:4px;line-height:1.5}
+#sheet .row .m{font-size:10px;color:var(--mut);margin-top:4px}
+#sheet .kev{color:var(--alert);font-size:9px;letter-spacing:.12em;margin-top:4px}
+#sheet ol{margin:0;padding-left:16px;color:var(--ink2);font-size:11px;line-height:1.7}
+#sheet ol li::marker{color:var(--c1)}
+
+/* ---------- controls ---------- */
+#hint{position:fixed;left:50%;top:calc(36% + 116px);transform:translateX(-50%);
+  z-index:34;font-size:9px;letter-spacing:.28em;color:var(--mut);pointer-events:none;text-align:center}
+#dock{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:40;
+  display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:min(680px,94vw)}
+.dbtn{background:rgba(20,10,3,.86);border:1px solid var(--line-soft);color:var(--ink2);
+  padding:8px 11px;font-size:10px;letter-spacing:.14em;font-family:var(--disp);
+  clip-path:polygon(0 0,100% 0,100% 100%,8px 100%,0 calc(100% - 8px))}
+.dbtn:hover{color:var(--c1);border-color:var(--line)}
+.dbtn.on{color:var(--c1);border-color:var(--line);box-shadow:var(--glow)}
+#brand{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:40;
+  font-family:var(--disp);letter-spacing:.42em;font-size:12px;color:var(--c1);
+  text-shadow:var(--glow);pointer-events:none;white-space:nowrap}
+#brand small{display:block;text-align:center;font-size:8px;letter-spacing:.24em;
+  color:var(--mut);margin-top:3px}
+#corner{position:fixed;top:14px;right:16px;z-index:40;font-size:9px;
+  letter-spacing:.18em;color:var(--mut);text-align:right;line-height:1.6;pointer-events:none}
+#corner b{color:var(--ok);font-weight:normal}
+
+@media (max-width:640px){
+  #corner{display:none}          /* would collide with the brand */
+  #brand{font-size:11px;letter-spacing:.3em}
+  #l1{font-size:19px}
+  #reticle{width:150px;height:150px}
+  #hint{top:calc(36% + 92px)}
+  .dbtn{padding:7px 8px;font-size:9px;letter-spacing:.1em}
+}
+@media (prefers-reduced-motion:reduce){
+  #reticle .ring.r2,#sweep,#reticle .brk{animation:none}
+}
+</style>
+</head>
+<body>
+
+<div id="world">
+  <div id="room"></div>
+  <div id="target"></div>
+</div>
+
+<div id="reticle">
+  <div class="ring"></div><div class="ring r2"></div>
+  <div class="brk tl"></div><div class="brk tr"></div>
+  <div class="brk bl"></div><div class="brk br"></div>
+  <div id="sweep"></div>
+</div>
+
+<div id="vignette"></div><div id="scanlines"></div>
+
+<div id="brand">SENTINEL · SPOTTER<small>MK-I — DEVICE INTELLIGENCE OVERLAY</small></div>
+<div id="corner">
+  UPLINK <b>LOCAL</b><br>
+  CORPUS <b>EMBEDDED</b><br>
+  NET <b>OFFLINE</b>
+</div>
+
+<div id="hint">LOOK AT A DEVICE · TAP TO IDENTIFY</div>
+
+<div id="card">
+  <div class="bar"></div>
+  <div class="inner">
+    <div class="state"><span class="dot"></span><span id="st">—</span><span class="conf" id="cf"></span></div>
+    <div id="l1">—</div>
+    <div id="l2"></div>
+    <div id="pips"></div>
+    <div id="l3" style="display:none"></div>
+    <div id="notice"></div>
+  </div>
+</div>
+
+<div id="sheet"></div>
+
+<div id="dock">
+  <button class="dbtn" data-scene="hik">MY CAMERA</button>
+  <button class="dbtn" data-scene="dahua">GARAGE CAM</button>
+  <button class="dbtn" data-scene="ambiguous">CONFLICTING</button>
+  <button class="dbtn" data-scene="unenrolled">NOT MINE</button>
+  <button class="dbtn" data-scene="unknown">UNRECOGNIZED</button>
+  <button class="dbtn" id="detailBtn">DETAIL</button>
+  <button class="dbtn" id="speakBtn">🔊 SPEAK</button>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   These payloads are verbatim `sentinel spot --format hud` output plus
+   the matching `--format json` detail. The HUD renders them; it computes
+   nothing. Swap in a live fetch and the display is unchanged — which is
+   the point of a stable contract.
+   ===================================================================== */
+const NOTICE = "ILLUSTRATIVE SAMPLE — not a substitute for NVD. Entries reference real, publicly documented advisories, but the affected-version ranges here are deliberately coarse and are NOT authoritative. Always verify against the vendor advisory and NVD before acting on, or reporting, any finding.";
+
+const SCENES = {
+  hik: {
+    label: 'Front door camera · internet-exposed',
+    art: 'dome',
+    card: {
+      state:"confirmed", line1:"Hikvision IP camera",
+      line2:"3 issues · 2 actively exploited",
+      line3:"Delete the port-forward rule for this device on…",
+      accent:"alert", confidence:"confirmed", risk_band:"critical", concerns:3,
+      next_action:"Delete the port-forward rule for this device on your router",
+      speech:"That is a Hikvision IP camera. 3 issues known, and 2 are already being exploited in the wild. Delete the port-forward rule for this device on your router.",
+      notice:NOTICE
+    },
+    why:"16.5 bits from 3 independent evidence classes (http+l2+physical)",
+    concerns:[
+      {id:"CVE-2017-7921",sev:"critical",risk:9.0,kev:true,
+       t:"Authentication bypass in Hikvision cameras",
+       d:"An improper authentication path allows escalation to administrator and disclosure of device credentials.",
+       c:"possible — firmware version unknown, so this may already be patched — verify against the vendor advisory"},
+      {id:"CVE-2021-36260",sev:"high",risk:8.9,kev:true,
+       t:"Command injection in Hikvision web server",
+       d:"A crafted request to the device web server can run operating-system commands without authentication, giving full control of the camera.",
+       c:"possible — firmware version unknown, so this may already be patched — verify against the vendor advisory"},
+      {id:"SENTINEL-HYGIENE-INTERNET-EXPOSED",sev:"high",risk:7.0,kev:false,
+       t:"Device is reachable from the public internet",
+       d:"A device reachable from outside your network is exposed to automated internet-wide scanning, which finds and attacks new devices within minutes.",
+       c:"applies — applies to any device in this state"}
+    ],
+    plan:[
+      "Delete the port-forward rule for this device on your router  (low effort)",
+      "Install the vendor firmware update for this model  (medium effort)",
+      "Turn off UPnP on your router so devices cannot open their own ports  (low effort)",
+      "Rotate every device and stream password after updating  (low effort)",
+      "Use the vendor app or a VPN for remote viewing instead of a port-forward  (medium effort)",
+      "Move the camera to an isolated IoT VLAN or guest network  (medium effort)"
+    ]
+  },
+  dahua: {
+    label: 'Garage camera · LAN only',
+    art: 'bullet',
+    card: {
+      state:"confirmed", line1:"Dahua IP camera",
+      line2:"1 issue · 1 actively exploited",
+      line3:"Install the vendor firmware update for this model",
+      accent:"warn", confidence:"confirmed", risk_band:"medium", concerns:1,
+      next_action:"Install the vendor firmware update for this model",
+      speech:"That is a Dahua IP camera. 1 issue known, and one is already being exploited in the wild. Install the vendor firmware update for this model.",
+      notice:NOTICE
+    },
+    why:"11.5 bits from 2 independent evidence classes (http+l2)",
+    concerns:[
+      {id:"CVE-2021-33044",sev:"medium",risk:5.8,kev:true,
+       t:"Identity authentication bypass in Dahua devices",
+       d:"The login process can be bypassed, allowing a remote party to authenticate as a valid device user.",
+       c:"possible — firmware version unknown, so this may already be patched — verify against the vendor advisory"}
+    ],
+    plan:[
+      "Install the vendor firmware update for this model  (medium effort)",
+      "Move the camera to an isolated IoT VLAN or guest network  (medium effort)"
+    ],
+    note:"LAN-only, so Spotter does not tell you to undo an internet exposure you never had."
+  },
+  ambiguous: {
+    label: 'Evidence disagrees',
+    art: 'dome',
+    card: {
+      state:"ambiguous", line1:"Not sure yet",
+      line2:"Axis Communications and Dahua are within 1.5 bits of each…",
+      accent:"watch", confidence:"ambiguous", concerns:0,
+      speech:"I can see it, but the evidence does not agree yet. Get closer, or let me check the network.",
+      notice:NOTICE
+    },
+    why:"The housing says one vendor; the hardware address says another. Spotter reports the conflict instead of guessing.",
+    concerns:[], plan:[]
+  },
+  unenrolled: {
+    label: "A neighbour's camera",
+    art: 'dome',
+    card: {
+      state:"unenrolled", line1:"A camera", line2:"Not in your devices",
+      line3:"Add it to assess", accent:"watch", confidence:"confirmed", concerns:0,
+      speech:"That looks like a camera, but it is not one of your devices. Add it to your inventory and I will check it.",
+      notice:NOTICE
+    },
+    why:"Spotter identified it internally, then withheld everything: no vendor, no model, no advisories. Looking at hardware you do not own cannot produce a reconnaissance report.",
+    concerns:[], plan:[]
+  },
+  unknown: {
+    label: 'Nothing in the corpus matches',
+    art: 'box',
+    card: {
+      state:"searching", line1:"Looking…", accent:"ok",
+      confidence:"unknown", concerns:0,
+      speech:"I do not recognize this one yet.", notice:NOTICE
+    },
+    why:"Below the 4-bit floor required to name anything. Spotter says so rather than picking the nearest entry.",
+    concerns:[], plan:[]
+  }
+};
+
+const ACCENT = { ok:'var(--ok)', watch:'var(--watch)', warn:'var(--warn)', alert:'var(--alert)' };
+const RISK_PIPS = { none:0, low:1, medium:2, high:3, critical:4 };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- device artwork ---------- */
+function art(kind){
+  if(kind === 'bullet') return `
+    <svg width="150" height="110" viewBox="0 0 150 110">
+      <g fill="none" stroke="#8fa6bd" stroke-width="2">
+        <rect x="26" y="34" width="84" height="38" rx="19" fill="#141b23"/>
+        <circle cx="104" cy="53" r="13" fill="#0a0f14"/>
+        <circle cx="104" cy="53" r="6" fill="#1b2530"/>
+        <path d="M60 72 L60 92 M44 92 L76 92"/>
+      </g>
+      <circle cx="104" cy="53" r="3" fill="#2b3a4a"/>
+      <circle cx="34" cy="42" r="2" fill="#ff4d5e" opacity=".85"/>
+    </svg>`;
+  if(kind === 'box') return `
+    <svg width="130" height="110" viewBox="0 0 130 110">
+      <g fill="none" stroke="#8fa6bd" stroke-width="2">
+        <rect x="26" y="30" width="78" height="52" rx="6" fill="#141b23"/>
+        <path d="M40 44h20M40 54h34M40 64h14"/>
+      </g>
+    </svg>`;
+  return `
+    <svg width="140" height="120" viewBox="0 0 140 120">
+      <g fill="none" stroke="#8fa6bd" stroke-width="2">
+        <path d="M28 62a42 34 0 0 1 84 0z" fill="#141b23"/>
+        <rect x="26" y="62" width="88" height="9" rx="4" fill="#101720"/>
+        <circle cx="70" cy="46" r="15" fill="#0a0f14"/>
+        <circle cx="70" cy="46" r="7" fill="#1b2530"/>
+      </g>
+      <circle cx="70" cy="46" r="3.4" fill="#33465a"/>
+      <circle cx="96" cy="40" r="2" fill="#ff4d5e" opacity=".85"/>
+    </svg>`;
+}
+
+/* ---------- render ---------- */
+let current = null, detailOpen = false;
+
+function setAccent(a){
+  const color = ACCENT[a] || 'var(--c1)';
+  document.documentElement.style.setProperty('--accent', color);
+}
+
+function renderCard(scene){
+  const c = scene.card;
+  setAccent(c.accent);
+  $('#st').textContent = (c.state || '').toUpperCase();
+  $('#cf').textContent = c.confidence ? c.confidence.toUpperCase() : '';
+  $('#l1').textContent = c.line1 || '';
+  $('#l2').textContent = c.line2 || '';
+
+  const l3 = $('#l3');
+  if(c.line3){ l3.style.display='flex'; l3.textContent = c.line3; }
+  else l3.style.display='none';
+
+  const pips = $('#pips');
+  const n = RISK_PIPS[c.risk_band] ?? 0;
+  pips.innerHTML = '';
+  if(c.risk_band){
+    for(let i=0;i<4;i++){
+      const el = document.createElement('i');
+      if(i<n) el.className='on';
+      pips.appendChild(el);
+    }
+  }
+  $('#notice').textContent = c.notice ? 'ⓘ ' + c.notice : '';
+  $('#card').classList.add('show');
+}
+
+function renderSheet(scene){
+  const c = scene.card;
+  let html = `<div class="hd">WHY THIS ANSWER</div>
+    <div class="row"><div class="d">${esc(scene.why)}</div>
+    ${scene.note ? `<div class="m">${esc(scene.note)}</div>` : ''}</div>`;
+
+  if(scene.concerns.length){
+    html += `<div class="hd">KNOWN ISSUES</div>`;
+    for(const k of scene.concerns){
+      html += `<div class="row">
+        <div class="t"><b>${esc(k.id)}</b><span class="sev ${esc(k.sev)}">${esc(k.sev.toUpperCase())} ${k.risk.toFixed(1)}</span></div>
+        <div class="d">${esc(k.t)}</div>
+        <div class="d" style="color:var(--mut)">${esc(k.d)}</div>
+        ${k.kev ? `<div class="kev">⚠ ATTACK CODE ALREADY CIRCULATING</div>` : ''}
+        <div class="m">confidence: ${esc(k.c)}</div>
+      </div>`;
+    }
+  }
+  if(scene.plan.length){
+    html += `<div class="hd">WHAT TO DO, IN ORDER</div><div class="row"><ol>`;
+    for(const p of scene.plan) html += `<li>${esc(p)}</li>`;
+    html += `</ol></div>`;
+  }
+  html += `<div class="hd">PROVENANCE</div><div class="row"><div class="m">${esc(c.notice||'')}</div></div>`;
+  $('#sheet').innerHTML = html;
+}
+
+/* ---------- voice ---------- */
+let muted = false;
+function speak(text){
+  if(muted || !window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text);
+  const voices = speechSynthesis.getVoices();
+  const v = voices.find(x=>/en-GB/i.test(x.lang)) || voices.find(x=>/^en/i.test(x.lang));
+  if(v) u.voice = v;
+  u.rate = 1.03; u.pitch = 0.95;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+/* ---------- scene flow: acquire, then resolve ---------- */
+let acquiring = false;
+function load(key, {silent=false}={}){
+  const scene = SCENES[key];
+  if(!scene || acquiring) return;
+  current = key;
+
+  document.querySelectorAll('.dbtn[data-scene]').forEach(b=>
+    b.classList.toggle('on', b.dataset.scene === key));
+
+  $('#target').innerHTML = art(scene.art);
+  $('#card').classList.remove('show');
+  $('#sheet').classList.remove('show');
+  detailOpen = false;
+  $('#detailBtn').classList.remove('on');
+  $('#hint').textContent = 'ACQUIRING…';
+
+  document.body.classList.add('acquiring','zoom');
+  setAccent('ok');
+  acquiring = true;
+
+  setTimeout(()=>{
+    document.body.classList.remove('acquiring');
+    acquiring = false;
+    renderCard(scene);
+    renderSheet(scene);
+    $('#hint').textContent = scene.label.toUpperCase();
+    if(!silent) speak(scene.card.speech);
+  }, 1500);
+  setTimeout(()=>document.body.classList.remove('zoom'), 900);
+}
+
+/* ---------- wiring ---------- */
+document.querySelectorAll('.dbtn[data-scene]').forEach(b=>
+  b.addEventListener('click', ()=>load(b.dataset.scene)));
+
+$('#detailBtn').addEventListener('click', ()=>{
+  detailOpen = !detailOpen;
+  $('#sheet').classList.toggle('show', detailOpen);
+  $('#card').classList.toggle('show', !detailOpen);
+  $('#detailBtn').classList.toggle('on', detailOpen);
+});
+
+$('#speakBtn').addEventListener('click', ()=>{
+  muted = !muted;
+  $('#speakBtn').textContent = muted ? '🔇 MUTED' : '🔊 SPEAK';
+  if(!muted && current) speak(SCENES[current].card.speech);
+  else speechSynthesis && speechSynthesis.cancel();
+});
+
+// Tapping the world re-acquires, the way a glance would.
+$('#world').addEventListener('pointerdown', ()=>{ if(current) load(current); });
+
+addEventListener('keydown', e=>{
+  const keys = { '1':'hik','2':'dahua','3':'ambiguous','4':'unenrolled','5':'unknown' };
+  if(keys[e.key]) load(keys[e.key]);
+  if(e.key === 'd') $('#detailBtn').click();
+  if(e.key === ' '){ e.preventDefault(); if(current) load(current); }
+});
+
+// speechSynthesis voice list is populated asynchronously in some browsers.
+if(window.speechSynthesis) speechSynthesis.onvoiceschanged = ()=>{};
+load('hik', {silent:true});
+</script>
+</body>
+</html>

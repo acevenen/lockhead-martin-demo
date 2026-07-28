@@ -1,5 +1,9 @@
 > **This repo also hosts [J.A.R.V.I.S](jarvis/README.md)** — the personal
 > voice command HUD that manages this workspace. `open jarvis/index.html`.
+> 
+> **And [SENTINEL SPOTTER](spotter/README.md)** — the glasses HUD that looks at
+> a device you own and tells you what it is, how exposed it is, and what to do
+> about it. `open spotter/index.html`.
 
 # AEGIS OVERWATCH — Holo-Tactical Concept Demo
 
