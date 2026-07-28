@@ -1,16 +1,14 @@
 {
-  "meta": { "updated": "2026-07-27", "updatedBy": "jarvis-chief-of-staff" },
+  "meta": { "updated": "2026-07-28", "updatedBy": "jarvis-chief-of-staff" },
   "user": { "name": "", "honorific": "sir" },
   "brief": {
     "since": "last session",
-    "headline": "Sentinel: two hardening PRs shipped (parsers + authorization gate). JARVIS command HUD deployed.",
+    "headline": "Sentinel: three PRs merged to main (CI fix + parser & authorization-gate hardening), main green. JARVIS command HUD deployed.",
     "items": [
-      { "agent": "sentinel-lead", "kind": "done", "text": "Sentinel repo attached and mapped: authorization-first Go security CLI, 131 Go files, build/vet/tests/lint all green at baseline." },
-      { "agent": "sentinel-lead", "kind": "done", "text": "Shipped PR #2 — hardened all 9 intrusive-tool output parsers against hostile input; caught and fixed a hashcat parser bug that fabricated 'hash recovered' findings from status banners." },
-      { "agent": "sentinel-lead", "kind": "done", "text": "Shipped PR #3 — adversarial scope-matching tests for the authorization gate: wildcard/apex, path-prefix confusion, scheme strictness, deny-wins, kill-switch ordering, Chain fail-closed." },
-      { "agent": "jarvis-chief-of-staff", "kind": "done", "text": "JARVIS personal command HUD built and deployed — voice loop, reactive orb, panels, agent roster, state pipeline (PR #1)." },
-      { "agent": "demo-engineer", "kind": "done", "text": "AEGIS OVERWATCH review fixes shipped: pinch ghost-tap guard, theme-complete chrome, brightened sat feed, longer impact FX." },
-      { "agent": "sentinel-lead", "kind": "blocked", "text": "Sentinel next milestone needs your steer — see the proposed direction in Operations." }
+      { "agent": "sentinel-lead", "kind": "done", "text": "Merged PR #4 — fixed the repo-wide CI Lint break (pinned lint job to Go 1.24 for golangci-lint v2.1.6); main's Lint/Build/Test are green again." },
+      { "agent": "sentinel-lead", "kind": "done", "text": "Merged PR #2 — hardened all 9 intrusive-tool output parsers against hostile input; caught and fixed a hashcat bug that fabricated 'hash recovered' findings from status banners." },
+      { "agent": "sentinel-lead", "kind": "done", "text": "Merged PR #3 — adversarial scope-matching tests for the authorization gate: wildcard/apex, path-prefix confusion, scheme strictness, deny-wins, kill-switch ordering, Chain fail-closed." },
+      { "agent": "jarvis-chief-of-staff", "kind": "done", "text": "JARVIS personal command HUD built and deployed — voice loop, reactive orb, panels, agent roster, state pipeline (PR #1)." }
     ]
   },
   "priorities": [
@@ -18,17 +16,15 @@
       "id": "sentinel",
       "label": "SENTINEL DEVELOPMENT",
       "status": "P0 · ACTIVE",
-      "progress": 0.36,
-      "next": "PRs #2 (parsers) and #3 (authorization gate) in review. Next: audit-chain tamper tests, or take a milestone you name."
+      "progress": 0.55,
+      "next": "CI green, two hardening rounds merged. Next milestone (your steer): audit-chain tamper tests + central authorization-contract fuzzing."
     }
   ],
   "tasks": [
-    { "title": "Sentinel PR #2 — review + merge parser hardening", "project": "SENTINEL", "priority": "P0", "status": "in-review",
-      "note": "Tests + one defensive fix. Build/Test green; Lint red on pre-existing CI skew." },
-    { "title": "Sentinel PR #3 — review + merge authorization-gate tests", "project": "SENTINEL", "priority": "P0", "status": "in-review",
-      "note": "Adversarial scope-matching tests, no production change. Independent of #2." },
-    { "title": "Sentinel: pick the next milestone", "project": "SENTINEL", "priority": "P0", "status": "open",
-      "note": "Proposed: central authorization-contract fuzzing + audit-chain tamper tests. Your call in Operations." },
+    { "title": "Sentinel: audit-chain tamper tests", "project": "SENTINEL", "priority": "P0", "status": "open",
+      "note": "Proposed next milestone — verify the hash-chained audit log rejects reordered/edited/truncated events." },
+    { "title": "Sentinel: central authorization-contract fuzzing", "project": "SENTINEL", "priority": "P1", "status": "open",
+      "note": "Fuzz Scope.Decide / Policy.Authorize for scope-bypass regressions." },
     { "title": "AEGIS: record 2-min cinematic capture for the pitch", "project": "DEMOS", "priority": "P1", "status": "open",
       "note": "?autodemo flag runs the scripted loop." },
     { "title": "Configure ElevenLabs key for authentic JARVIS voice", "project": "JARVIS", "priority": "P2", "status": "open",
@@ -37,10 +33,8 @@
       "note": "jarvis/knowledge/ — the team checks decisions against it; blanks force escalations." }
   ],
   "roadblocks": [
-    { "title": "Sentinel CI Lint is broken on main (pre-existing)", "impact": "Every PR's Lint check fails; Build + Test are green. Not caused by PR #2.",
-      "proposed": "golangci-lint v2.1.6 can't parse the Go 1.26 stdlib that `go-version: stable` now pulls. Bump golangci-lint or pin go-version to 1.25 in ci.yml — a small separate PR I can open on your go-ahead.", "needsUser": true },
     { "title": "Sentinel next milestone needs direction", "impact": "The team can keep hardening autonomously, but a named milestone focuses P0.",
-      "proposed": "Approve the proposed track — fuzz the central authorization contract shared by active adapters and add tamper tests for the hash-chained audit log — or name your own.", "needsUser": true },
+      "proposed": "Approve the proposed track — audit-chain tamper tests + authorization-contract fuzzing — or name your own.", "needsUser": true },
     { "title": "No ElevenLabs credentials", "impact": "JARVIS speaks with the system en-GB voice instead of the cinematic one.",
       "proposed": "Paste key + voice ID in Settings (stored in this browser only).", "needsUser": true },
     { "title": "Knowledge base is placeholder-only", "impact": "Decisions that aren't covered by values.md get escalated instead of resolved.",
@@ -57,7 +51,7 @@
     { "id": "jarvis-chief-of-staff", "name": "CHIEF OF STAFF", "status": "active",
       "role": "Runs every session: reads state, delivers the brief, routes work to the team, updates state before signing off." },
     { "id": "sentinel-lead", "name": "SENTINEL LEAD", "status": "active",
-      "role": "Owns Priority One. Sentinel repo mapped; parser-hardening PR #2 shipped and in review." },
+      "role": "Owns Priority One. Two hardening rounds merged (parsers + authorization gate); CI restored to green." },
     { "id": "demo-engineer", "name": "DEMO ENGINEER", "status": "active",
       "role": "Owns the demos group — AEGIS Overwatch and future concept pieces. Polish, QA, cinematic capture." },
     { "id": "daily-brief", "name": "BRIEFING OFFICER", "status": "active",
@@ -65,5 +59,5 @@
     { "id": "biz-ops", "name": "BIZ OPS", "status": "standby",
       "role": "Business problems and roadblocks: triage, propose solutions, flag what needs your call." }
   ],
-  "activity14": [2, 1, 3, 2, 4, 3, 2, 5, 4, 6, 8, 9, 12, 15]
+  "activity14": [1, 3, 2, 4, 3, 2, 5, 4, 6, 8, 9, 12, 15, 19]
 }
