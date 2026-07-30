@@ -1309,6 +1309,14 @@ function populateSite(){
   /* --- city --- */
   clearRubble();
   buildings = WGEN.buildCity(SITE, TER, WAT, MAX_BLD);
+  /* Guard the instance budget at the boundary, not just at the generator. Asking
+     GL for more instances than the buffer holds is INVALID_OPERATION: Chrome
+     renders it anyway and reports no error, WebKit drops the draw and the city
+     disappears. Never let a generator bug reach the driver. */
+  if (buildings.length > MAX_BLD){
+    console.warn(`AEGIS: buildCity returned ${buildings.length} > MAX_BLD ${MAX_BLD} — truncating`);
+    buildings.length = MAX_BLD;
+  }
   bMesh.count = buildings.length;
   bEdgeP.fill(0);
   const bc = new THREE.Color();
@@ -3509,6 +3517,14 @@ window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme,
   povSeat: () => pov.unit ? (pov.unit.spec.seat || pov.unit.spec.label) : null,
   liveUnitCount: () => BATTLE ? BATTLE.unitCount() : 0,
   camInfo: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z }),
+  /* every instanced population, checked against the buffer it was allocated */
+  overflowProbe: () => {
+    const cap = bMesh.instanceMatrix.count;
+    return { site: SITE.id, buildings: buildings.length, drawn: bMesh.count, cap,
+      over: Math.max(0, buildings.length - cap),
+      edgeFloats: bEdgeP.length, edgeNeeded: buildings.length * 72,
+      glError: renderer.getContext().getError() };
+  },
   sceneProbe: () => [
     ['buildings', bMesh], ['trees', treeMesh], ['bushes', bushMesh], ['rubble', rubbleMesh],
   ].map(([name, m]) => ({ name, count: m.count, visible: m.visible, culled: m.frustumCulled,

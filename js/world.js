@@ -302,18 +302,26 @@ function buildCity(site, terrain, water, budget) {
     }
   }
 
+  /* How many signature towers this skyline is owed. Worked out BEFORE the cut
+     because they are appended after it: budget is a hard contract with the
+     caller, who sizes an InstancedMesh to exactly MAX. Overrunning it asks GL
+     to draw more instances than the attribute buffer holds — Chrome tolerates
+     that via robust buffer access and renders anyway, but it is INVALID_OPERATION
+     per the WebGL spec and WebKit drops the whole draw call, so the entire city
+     vanishes on iOS. 12 of the first 15 atlas sites were over. */
+  const spikes = (site.peak > 150) ? (P.spike >= 15 ? 2 : P.hCore >= 120 ? 6 : 4) : 0;
+
   /* thin the field down to budget, keeping the core dense and the edge sparse */
-  if (out.length > MAX) {
+  if (out.length > MAX - spikes) {
     out.sort((a, b) => a._k - b._k);
-    out.length = MAX;
+    out.length = MAX - spikes;
   }
   for (const b of out) delete b._k;
 
   /* signature towers: the handful of real supertalls that define a skyline.
      Without these a purely statistical field never produces the one needle that
      makes Dubai read as Dubai. */
-  if (site.peak > 150 && out.length) {
-    const spikes = P.spike >= 15 ? 2 : P.hCore >= 120 ? 6 : 4;
+  if (spikes && out.length) {
     for (let i = 0; i < spikes; i++) {
       const a = rnd() * Math.PI * 2, rad = rnd() * R * 0.30;
       const x = CORE.x + Math.cos(a) * rad, z = CORE.z + Math.sin(a) * rad;
