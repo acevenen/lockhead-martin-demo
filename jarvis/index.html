@@ -297,8 +297,23 @@ const EMBEDDED_STATE = {
   },
   "brief": {
     "since": "last session",
-    "headline": "AEGIS: found and fixed the bug that made the whole city vanish on iOS, rebuilt the mobile HUD, and replaced the faked roads and welded populations with a real road network, articulated pedestrians, rolling wheels and an animated battle.",
+    "headline": "AEGIS first launch: first-person view models in every crew seat, a 114-unit war across the whole landscape on three axes, and infantry that walk, aim and fall on an articulated rig.",
     "items": [
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS view models: enter any crew seat and you are holding something — rifle with iron sights, scoped M107, pintle .50 with a feeding belt, Apache canopy with glareshield MFDs, binoculars at the gun line. They sway with movement, kick with the unit's real recoil and muzzle-flash when it actually fires. Kept solid in both render modes deliberately: the weapon is the operator's hands, not part of the projection."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS theater-wide war: 114 units on three simultaneous axes — armour at the city, mech infantry in the hills, a recon screen on the flank — with fires in depth at the map edges whose 21/32 km reach covers every sector. Battle infantry now fight on foot on the articulated rig: walk on the advance, braced aim in contact, a fall about the feet when killed, rifle riding the hand throughout."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "Playtested three full walk-in sessions end to end. Caught and fixed: battle stop() crashing on the new infantry rig fleets, view models eaten by the camera near plane, the holo wash rendering the weapon invisible, and table-scale civilians towering like giants over the metric battle from any eye-level camera (the crowd drops to metric scale whenever the camera is on the deck)."
+      },
       {
         "agent": "demo-engineer",
         "kind": "done",
@@ -318,26 +333,6 @@ const EMBEDDED_STATE = {
         "agent": "demo-engineer",
         "kind": "done",
         "text": "AEGIS locomotion. Pedestrians were one welded mesh and slid with a sine bob; all four wheels of every car were merged into one geometry, so a wheel could not physically turn. Five instanced parts now give a real walk cycle whose phase advances with DISTANCE TRAVELLED rather than the clock, and four instanced wheels per car roll off distance covered and steer off path curvature. Speeds were 2.5-6.6 m/s for a shopping crowd and 14-32 m/s for city traffic; both are honest now. The work surfaced that the merged person faced +X while the app rotates walkers to face +Z — the entire crowd had been walking sideways."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS battle animation. The sim was correct and inert: a killed unit simply stopped being drawn. Deaths are now animated and permanent — armour slumps, chars and smokes where it died, infantry fall, a downed Apache windmills in. Wrecks persist so the battlefield accumulates history. Guns recoil and kick a blast plume, hulls lean into turns and squat under power, tracked vehicles throw dust. New pooled fx module, fixed-size, no allocation in the frame loop."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS render modes: one scene graph, two complete looks. HOLO is the tactical projection; REAL is a lit world with sky gradient, distance fog, sun and bounce fill, draped asphalt streets and models in their authored colours. Modes swap material state, never geometry, so toggling is instant and the simulation cannot desync. Every material registers once with a role, so anything added later gets both looks for free. Button, or H."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS crew POV: during a battle, tap a unit or press [ / ] and the camera flies from the table into that crew's head over 1.15 s. Helmet-cam framing with the table UI cleared, live HP, heading and range to that unit's own target, and a signal-lost hand-back when the crew is killed. Eye height comes from the unit class, so a prone sniper, a tank commander in the hatch and an Apache pilot are all at their real heights. Cycling walks the combined-arms picture: nine presses gives pilot, tank commander, IFV gunner, vehicle commander, gun chief, launcher crew, gunner, sniper, rifleman."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS landmarks: 18 structures authored in real metres and merged to one geometry each — Golden Gate, Salesforce, Liberty, Empire State, Eiffel, Fuji, Skytree, Elizabeth Tower, Colosseum, Giza, Opera House, Burj Khalifa, Christ the Redeemer, Taj Mahal, Sagrada Família, capitol, plus generic tower and peak fallbacks. Twelve destinations place them at real offsets from the city centre; the landmark the intel panel names is the one wired to the strike and BDA path, and the rest topple too."
       }
     ]
   },
@@ -411,9 +406,9 @@ const EMBEDDED_STATE = {
     {
       "id": "aegis",
       "title": "AEGIS OVERWATCH",
-      "status": "ROADS + ANIMATION SHIPPED",
+      "status": "FIRST LAUNCH",
       "path": "../index.html",
-      "desc": "Holo-tactical command table — 51 real theaters, holographic and photoreal looks, 18 real landmarks, a real road network with driving traffic, articulated crowds, force-on-force battle with animated deaths and persistent wrecks, GTA-style crew POV, destructible world.",
+      "desc": "Holo-tactical command table — 51 real theaters, holographic and photoreal looks, real road network and living city, a 114-unit theater-wide battle with animated deaths and persistent wrecks, GTA-style crew POV with first-person view models, destructible world, free-roam sandbox.",
       "flags": "?fastboot · ?autodemo · ?site=<id> · H holo/real · [ ] crew POV · Z hide HUD"
     },
     {

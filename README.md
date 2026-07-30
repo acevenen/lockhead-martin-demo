@@ -57,6 +57,19 @@ asset takes four seconds and zero keyboards.*
   accumulates its own history. Guns recoil along their axis and kick a blast
   plume off the ground, hulls lean into turns and squat under power, and
   tracked vehicles throw dust off the running gear.
+  - **The war is theater-wide: 114 units on three axes.** An armour fight at
+    the city, a mech-infantry fight in the hills, a recon screen on the flank,
+    with artillery, MLRS and a helo section in depth at the map edges — their
+    21/32 km reach covers every sector, so shellfire arrives from off-screen
+    the way it actually would.
+  - **Infantry fight on foot.** The same articulated rig as the crowd, in
+    faction kit with a rifle in hand: distance-driven walk on the advance, a
+    braced aim stance in contact, and a fall that pitches about the feet.
+- **First-person view models.** Enter any seat and you are holding something:
+  rifle with iron sights, scoped M107 in the hide, pintle .50 with spade grips
+  and a feeding belt up in the hatch, canopy frame and glareshield MFDs in the
+  Apache, binoculars at the gun line. They sway with movement, breathe at
+  rest, kick with the unit's real recoil and flash when it actually fires.
 - **◐ HOLO / ◑ REAL — two complete looks over one scene** (button, or **H**).
   HOLO is the tactical projection: additive wireframe terrain, unlit models
   washed to a single hue, black void. REAL is a lit world: shaded ground in the
@@ -253,7 +266,7 @@ node tools/build-artifact.mjs dist/artifact.html
 
 ## Stack
 
-`index.html` plus twelve plain scripts in `js/` (no bundler, no modules, so it
+`index.html` plus thirteen plain scripts in `js/` (no bundler, no modules, so it
 still opens straight from `file://`):
 
 | File | Role |
@@ -268,6 +281,7 @@ still opens straight from `file://`):
 | `js/roadnet.js` | the road network — graph, ribbon mesh and canvas, one source |
 | `js/anim.js` | articulated rigs and the distance-driven walk cycle |
 | `js/battlefx.js` | pooled dust, smoke and sparks for the battle |
+| `js/viewmodels.js` | first-person weapons for the crew POV |
 | `js/rendermode.js` | the holo/real material authority |
 | `js/console.js` | worldwide theater search |
 
