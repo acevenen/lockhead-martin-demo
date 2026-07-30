@@ -75,6 +75,7 @@ const FACTIONS = {
 
 function create(ctx) {
   const { scene, sampleH, log, onImpact, models, mil } = ctx;
+  const FX = ctx.fx || null;
   const THREE_ = THREE;
 
   /* ---------------- instanced render fleets ---------------- */
@@ -193,6 +194,10 @@ function create(ctx) {
       hp: spec.hp, maxHp: spec.hp,
       cd: Math.random() * 2, cd2: Math.random() * 3,
       target: null, alive: true, spin: 0,
+      /* animation state: recoil decays after a shot, deadT drives the death
+         and then holds the wreck, gait is advanced by distance travelled */
+      recoil: 0, deadT: -1, gait: Math.random() * 6.28, deathLean: 0,
+      pitch: 0, roll: 0, lastV: 0, dust: 0,
       /* infantry advance in a loose wedge rather than a conga line */
       jitter: (Math.random() - 0.5) * 2,
     };
@@ -290,6 +295,13 @@ function create(ctx) {
     p.shooter = un;
     if (!w.indirect) muzzleFlash(sx, muzzleY, sz, w === WEAPONS.maingun ? 1.5 : 0.7);
     else muzzleFlash(sx, muzzleY + 0.3, sz, 1.9);
+    /* the gun reacts to its own shot: recoil scales with the calibre */
+    un.recoil = Math.min(1, un.recoil + (w === WEAPONS.maingun ? 1 : w.indirect ? 1 : 0.35));
+    if (FX) {
+      const ay = un.spec.air ? un.yaw : un.turretYaw;
+      FX.muzzleBlast(sx, un.y, sz, Math.sin(ay), Math.cos(ay),
+        w === WEAPONS.maingun || w.indirect);
+    }
   }
 
   /* queued rounds — a burst is scheduled on the sim clock, never with timers,
@@ -320,7 +332,10 @@ function create(ctx) {
     tgt.hp -= dmg;
     if (tgt.hp <= 0 && tgt.alive) {
       tgt.alive = false;
+      tgt.deadT = 0;
+      tgt.deathLean = (Math.random() - 0.5) * 1.6;
       state.score[shooterFaction]++;
+      if (FX) FX.killBurst(tgt.x, tgt.y + 0.2, tgt.z, tgt.type !== 'infantry' && tgt.type !== 'sniper');
       if (onImpact) onImpact(tgt.x, tgt.y, tgt.z, tgt.spec.air ? 1.1 : 0.8, true);
       if (state.units.filter(x => x.alive && x.faction === tgt.faction).length % 4 === 0) {
         log(`BATTLE ▸ ${FACTIONS[tgt.faction].name} ${tgt.spec.label} DESTROYED`, tgt.faction === 'blu' ? 'crit' : 'warn');
@@ -330,7 +345,22 @@ function create(ctx) {
 
   function stepUnits(dt) {
     for (const un of state.units) {
-      if (!un.alive) continue;
+      if (!un.alive) {
+        /* the dead keep animating: a fall, then a wreck that stays put and
+           smokes. Units used to simply stop being drawn. */
+        if (un.deadT >= 0) {
+          un.deadT += dt;
+          if (un.spec.air && un.deadT < 1.6) {
+            un.spin += dt * 40;                       // rotor windmills on the way down
+            un.y = Math.max(sampleH(un.x, un.z), un.y - dt * (2 + un.deadT * 4));
+          }
+          if (FX && un.deadT > 1.0 && un.type !== 'infantry' && un.type !== 'sniper'
+              && un.deadT < 26 && Math.random() < dt * 2.2)
+            FX.burnColumn(un.x, un.y, un.z);
+        }
+        continue;
+      }
+      un.recoil = Math.max(0, un.recoil - dt * 3.4);
       const tgt = nearestEnemy(un);
       un.target = tgt;
       if (!tgt) continue;
@@ -349,12 +379,32 @@ function create(ctx) {
         const sp = u(un.spec.speed) * MOVE_SCALE * dt;
         const nx = un.x + (dx / dist) * sp, nz = un.z + (dz / dist) * sp;
         un.x = nx; un.z = nz;
-        un.yaw += angleDelta(un.yaw, face) * Math.min(1, dt * 1.6);
+        const turn = angleDelta(un.yaw, face) * Math.min(1, dt * 1.6);
+        un.yaw += turn;
         un.y = un.spec.air ? sampleH(un.x, un.z) + 7 : sampleH(un.x, un.z);
+        /* gait phase from distance covered, so infantry stride matches speed */
+        un.gait = (un.gait + sp / 0.09) % 6.283185;
+        /* hull leans into the turn and squats under power */
+        un.roll += (-turn * 26 - un.roll) * Math.min(1, dt * 4);
+        un.pitch += (-0.045 - un.pitch) * Math.min(1, dt * 3);
+        /* a plume off the running gear — at MOVE_SCALE 30 this is what sells
+           the weight, where wheel rotation would just be a blur */
+        if (FX && !un.spec.air) {
+          un.dust -= dt;
+          if (un.dust <= 0) {
+            un.dust = un.type === 'infantry' || un.type === 'sniper' ? 0.5 : 0.10;
+            if (un.type !== 'infantry' && un.type !== 'sniper')
+              FX.trackDust(un.x, un.y, un.z, Math.sin(un.yaw), Math.cos(un.yaw),
+                un.type === 'mbt' || un.type === 'artillery');
+          }
+        }
       } else {
         un.yaw += angleDelta(un.yaw, face) * Math.min(1, dt * 1.1);
         un.y = un.spec.air ? sampleH(un.x, un.z) + 7 : sampleH(un.x, un.z);
+        un.roll += (0 - un.roll) * Math.min(1, dt * 3);
+        un.pitch += (0 - un.pitch) * Math.min(1, dt * 3);
       }
+      if (FX && un.spec.air && Math.random() < dt * 3) FX.rotorWash(un.x, sampleH(un.x, un.z), un.z);
 
       un.cd -= dt;
       if (un.cd <= 0 && dist <= w.range) {
@@ -442,29 +492,52 @@ function create(ctx) {
     }
     for (const fac in rings) { rings[fac].count = ringN[fac]; rings[fac].instanceMatrix.needsUpdate = true; }
     vs.setScalar(1);
+    const wreck = new THREE_.Color(0x4a4441);
     for (const type in fleets) for (const fac in fleets[type]) {
       const f = fleets[type][fac];
-      let n = 0;
+      let n = 0, recol = false;
       for (const un of f.list) {
-        if (!un.alive) continue;
-        eu.set(0, un.yaw, 0); q.setFromEuler(eu);
-        vp.set(un.x, un.y, un.z);
+        /* The dead are still drawn. They fall, settle, and stay as a wreck —
+           a battlefield should accumulate history, not erase its casualties. */
+        if (!un.alive && un.deadT < 0) continue;
+        const dying = !un.alive;
+        const k = dying ? Math.min(1, un.deadT / 1.15) : 0;
+        const foot = un.spec.air ? 0 : 0;
+        /* infantry fall flat; vehicles slump onto a track and settle */
+        const soft = un.type === 'infantry' || un.type === 'sniper';
+        const pitch = dying ? (soft ? k * 1.45 : k * 0.16) + un.pitch : un.pitch;
+        const roll = dying ? un.deathLean * k * (soft ? 0.4 : 1) + un.roll : un.roll;
+        const sink = dying ? -k * (soft ? 0.02 : 0.05) : 0;
+        eu.set(pitch, un.yaw, roll, 'YXZ'); q.setFromEuler(eu);
+        vp.set(un.x, un.y + sink + foot, un.z);
         m4.compose(vp, q, vs);
         f.hull.setMatrixAt(n, m4);
+        if (!un.__charred && dying && un.deadT > 0.5) {
+          un.__charred = true; recol = true;
+        }
+        if (recol) f.hull.setColorAt(n, un.__charred ? wreck : new THREE_.Color(FACTIONS[fac].tint));
         if (f.turret) {
           if (f.spin) { eu.set(0, un.spin, 0); }
-          else { eu.set(0, un.turretYaw, 0); }
+          else {
+            /* recoil runs the gun back along its own axis and returns it */
+            eu.set(dying ? pitch * 0.5 : 0, un.turretYaw, dying ? roll : 0, 'YXZ');
+          }
           q.setFromEuler(eu);
           pv.set(f.pivot[0], f.pivot[1], f.pivot[2]);
           /* pivot is expressed in hull space, so rotate it with the hull */
           const hy = un.yaw, cs = Math.cos(hy), sn = Math.sin(hy);
-          vp.set(un.x + pv.x * cs + pv.z * sn, un.y + pv.y, un.z - pv.x * sn + pv.z * cs);
+          const rc = un.recoil * (un.type === 'mbt' ? 0.10 : 0.045);
+          const ty = f.spin ? un.turretYaw : un.turretYaw;
+          vp.set(un.x + pv.x * cs + pv.z * sn - Math.sin(ty) * rc,
+                 un.y + pv.y + sink,
+                 un.z - pv.x * sn + pv.z * cs - Math.cos(ty) * rc);
           m4.compose(vp, q, vs);
           f.turret.setMatrixAt(n, m4);
         }
         n++;
       }
       f.hull.count = n; f.hull.instanceMatrix.needsUpdate = true;
+      if (recol && f.hull.instanceColor) f.hull.instanceColor.needsUpdate = true;
       if (f.turret) { f.turret.count = n; f.turret.instanceMatrix.needsUpdate = true; }
     }
     for (const fl of flashes) {

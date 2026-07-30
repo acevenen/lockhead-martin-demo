@@ -727,6 +727,7 @@ body.hudmin #brand,body.hudmin #sectors{display:none}
 <script src="js/world.js"></script>
 <script src="js/models-mil.js"></script>
 <script src="js/battle.js"></script>
+<script src="js/battlefx.js"></script>
 <script src="js/roadnet.js"></script>
 <script src="js/anim.js"></script>
 <script src="js/rendermode.js"></script>
@@ -3399,10 +3400,12 @@ function updateExplore(dt){
 
 /* ---------------- battle simulation ---------------- */
 let BATTLE = null;
+let BFX = null;
 function ensureBattle(){
   if (BATTLE) return BATTLE;
+  BFX = window.AegisBattleFx.create({ scene, sampleH, rm: RM });
   BATTLE = window.AegisBattle.create({
-    scene, sampleH, log,
+    scene, sampleH, log, fx: BFX,
     models: window.AegisModels, mil: window.AegisMil,
     /* battle impacts reuse the same destruction chain as the arsenal, so a
        tank brewing up shakes the table and throws real debris */
@@ -3440,6 +3443,7 @@ function setBattle(on){
   } else {
     exitPov();
     B.stop();
+    if (BFX) BFX.clear();
     $('battlehud').classList.remove('on');
     $('btn-battle').classList.remove('on');
     $('btn-battle').setAttribute('aria-pressed', 'false');
@@ -3879,6 +3883,7 @@ function frame(){
   updateTeam(dt);
   if (DEBRIS) DEBRIS.update(dt);
   if (BATTLE && BATTLE.isRunning()){ BATTLE.update(dt); updateBattleHud(); }
+  if (BFX) BFX.update(dt, camera);
   if (lakeAlive) lakeRipples.forEach(r => {
     const t = (perfT*.22 + r.userData.ph) % 1;
     r.scale.setScalar(1 + t*(LAKE.r - 1));
@@ -3955,6 +3960,15 @@ window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme,
   povSeat: () => pov.unit ? (pov.unit.spec.seat || pov.unit.spec.label) : null,
   liveUnitCount: () => BATTLE ? BATTLE.unitCount() : 0,
   camInfo: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z }),
+  fxProbe: () => BFX ? { dust: BFX.liveDust(), sparks: BFX.liveSparks() } : null,
+  battleAnim: () => {
+    if (!BATTLE) return null;
+    const us = BATTLE.state.units;
+    return { total: us.length, alive: us.filter(x => x.alive).length,
+      wrecks: us.filter(x => !x.alive && x.deadT >= 0).length,
+      recoiling: us.filter(x => x.recoil > 0.05).length,
+      leaning: us.filter(x => Math.abs(x.roll) > 0.005).length };
+  },
   roadProbe: () => {
     if (!ROADS) return { none: true };
     const st = ROADS.stats();
