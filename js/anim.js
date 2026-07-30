@@ -46,9 +46,10 @@ function buildPersonRig(opt) {
   const skin = o.skin === undefined ? SKIN : o.skin;
   const a = o.clothA === undefined ? CLOTH_A : o.clothA;
   const b = o.clothB === undefined ? CLOTH_B : o.clothB;
+  const head = o.head === undefined ? skin : o.head;   // a helmet is a head colour
 
   const torso = M.mergeParts([
-    { geo: new THREE.SphereGeometry(0.115 * H, 7, 5), matrix: M.mat([0, 0.885 * H, 0]), color: skin },
+    { geo: new THREE.SphereGeometry(0.115 * H, 7, 5), matrix: M.mat([0, 0.885 * H, 0]), color: head },
     { geo: new THREE.CylinderGeometry(0.055 * H, 0.07 * H, 0.09 * H, 6), matrix: M.mat([0, 0.79 * H, 0]), color: skin },
     { geo: new THREE.CylinderGeometry(0.155 * H, 0.115 * H, 0.34 * H, 7), matrix: M.mat([0, 0.58 * H, 0]), color: a },
     { geo: new THREE.CylinderGeometry(0.115 * H, 0.125 * H, 0.10 * H, 7), matrix: M.mat([0, 0.375 * H, 0]), color: b },

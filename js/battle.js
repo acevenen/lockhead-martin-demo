@@ -79,7 +79,7 @@ function create(ctx) {
   const THREE_ = THREE;
 
   /* ---------------- instanced render fleets ---------------- */
-  const CAP = { mbt: 8, ifv: 8, apc: 6, light: 6, artillery: 4, mlrs: 4, infantry: 40, sniper: 6, helo: 4 };
+  const CAP = { mbt: 14, ifv: 14, apc: 10, light: 8, artillery: 6, mlrs: 6, infantry: 72, sniper: 8, helo: 6 };
   const fleets = {};                    // fleets[type][faction] = {hull,turret,pivot,n}
   const geoCache = {};
 
@@ -87,11 +87,24 @@ function create(ctx) {
     if (geoCache[type]) return geoCache[type];
     const spec = UNITS[type];
     let g;
-    if (spec.model === 'soldier') g = { hull: mil.buildSoldier(spec.pose || 'stand', 'blu'), turret: null };
+    if (type === 'infantry') g = { rig: true };
+    else if (spec.model === 'soldier') g = { hull: mil.buildSoldier(spec.pose || 'stand', 'blu'), turret: null };
     else if (spec.model === 'apache') { const a = mil.buildApache(); g = { hull: a.hull, turret: a.rotor, pivot: a.rotorPivot, spin: true }; }
     else { const v = mil.VEHICLES[spec.model](); g = { hull: v.hull, turret: v.turret, pivot: v.turretPivot }; }
     geoCache[type] = g;
     return g;
+  }
+
+  /* one rifle geometry shared by every rigged soldier */
+  let riflGeo = null;
+  function rifleGeo() {
+    if (riflGeo) return riflGeo;
+    riflGeo = models.mergeParts([
+      { geo: new THREE_.BoxGeometry(0.022, 0.035, 0.26), matrix: models.mat([0, 0, 0.03]), color: 0x24272b },
+      { geo: new THREE_.CylinderGeometry(0.007, 0.007, 0.17, 5), matrix: models.mat([0, 0.004, 0.20], [Math.PI / 2, 0, 0]), color: 0x24272b },
+      { geo: new THREE_.BoxGeometry(0.016, 0.05, 0.05), matrix: models.mat([0, -0.035, -0.02], [0.3, 0, 0]), color: 0x2e3134 },
+    ]);
+    return riflGeo;
   }
 
   function ensureFleet(type, faction) {
@@ -99,6 +112,30 @@ function create(ctx) {
     if (fleets[type][faction]) return fleets[type][faction];
     const g = geoFor(type), cap = CAP[type] || 8;
     const mkMat = () => new THREE_.MeshLambertMaterial({ vertexColors: true });
+
+    if (g.rig) {
+      /* ARTICULATED INFANTRY — six instanced parts sharing one index, the same
+         trick the civilian crowd uses. Faction colours are baked into the rig
+         geometry, so no instance tint pass is needed. */
+      const A = global.AegisAnim;
+      const kit = faction === 'op'
+        ? { clothA: 0x8a7a58, clothB: 0x6e6248, head: 0x6e6248, skin: 0xd8b090 }
+        : { clothA: 0x5f6b4a, clothB: 0x4a5340, head: 0x4a5340, skin: 0xe8c9a8 };
+      const rig = A.buildPersonRig(kit);
+      const mk = geo => {
+        const m = new THREE_.InstancedMesh(geo, mkMat(), cap);
+        m.frustumCulled = false; m.count = 0;
+        m.instanceMatrix.setUsage(THREE_.DynamicDrawUsage);
+        scene.add(m);
+        return m;
+      };
+      const f = { rig: { torso: mk(rig.torso), legL: mk(rig.leg), legR: mk(rig.leg),
+                         armL: mk(rig.arm), armR: mk(rig.arm), rifle: mk(rifleGeo()) },
+                  A, cap, list: [] };
+      if (ctx.rm) for (const k in f.rig) ctx.rm.register(f.rig[k].material, 'model');
+      fleets[type][faction] = f;
+      return f;
+    }
     const hull = new THREE_.InstancedMesh(g.hull, mkMat(), cap);
     hull.frustumCulled = false; hull.count = 0;
     hull.instanceMatrix.setUsage(THREE_.DynamicDrawUsage);
@@ -121,7 +158,7 @@ function create(ctx) {
   }
 
   /* ---------------- faction ID rings ---------------- */
-  const RING_CAP = 60;
+  const RING_CAP = 140;
   const ringGeo = new THREE_.RingGeometry(0.62, 0.80, 20);
   ringGeo.rotateX(-Math.PI / 2);
   const rings = {};
@@ -136,7 +173,7 @@ function create(ctx) {
   }
 
   /* ---------------- projectile / tracer pools ---------------- */
-  const PROJ_N = 160;
+  const PROJ_N = 260;
   const projGeo = new THREE_.BufferGeometry();
   const projPos = new Float32Array(PROJ_N * 2 * 3);       // line segments
   const projCol = new Float32Array(PROJ_N * 2 * 3);
@@ -214,46 +251,79 @@ function create(ctx) {
   }
 
   /* ---------------- order of battle ---------------- */
+  /* THEATER-WIDE DEPLOYMENT.
+     One meeting engagement at the city edge was a skirmish in a corner of a
+     60 km map. The battle now runs on three simultaneous axes spread across
+     the whole landscape — an armour fight at the city, a mech-infantry fight
+     in the hills, a recon screen on the flank — with artillery and MLRS in
+     depth near the map edges, from where their 21/32 km reach covers every
+     sector. Opposing groups start ~contact distance apart WITHIN a sector so
+     each fight develops immediately; the sectors themselves are far apart,
+     which is what makes the whole map feel at war. */
   function deploy(centre, scale, terrainOk) {
-    const cx = centre.x, cz = centre.z;
-    const span = 15 * (scale || 1);
-    const place = (fac, type, ox, oz, yaw) => {
-      let x = cx + ox, z = cz + oz;
+    const place = (fac, type, x, z, yaw) => {
       if (terrainOk && !terrainOk(x, z)) {
-        /* nudge off water / out of bounds rather than dropping the unit */
         for (let k = 0; k < 8 && !terrainOk(x, z); k++) { x += (Math.random() - 0.5) * 12; z += (Math.random() - 0.5) * 12; }
       }
       return spawn(fac, type, x, z, yaw);
     };
-    /* BLUFOR advances from -Z, OPFOR holds +Z */
-    const line = (fac, sign) => {
-      const yaw = sign > 0 ? 0 : Math.PI;
-      const base = sign * span;
-      place(fac, 'mbt', -14, base - sign * 3, yaw);
-      place(fac, 'mbt', -5, base, yaw);
-      place(fac, 'mbt', 6, base, yaw);
-      place(fac, 'mbt', 15, base - sign * 4, yaw);
-      place(fac, 'ifv', -19, base + sign * 5, yaw);
-      place(fac, 'ifv', -2, base + sign * 6, yaw);
-      place(fac, 'ifv', 11, base + sign * 5, yaw);
-      place(fac, 'apc', 19, base + sign * 7, yaw);
-      place(fac, 'light', -24, base + sign * 9, yaw);
-      place(fac, 'artillery', -8, base + sign * 12, yaw);
-      place(fac, 'mlrs', 8, base + sign * 14, yaw);
-      /* two rifle squads in wedge, forward of the armour so they actually make
-         contact — rifles reach 450 m and would otherwise never close */
-      for (let sq = 0; sq < 2; sq++) for (let i = 0; i < 6; i++) {
-        place(fac, 'infantry', -12 + sq * 22 + (i % 3) * 2.2 - 2,
-          base - sign * (4 + Math.floor(i / 3) * 2.0), yaw);
-      }
-      /* sniper pair in hides on either flank, well behind the line of departure */
-      place(fac, 'sniper', -30, base + sign * 16, yaw);
-      place(fac, 'sniper', 27, base + sign * 18, yaw);
-      place(fac, 'helo', sq0(sign), base + sign * 20, yaw);
+    const squad = (fac, x, z, yaw, n) => {
+      for (let i = 0; i < n; i++)
+        place(fac, 'infantry', x + (i % 3) * 2.2 - 2 + (Math.random() - .5), z + Math.floor(i / 3) * 2.0, yaw);
     };
-    function sq0(sign) { return sign > 0 ? 12 : -12; }
-    line('blu', -1);
-    line('op', 1);
+    /* a sector runs one fight: blu from -Z of its centre, op from +Z */
+    function sector(cx, cz, span, kind) {
+      const side = (fac, sign) => {
+        const yaw = sign > 0 ? 0 : Math.PI;
+        const base = cz + sign * span;
+        if (kind === 'armour') {
+          place(fac, 'mbt', cx - 14, base - sign * 3, yaw);
+          place(fac, 'mbt', cx - 5, base, yaw);
+          place(fac, 'mbt', cx + 6, base, yaw);
+          place(fac, 'mbt', cx + 15, base - sign * 4, yaw);
+          place(fac, 'ifv', cx - 19, base + sign * 5, yaw);
+          place(fac, 'ifv', cx - 2, base + sign * 6, yaw);
+          place(fac, 'ifv', cx + 11, base + sign * 5, yaw);
+          place(fac, 'apc', cx + 19, base + sign * 7, yaw);
+          squad(fac, cx - 12, base - sign * 4, yaw, 6);
+          squad(fac, cx + 10, base - sign * 4, yaw, 6);
+          place(fac, 'sniper', cx - 30, base + sign * 16, yaw);
+          place(fac, 'sniper', cx + 27, base + sign * 18, yaw);
+        } else if (kind === 'mech') {
+          place(fac, 'ifv', cx - 12, base, yaw);
+          place(fac, 'ifv', cx + 3, base + sign * 3, yaw);
+          place(fac, 'apc', cx - 3, base + sign * 5, yaw);
+          place(fac, 'apc', cx + 13, base + sign * 4, yaw);
+          place(fac, 'mbt', cx + 20, base, yaw);
+          squad(fac, cx - 8, base - sign * 4, yaw, 6);
+          squad(fac, cx + 8, base - sign * 4, yaw, 6);
+          place(fac, 'sniper', cx - 22, base + sign * 12, yaw);
+          place(fac, 'helo', cx + (sign > 0 ? 12 : -12), base + sign * 18, yaw);
+        } else {          /* recon screen */
+          place(fac, 'light', cx - 8, base, yaw);
+          place(fac, 'light', cx + 8, base + sign * 2, yaw);
+          place(fac, 'apc', cx, base + sign * 6, yaw);
+          place(fac, 'mbt', cx - 18, base + sign * 4, yaw);
+          squad(fac, cx, base - sign * 3, yaw, 6);
+          place(fac, 'sniper', cx + 18, base + sign * 10, yaw);
+        }
+      };
+      side('blu', -1); side('op', 1);
+    }
+    /* the main effort at the caller's centre (the city edge), the supporting
+       fights out across the landscape */
+    sector(centre.x, centre.z, 15 * (scale || 1), 'armour');
+    sector(-72, -48, 13, 'mech');
+    sector(64, 42, 12, 'recon');
+    /* fires in depth at the map edges: they range the whole theater */
+    for (const [fac, sx] of [['blu', -1], ['op', 1]]) {
+      const yaw = sx > 0 ? Math.PI : 0;
+      place(fac, 'artillery', sx * 112, -18, yaw);
+      place(fac, 'artillery', sx * 118, 6, yaw);
+      place(fac, 'mlrs', sx * 106, 26, yaw);
+      place(fac, 'mlrs', sx * 122, -34, yaw);
+      place(fac, 'helo', sx * 92, 34, yaw);
+    }
     state.units.forEach(un => { un.y = sampleH(un.x, un.z); });
     state.start.blu = state.units.filter(u2 => u2.faction === 'blu').length;
     state.start.op = state.units.filter(u2 => u2.faction === 'op').length;
@@ -374,6 +444,7 @@ function create(ctx) {
       const w2 = un.spec.second ? WEAPONS[un.spec.second] : null;
       const standoff = w.indirect ? w.range * 0.5 : w.range * 0.72;
 
+      un.movingNow = dist > standoff && !un.spec.hold;
       if (dist > standoff && !un.spec.hold) {
         /* close the distance */
         const sp = u(un.spec.speed) * MOVE_SCALE * dt;
@@ -476,6 +547,60 @@ function create(ctx) {
   /* ---------------- rendering ---------------- */
   const m4 = new THREE_.Matrix4(), q = new THREE_.Quaternion(), eu = new THREE_.Euler(),
         vp = new THREE_.Vector3(), vs = new THREE_.Vector3(1, 1, 1), pv = new THREE_.Vector3();
+
+  /* Articulated infantry. The rig is authored at civilian scale (~1 unit tall)
+     and battle soldiers live at metric scale (1.75 m x 0.1957 = 0.34 units),
+     so every joint offset is multiplied by RIG_S. Pose selection is a tiny
+     state machine: walking (gait from distance), AIMING when halted with a
+     live target in range, standing otherwise, and a fall that pitches the
+     whole figure about its feet when killed. */
+  const RIG_S = 0.342;
+  const RPOSE = { legL: 0, legR: 0, armL: 0, armR: 0, bob: 0, lean: 0 };
+  function renderRig(f) {
+    const A = f.A;
+    let n = 0;
+    vs.setScalar(RIG_S);
+    for (const un of f.list) {
+      if (!un.alive && un.deadT < 0) continue;
+      const dying = !un.alive;
+      const k = dying ? Math.min(1, un.deadT / 0.9) : 0;
+      const pitch = k * 1.5;
+      const yaw = un.yaw, cs = Math.cos(yaw), sn = Math.sin(yaw);
+      const pose = RPOSE;
+      let aiming = false;
+      if (dying) { pose.legL = 0; pose.legR = 0; pose.armL = -0.35; pose.armR = -0.35; pose.bob = 0; }
+      else if (un.movingNow) A.walkPose(un.gait, 0.5, pose);
+      else if (un.target && un.target.alive && un.targetDist <= WEAPONS[un.spec.weapon].range * 1.05) {
+        aiming = true;
+        pose.legL = 0.10; pose.legR = -0.10;              // braced stance
+        pose.armL = -1.12; pose.armR = -1.38; pose.bob = 0;
+      } else { pose.legL = 0; pose.legR = 0; pose.armL = 0; pose.armR = 0; pose.bob = 0; }
+      const cp = Math.cos(pitch), sp = Math.sin(pitch);
+      const put = (mesh, ox, oy, swing) => {
+        const ly = oy * cp, lz = oy * sp;                  // the fall folds height into forward reach
+        eu.set(pitch + swing, yaw, 0, 'YXZ'); q.setFromEuler(eu);
+        vp.set(un.x + ox * cs + lz * sn, un.y + ly + pose.bob, un.z - ox * sn + lz * cs);
+        m4.compose(vp, q, vs);
+        mesh.setMatrixAt(n, m4);
+      };
+      put(f.rig.torso, 0, 0, 0);
+      put(f.rig.legL, -A.LEG_Z * RIG_S, A.HIP_Y * RIG_S, pose.legL);
+      put(f.rig.legR, A.LEG_Z * RIG_S, A.HIP_Y * RIG_S, pose.legR);
+      put(f.rig.armL, -A.ARM_Z * RIG_S, A.SHO_Y * RIG_S, pose.armL);
+      put(f.rig.armR, A.ARM_Z * RIG_S, A.SHO_Y * RIG_S, pose.armR);
+      /* the rifle rides the right hand: shoulder + the arm's swung reach */
+      const aArm = pitch + pose.armR;
+      const hy = -Math.cos(aArm) * A.ARM_L * RIG_S, hz = -Math.sin(aArm) * A.ARM_L * RIG_S;
+      const rx = A.ARM_Z * RIG_S * 0.7, ry = A.SHO_Y * RIG_S * cp + hy, rz = A.SHO_Y * RIG_S * sp + hz;
+      eu.set(dying ? pitch + 0.5 : aiming ? -0.04 : 0.62, yaw, 0, 'YXZ'); q.setFromEuler(eu);
+      vp.set(un.x + rx * cs + rz * sn, un.y + ry, un.z - rx * sn + rz * cs);
+      m4.compose(vp, q, vs);
+      f.rig.rifle.setMatrixAt(n, m4);
+      n++;
+    }
+    vs.setScalar(1);
+    for (const k2 in f.rig) { f.rig[k2].count = n; f.rig[k2].instanceMatrix.needsUpdate = true; }
+  }
   function render() {
     const ringN = { blu: 0, op: 0 };
     for (const un of state.units) {
@@ -495,6 +620,7 @@ function create(ctx) {
     const wreck = new THREE_.Color(0x4a4441);
     for (const type in fleets) for (const fac in fleets[type]) {
       const f = fleets[type][fac];
+      if (f.rig) { renderRig(f); continue; }
       let n = 0, recol = false;
       for (const un of f.list) {
         /* The dead are still drawn. They fall, settle, and stay as a wreck —
@@ -562,9 +688,10 @@ function create(ctx) {
     state.running = false;
     state.units.length = 0;
     for (const type in fleets) for (const fac in fleets[type]) {
-      fleets[type][fac].list.length = 0;
-      fleets[type][fac].hull.count = 0;
-      if (fleets[type][fac].turret) fleets[type][fac].turret.count = 0;
+      const f = fleets[type][fac];
+      f.list.length = 0;
+      if (f.rig) { for (const k in f.rig) f.rig[k].count = 0; }
+      else { f.hull.count = 0; if (f.turret) f.turret.count = 0; }
     }
     for (let i = 0; i < PROJ_N; i++) projectiles[i].live = false;
     queue.length = 0;

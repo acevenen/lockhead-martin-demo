@@ -727,6 +727,7 @@ body.hudmin #brand,body.hudmin #sectors{display:none}
 <script src="js/world.js"></script>
 <script src="js/models-mil.js"></script>
 <script src="js/battle.js"></script>
+<script src="js/viewmodels.js"></script>
 <script src="js/battlefx.js"></script>
 <script src="js/roadnet.js"></script>
 <script src="js/anim.js"></script>
@@ -1760,12 +1761,17 @@ function populateSite(){
 const _pm4 = new THREE.Matrix4(), _pq = new THREE.Quaternion(), _pe = new THREE.Euler(),
       _pv = new THREE.Vector3(), _ps = new THREE.Vector3(1,1,1);
 const _walkTgt = { x:0, z:0 };
+/* Civilians are authored at symbolic table scale — readable from orbit, three
+   times taller than a metric-scale soldier. From a crew seat that reads as a
+   city of giants, so the crowd drops to metric while the camera is on the
+   deck and returns with it. */
+let pedScaleMul = 1;
 function writePed(slot, p, pose, ground){
   /* five parts share one instance index; each part geometry is authored with
      its pivot at the origin, so one compose() per part is the whole rig */
   const yaw = p.yaw, cs = Math.cos(yaw), sn = Math.sin(yaw);
   const y0 = ground + pose.bob;
-  const sc = p.scale;
+  const sc = p.scale * pedScaleMul;
   /* torso: pivots at the feet, leans into the direction of travel */
   _pe.set(pose.lean, yaw, 0, 'YXZ'); _pq.setFromEuler(_pe);
   _pv.set(p.x, y0, p.z); _ps.setScalar(sc);
@@ -3349,9 +3355,11 @@ function setExplore(v){
     explore.pos.y = sampleH(pivot.x, pivot.z) + 6;
     explore.yaw = sph.theta + Math.PI;
     explore.pitch = -0.22;
+    pedScaleMul = 0.38;      // free-roam is also on the deck: metric crowd
     toast('SANDBOX — W A S D TO FLY, ESC TO RETURN TO THE TABLE');
     log('SIM ▸ FREE-EXPLORE ENGAGED · GROUND REFERENCE', 'sys');
   } else {
+    if (!pov.unit) pedScaleMul = 1;
     log('SIM ▸ RETURNED TO HOLO-TABLE', 'sys');
   }
   sfx.blip(v ? 900 : 620, .06); haptic(10);
@@ -3405,7 +3413,7 @@ function ensureBattle(){
   if (BATTLE) return BATTLE;
   BFX = window.AegisBattleFx.create({ scene, sampleH, rm: RM });
   BATTLE = window.AegisBattle.create({
-    scene, sampleH, log, fx: BFX,
+    scene, sampleH, log, fx: BFX, rm: RM,
     models: window.AegisModels, mil: window.AegisMil,
     /* battle impacts reuse the same destruction chain as the arsenal, so a
        tank brewing up shakes the table and throws real debris */
@@ -3437,9 +3445,11 @@ function setBattle(on){
     $('btn-battle').setAttribute('aria-pressed', 'true');
     document.body.classList.add('hasbattle');
     $('bh-state').textContent = 'ENGAGED';
-    flyTo('city');
-    pivotT.set(c.x, 0, c.z); sphT.r = 38; sphT.phi = .74; sphT.theta = .55;
-    toast('FORCE-ON-FORCE — SIMULATED ENGAGEMENT');
+    /* the war is theater-wide now — open on a vantage that shows more than one
+       sector, then let the operator dive into whichever fight they want */
+    pivotT.set(c.x * 0.4, 0, c.z * 0.4); sphT.r = 120; sphT.phi = .62; sphT.theta = .55;
+    toast('FORCE-ON-FORCE — THREE AXES · TAP A UNIT FOR HELMET CAM');
+    log('BATTLE ▸ CONTACT ON THREE AXES — CITY · HILLS · FLANK', 'crit');
   } else {
     exitPov();
     B.stop();
@@ -3485,6 +3495,11 @@ $('btn-mode').addEventListener('click', () => setRenderMode(RM.isReal() ? 'holo'
 
 
 /* ---------------- crew POV: GTA-style possession of any unit ---------------- */
+/* The view model is parented to the camera, so the camera has to be a scene
+   member — children of an un-parented camera never render. */
+scene.add(camera);
+const VM = AegisViewModels.create(RM);
+camera.add(VM.root);
 const pov = { unit: null, t: 0, from: new THREE.Vector3(), fromLook: new THREE.Vector3(),
   look: new THREE.Vector3(), eye: new THREE.Vector3(), idx: 0, dead: 0 };
 const POV_M = 0.1957;                       // units per metre, matching the models
@@ -3514,20 +3529,24 @@ function enterPov(un){
   /* a sizeAttenuated point metres from the lens is a screen-filling smear, so
      the ground-cover cloud stands down while the camera is on the deck */
   grassPts.visible = false;
+  pedScaleMul = 0.38;
   $('pov-ch').textContent = 'CH ' + String(1 + (pov.idx % 24)).padStart(2, '0');
   $('pov-fac').textContent = BATTLE.FACTIONS[un.faction].name;
   $('pov-fac').style.color = '#' + BATTLE.FACTIONS[un.faction].color.toString(16).padStart(6,'0');
   $('pov-seat').textContent = un.spec.seat || un.spec.label;
   $('pov-wpn').textContent = BATTLE.WEAPONS[un.spec.weapon].name;
+  VM.show(un.spec.seat || un.spec.label);
   log('POV ▸ ' + BATTLE.FACTIONS[un.faction].name + ' ' + (un.spec.seat || un.spec.label) + ' — HELMET CAM', 'sys');
   sfx.blip(880, .06); haptic([12, 30, 12]);
 }
 function exitPov(){
   if (!pov.unit) return;
   pov.unit = null;
+  VM.hide();
   $('povhud').classList.remove('on');
   document.body.classList.remove('povmode');
   grassPts.visible = !wasteland;
+  pedScaleMul = 1;
   $('pov-flash').style.opacity = '0';
   log('POV ▸ RETURNED TO HOLO-TABLE', 'sys');
   sfx.blip(620, .06);
@@ -3576,6 +3595,10 @@ function updatePov(dt){
   camera.lookAt(lx, ly, lz);
   /* keep the fly-in anchored so it does not snap when the unit moves */
   if (pov.t >= 1){ pov.from.copy(pov.eye); pov.fromLook.copy(pov.look); }
+  /* the weapon in your hands moves like you are carrying it */
+  const unSpd = (!un.spec.hold && un.target && un.targetDist > (BATTLE.WEAPONS[un.spec.weapon].range * 0.72))
+    ? un.spec.speed / 8 : 0;
+  VM.update(dt, { t: perfT, speed: unSpd, recoil: un.recoil || 0 });
   $('pov-hp').style.width = Math.max(0, Math.round(un.hp / un.maxHp * 100)) + '%';
   $('pov-hp').style.background = un.hp / un.maxHp > .5 ? 'var(--ok)' : un.hp / un.maxHp > .22 ? 'var(--c2)' : 'var(--alert)';
   const engaged = !!(un.target && un.target.alive);
