@@ -3509,6 +3509,12 @@ window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme,
   povSeat: () => pov.unit ? (pov.unit.spec.seat || pov.unit.spec.label) : null,
   liveUnitCount: () => BATTLE ? BATTLE.unitCount() : 0,
   camInfo: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z }),
+  sceneProbe: () => [
+    ['buildings', bMesh], ['trees', treeMesh], ['bushes', bushMesh], ['rubble', rubbleMesh],
+  ].map(([name, m]) => ({ name, count: m.count, visible: m.visible, culled: m.frustumCulled,
+    inFrustum: (() => { const f = new THREE.Frustum();
+      f.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+      return !m.frustumCulled || f.intersectsObject(m); })() })),
   landmarkDims: () => {
     const box = new THREE.Box3(), out = [];
     const scan = (o, tag) => { box.setFromObject(o);
