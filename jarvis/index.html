@@ -288,7 +288,7 @@ body.mk2 #scanlines{background:repeating-linear-gradient(0deg,rgba(140,220,255,.
 /* ---------------- embedded state (fallback for file://) -------------- */
 const EMBEDDED_STATE = {
   "meta": {
-    "updated": "2026-07-28",
+    "updated": "2026-07-30",
     "updatedBy": "demo-engineer"
   },
   "user": {
@@ -297,8 +297,33 @@ const EMBEDDED_STATE = {
   },
   "brief": {
     "since": "last session",
-    "headline": "AEGIS dual render modes (holo / photoreal), GTA-style crew POV into any unit on the battlefield, and a library of 18 real world landmarks placed on 12 destinations.",
+    "headline": "AEGIS: found and fixed the bug that made the whole city vanish on iOS, rebuilt the mobile HUD, and replaced the faked roads and welded populations with a real road network, articulated pedestrians, rolling wheels and an animated battle.",
     "items": [
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "Found why the city disappeared on the owner's iPhone in photoreal mode. buildCity thinned its field to the 430-building budget and then pushed up to six signature towers in AFTER the cut, so it returned 434-436 — 12 of the first 15 sites over. index.html then asked GL to draw more instances than the buffer held. That is INVALID_OPERATION per the WebGL spec: Chrome tolerates it via robust buffer access and reports no error, which is why every desktop and headless test passed, while WebKit drops the whole draw call. Real mode made it total because the wireframe cages that survived in holo are faded to zero there. Fixed at the generator and guarded at the consumer; every skyline is unchanged."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS mobile HUD. The battle button was invisible: it used a crossed-swords glyph no font in the stack covers, so iOS drew tofu — a red square with an x, which reads as 'close'. Every control is now an SVG icon plus a word and nothing is under a 44px tap target (six of eight were about 20x22). Added COLLAPSE ALL as a floating pill plus per-panel folding: portrait canvas goes from 49.6% of the screen to 53.1%, 60.9% folded, 91.4% hidden. Also fixed the battle strip and every toast printing on top of each other inside the top bar, EXECUTE being unreachable in landscape, crew POV being an inescapable trap on a device with no ESC key, and no safe-area handling at all."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS roads. The streets were faked twice, independently, and the two fakes disagreed — a painted canvas with no data behind it, and a separate invented lane grid the cars drove on. So traffic ran on invisible lanes unrelated to the visible streets, through buildings. js/roadnet.js is now one directed graph that emits the ribbon mesh, the canvas overlay and the driveable lanes from the same nodes, laid out on the half-offsets of the building block step. Arterials and streets, signals, bridges, left-hand traffic. Zero buildings standing in a carriageway."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS locomotion. Pedestrians were one welded mesh and slid with a sine bob; all four wheels of every car were merged into one geometry, so a wheel could not physically turn. Five instanced parts now give a real walk cycle whose phase advances with DISTANCE TRAVELLED rather than the clock, and four instanced wheels per car roll off distance covered and steer off path curvature. Speeds were 2.5-6.6 m/s for a shopping crowd and 14-32 m/s for city traffic; both are honest now. The work surfaced that the merged person faced +X while the app rotates walkers to face +Z — the entire crowd had been walking sideways."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS battle animation. The sim was correct and inert: a killed unit simply stopped being drawn. Deaths are now animated and permanent — armour slumps, chars and smokes where it died, infantry fall, a downed Apache windmills in. Wrecks persist so the battlefield accumulates history. Guns recoil and kick a blast plume, hulls lean into turns and squat under power, tracked vehicles throw dust. New pooled fx module, fixed-size, no allocation in the frame loop."
+      },
       {
         "agent": "demo-engineer",
         "kind": "done",
@@ -313,41 +338,6 @@ const EMBEDDED_STATE = {
         "agent": "demo-engineer",
         "kind": "done",
         "text": "AEGIS landmarks: 18 structures authored in real metres and merged to one geometry each — Golden Gate, Salesforce, Liberty, Empire State, Eiffel, Fuji, Skytree, Elizabeth Tower, Colosseum, Giza, Opera House, Burj Khalifa, Christ the Redeemer, Taj Mahal, Sagrada Família, capitol, plus generic tower and peak fallbacks. Twelve destinations place them at real offsets from the city centre; the landmark the intel panel names is the one wired to the strike and BDA path, and the rest topple too."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS added a sniper class — prone soldier model, M107 at 1800 m, and a hold flag so the team occupies a hide instead of joining the advance. That makes the sniper seat a genuinely different experience from the rifleman seat, which was the point of adding it."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS bugs that only showed up once the camera dropped to eye level: the water surface masked its shape with vertex colour, which is free in an additive hologram and an opaque black plane over the whole map in a lit one (alphaMap now); ground cover was square opaque points that filled the screen from a metre away; road and field overlays were flat quads at a fixed height so half the network sank under rises (they drape now); a collapsed building pointed its window texture at the sky (footprint shrinks, rubble mound settles over it); and the satellite inset renders straight to the GL canvas, so a faded rail did not hide it in POV."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS cinematic reel was timed purely in milliseconds and had started desynchronising — the salvo and both team-ops legs were being refused as system-busy and silently vanishing. It waits on simulation state now, with a ceiling, and gained a photoreal-toggle beat and a crew-POV beat. All six legs verified green."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS battle sim: BATTLE button deploys two 24-unit combined-arms forces (Abrams, Bradley, Stryker, Humvee, Paladin, HIMARS, Apache, rifle squads) that acquire, close and engage on published effective ranges. Belt-fed weapons fire 6-9 round bursts and pause; rifles are aimed semi-auto. Armour is checked against each weapon's AP value. Faction rings, tracers, muzzle flashes, live force-strength HUD."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS military models authored in real metres with one conversion, so soldier/Humvee/Abrams proportions are correct by construction. Includes sloped Abrams glacis and 5.3m gun, Bradley TOW box, M109 fume extractor, Stryker 2+2 axle grouping and slat armour, Apache tandem cockpit. Infantry in standing/kneeling/prone with helmet, plate carrier, ruck and rifle. Houses gained gable roofs, doors, window bays and chimneys."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "Fixed a latent bug that had been silently deleting model detail project-wide: mergeParts sized its buffers from the INDEXED vertex count before de-indexing, so overflow writes were swallowed and trailing parts vanished. The Stryker and Humvee were losing their entire hulls. Vertex counts roughly doubled after the fix."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS worldwide: 51 destinations across all 7 regions, each built from real coordinates and a real ETOPO1 elevation grid fetched at build time and baked in, so it still runs air-gapped. Searchable theater console (G) loads any site in ~2s."
       }
     ]
   },
@@ -421,10 +411,10 @@ const EMBEDDED_STATE = {
     {
       "id": "aegis",
       "title": "AEGIS OVERWATCH",
-      "status": "POV + LANDMARKS SHIPPED",
+      "status": "ROADS + ANIMATION SHIPPED",
       "path": "../index.html",
-      "desc": "Holo-tactical command table — 51 real-world theaters, toggleable holographic and photoreal looks, 18 real landmarks, force-on-force battle simulation with GTA-style crew POV into any unit, destructible world, debris physics, sandbox exploration, 5 asset packages incl. SUNDOWN.",
-      "flags": "?fastboot · ?autodemo · ?site=<id> · H holo/real · [ ] crew POV"
+      "desc": "Holo-tactical command table — 51 real theaters, holographic and photoreal looks, 18 real landmarks, a real road network with driving traffic, articulated crowds, force-on-force battle with animated deaths and persistent wrecks, GTA-style crew POV, destructible world.",
+      "flags": "?fastboot · ?autodemo · ?site=<id> · H holo/real · [ ] crew POV · Z hide HUD"
     },
     {
       "id": "jarvis",
@@ -452,7 +442,7 @@ const EMBEDDED_STATE = {
       "id": "demo-engineer",
       "name": "DEMO ENGINEER",
       "status": "active",
-      "role": "Owns the demos group. AEGIS now runs two complete render looks over one scene, drops the operator into any crew seat mid-battle, and stands 18 real landmarks on 12 destinations. POV, cinematic, six-system, edge, layout, battle-stress, render-mode and artifact suites all green."
+      "role": "Owns the demos group. AEGIS runs two render looks over one scene, a real road network with driving traffic and walking crowds, an animated battle with persistent wrecks, and crew POV into any unit. Phone HUD rebuilt. All suites green."
     },
     {
       "id": "daily-brief",
@@ -468,7 +458,6 @@ const EMBEDDED_STATE = {
     }
   ],
   "activity14": [
-    3,
     2,
     5,
     4,
@@ -481,7 +470,8 @@ const EMBEDDED_STATE = {
     24,
     31,
     38,
-    41
+    41,
+    46
   ]
 };
 

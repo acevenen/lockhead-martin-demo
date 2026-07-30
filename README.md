@@ -51,7 +51,12 @@ asset takes four seconds and zero keyboards.*
   force-strength HUD. The battle damages the actual city — structures collapse,
   glazing fails, civilians are caught in it. A **sniper team** occupies a hide
   on each flank with an M107 at 1,800 m and holds it rather than joining the
-  advance.
+  advance. Deaths are animated and permanent: armour slumps onto a track,
+  chars, and goes on smoking where it died; infantry fall; a downed Apache
+  windmills its rotor on the way in. **Wrecks stay**, so the battlefield
+  accumulates its own history. Guns recoil along their axis and kick a blast
+  plume off the ground, hulls lean into turns and squat under power, and
+  tracked vehicles throw dust off the running gear.
 - **◐ HOLO / ◑ REAL — two complete looks over one scene** (button, or **H**).
   HOLO is the tactical projection: additive wireframe terrain, unlit models
   washed to a single hue, black void. REAL is a lit world: shaded ground in the
@@ -123,13 +128,30 @@ asset takes four seconds and zero keyboards.*
   civilians at range.
 - **Houses** with gable roofs, doors, door steps, window bays and chimneys;
   desert sites get flat parapet roofs instead.
-- **Pattern-of-life simulation, in 3D** — 120 pedestrians as articulated
-  humanoids, 68 vehicles as **real vehicle geometry** (sedan, SUV, pickup and
-  bus, each extruded from a true side profile: sloped hood, raked windshield,
-  set-back cabin, wheels with rims, headlights and tail lights), antlered
-  quadruped wildlife, and bird flocks. Everything is instanced — the entire
-  population is a handful of draw calls. Buildings carry window textures.
-  Everything scatters from a blast; traffic halts.
+- **A real road network.** `js/roadnet.js` emits a directed graph — arterials
+  and streets, two-phase signals at four-way crossings, bridges where a road
+  crosses water, left-hand traffic in the countries that drive on it — laid out
+  per layout archetype on each city's real grid bearing. The street ribbon you
+  see, the canvas overlay and the lanes the traffic drives are all generated
+  from the **same nodes**, and the grid sits on the half-offsets of the same
+  block step the buildings use, so streets run *between* blocks. A building
+  that would stand in a carriageway is vetoed.
+- **Pattern-of-life simulation, in 3D** — 120 pedestrians on a real walk cycle,
+  68 vehicles as **real vehicle geometry** (sedan, SUV, pickup and bus, each
+  extruded from a true side profile: sloped hood, raked windshield, set-back
+  cabin, headlights and tail lights), antlered quadruped wildlife, and bird
+  flocks. Everything is instanced — the entire population is a handful of draw
+  calls. Everything scatters from a blast; traffic halts.
+  - **Pedestrians are articulated.** Five instanced parts share one instance
+    index — torso, two legs, two arms — each authored with its pivot at the
+    origin. Gait phase advances with **distance travelled, not the clock**, so
+    stride scales with speed and someone who stops actually stands still. They
+    walk at 1.2–1.6 m/s, take the sidewalk when there is one, turn toward a
+    heading rather than snapping to it, and pause.
+  - **Wheels turn.** Four instanced wheels per car, axle along the local Z,
+    rolled off the distance actually covered and steered off the curvature of
+    the path. Cars accelerate to a cruise, brake into turns, hold at a red and
+    choose a turn at each junction.
 - **Casualty model** — tracks inside the inner blast radius are killed: they
   flash red, are thrown outward, and stay down. The log reports CIV and FAUNA
   counts as a training metric.
@@ -153,6 +175,10 @@ asset takes four seconds and zero keyboards.*
   to "LANDMARK LOST" and ROE switching when there's nothing left to protect.
 - **Mission log** with military brevity codes, dual-key authorize flow,
   EXECUTE button, keyboard shortcuts (1–5, Space, Esc).
+- **Built for a phone.** Every toolbar control is an inline SVG icon plus a
+  word — no meaning is carried by a font glyph, and nothing is under a 44 px
+  tap target. **HIDE HUD** collapses the whole interface for a full-screen
+  hologram (91% of the screen), and any panel folds by tapping its title.
 - **⟲ RESET** restores the entire simulation to pristine state.
 - **Two hologram palettes** — MK-II Cyan (ops) and MK-I Amber (the garage).
 - **Cinematic mode** — a scripted end-to-end demo run for walk-in showings
@@ -227,7 +253,7 @@ node tools/build-artifact.mjs dist/artifact.html
 
 ## Stack
 
-`index.html` plus nine plain scripts in `js/` (no bundler, no modules, so it
+`index.html` plus twelve plain scripts in `js/` (no bundler, no modules, so it
 still opens straight from `file://`):
 
 | File | Role |
@@ -239,6 +265,9 @@ still opens straight from `file://`):
 | `js/models-mil.js` | armour, artillery, rotary-wing, infantry, houses |
 | `js/battle.js` | force-on-force simulation |
 | `js/landmarks.js` | 18 real-world landmark models + per-site placements |
+| `js/roadnet.js` | the road network — graph, ribbon mesh and canvas, one source |
+| `js/anim.js` | articulated rigs and the distance-driven walk cycle |
+| `js/battlefx.js` | pooled dust, smoke and sparks for the battle |
 | `js/rendermode.js` | the holo/real material authority |
 | `js/console.js` | worldwide theater search |
 
