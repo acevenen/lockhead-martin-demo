@@ -727,6 +727,8 @@ body.hudmin #brand,body.hudmin #sectors{display:none}
 <script src="js/world.js"></script>
 <script src="js/models-mil.js"></script>
 <script src="js/battle.js"></script>
+<script src="js/roadnet.js"></script>
+<script src="js/anim.js"></script>
 <script src="js/rendermode.js"></script>
 <script src="js/landmarks.js"></script>
 <script src="js/console.js"></script>
@@ -1264,7 +1266,23 @@ let farm = canvasPlane((c, S) => {
 }, 1024, 92, 192, new THREE.Vector3(102, .06, 0), .33);
 RM.register(farm.material, 'overlay');
 scene.add(farm);
-drapeOverlay(roads); drapeOverlay(farm);
+drapeOverlay(farm);
+
+/* The street network as real geometry rather than a picture of one. A painted
+   canvas reads acceptably from the table and falls apart the moment the camera
+   drops to a crew seat, which is exactly where this demo now spends its time. */
+const roadMesh = new THREE.Mesh(new THREE.BufferGeometry(),
+  RM.register(new THREE.MeshLambertMaterial({ vertexColors: true }), 'road3d'));
+roadMesh.frustumCulled = false;
+scene.add(roadMesh);
+function buildRoadMesh(){
+  roadMesh.geometry.dispose();
+  if (!ROADS || ROADS.empty){ roadMesh.geometry = new THREE.BufferGeometry(); roadMesh.visible = false; return 0; }
+  const r = ROADS.buildRibbon({ lift: 0.05, heightFn: (x, z) => terrainH(x, z) });
+  roadMesh.geometry = r.geo;
+  roadMesh.visible = true;
+  return r.tris;
+}
 
 /* ---------------- markers ---------------- */
 const markers = new THREE.Group(); scene.add(markers);
@@ -1420,6 +1438,25 @@ function lifeSystem(n, geo, baseColor, scale){
 }
 const NPC_N = 120, ANI_N = 18, BIRD_N = 27;
 const npcSys  = lifeSystem(NPC_N, MODELS.buildPerson(), 0xeaf6ff, 0.9);
+npcSys.node.visible = false;      /* superseded by the articulated rig below */
+
+/* ---------------- articulated pedestrians ----------------
+   Five instanced parts sharing one instance index. The merged person could
+   never swing a leg, so the crowd slid; these walk. Gait phase is driven by
+   DISTANCE TRAVELLED, so stride matches speed and a figure that stops stands
+   still instead of marching on the spot. */
+const RIG = AegisAnim.buildPersonRig();
+function rigMesh(geo){
+  const m = new THREE.InstancedMesh(geo,
+    RM.register(new THREE.MeshLambertMaterial({ vertexColors: true }), 'life'), NPC_N);
+  m.frustumCulled = false; m.count = 0;
+  m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  scene.add(m);
+  return m;
+}
+const pedParts = { torso: rigMesh(RIG.torso), legL: rigMesh(RIG.leg), legR: rigMesh(RIG.leg),
+                   armL: rigMesh(RIG.arm), armR: rigMesh(RIG.arm) };
+const PED_POSE = { legL:0, legR:0, armL:0, armR:0, bob:0, lean:0 };
 const aniSys  = lifeSystem(ANI_N, MODELS.buildQuadruped({ horns:true }), 0xd9b47e, 0.85);
 const birdSys = lifeSystem(BIRD_N, MODELS.buildBird(), 0xd8ecff, 1.0);
 let npcs = [], animals = [], flocks = [];
@@ -1436,18 +1473,22 @@ const vehFleet = VEH_TYPES.map(t => {
   body.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   trim.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   scene.add(body, trim);
-  return { type: t, body, trim, cars: [] };
+  /* one wheel geometry, four instances per car, axle along local Z so it can
+     actually roll and steer */
+  const wheel = new THREE.InstancedMesh(AegisAnim.buildWheel(v.wheelR, v.wheelW),
+    RM.register(new THREE.MeshLambertMaterial({ vertexColors: true }), 'model'), VEH_PER * 4);
+  wheel.frustumCulled = false; wheel.count = 0;
+  wheel.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  scene.add(wheel);
+  return { type: t, body, trim, wheel, wheelPos: v.wheelPos, wheelR: v.wheelR,
+    front: v.front, cars: [] };
 });
 let cars = [];
 const PAINTS = [0xc9d4dd, 0x2f6ea8, 0xb03a3a, 0x2e2f33, 0xd8d8d8, 0x4a5560, 0x8f2f2f, 0xe8e2d4];
 
-function carPos(c){
-  if (c.kind === 'grid') return c.horiz
-    ? { x: CITY.x + c.t, z: CITY.z + c.lane, rot: c.dir > 0 ? Math.PI/2 : -Math.PI/2 }
-    : { x: CITY.x + c.lane, z: CITY.z + c.t, rot: c.dir > 0 ? 0 : Math.PI };
-  if (c.kind === 'diag') return { x: CITY.x - 41 + 64*c.t, z: CITY.z + 23 - 64*c.t, rot: Math.PI*0.75 };
-  return { x: c.lane, z: c.t, rot: c.dir > 0 ? 0 : Math.PI };
-}
+/* the road network is the single source of truth for where a car can be */
+let ROADS = null;
+const carOut = { x:0, y:0, z:0, rot:0 };
 
 /* ---------------- debris physics ---------------- */
 let DEBRIS = null;
@@ -1475,9 +1516,19 @@ function populateSite(){
   waterMesh.visible = WAT.has;
   waterMesh.material.color.set(SITE.pal.water);
 
+  /* --- road network ---
+     Built BEFORE the city, on the half-offsets of the same block step, so the
+     streets run between the blocks instead of through them. */
+  ROADS = AegisRoadNet.build({ site: SITE, terrain: TER, water: WAT,
+    centre: { x: CITY.x, z: CITY.z }, radius: CITY.r, budget: MAX_BLD });
+  buildRoadMesh();
+
   /* --- city --- */
   clearRubble();
   buildings = WGEN.buildCity(SITE, TER, WAT, MAX_BLD);
+  /* a building may not stand in the carriageway */
+  if (ROADS && !ROADS.empty)
+    buildings = buildings.filter(b => ROADS.clearOf(b.x, b.z, Math.max(b.w, b.d) * 0.45));
   /* Guard the instance budget at the boundary, not just at the generator. Asking
      GL for more instances than the buffer holds is INVALID_OPERATION: Chrome
      renders it anyway and reports no error, WebKit drops the draw and the city
@@ -1504,8 +1555,13 @@ function populateSite(){
   /* --- overlays --- */
   scene.remove(roads); RM.unregister(roads.material);
   roads.geometry.dispose(); roads.material.map.dispose(); roads.material.dispose();
-  roads = canvasPlane((c,S)=>WGEN.drawRoads(SITE,c,S), 512, CITY.r*2.6, CITY.r*2.6,
-    new THREE.Vector3(CITY.x, .07, CITY.z), SITE.layout === 'none' ? .18 : .4);
+  /* the same nodes, painted. Generated from the graph rather than drawn
+     independently, which is what stops the picture and the traffic disagreeing. */
+  roads = canvasPlane((c,S)=>{ if (ROADS && !ROADS.empty) ROADS.paintTo(c, S, { extent: ROADS.extent });
+                               else WGEN.drawRoads(SITE, c, S); },
+    512, ROADS && !ROADS.empty ? ROADS.extent : CITY.r*2.6,
+         ROADS && !ROADS.empty ? ROADS.extent : CITY.r*2.6,
+    new THREE.Vector3(CITY.x, .07, CITY.z), SITE.layout === 'none' ? .18 : .22);
   RM.register(roads.material, 'road');
   drapeOverlay(roads);
   scene.add(roads);
@@ -1613,8 +1669,14 @@ function populateSite(){
       ok = hasCity ? cityMask(wx,wz) > .25 : true;
       if (WAT.has && WAT.mask(wx,wz) > .1) ok = false;
     }
-    npcs.push({ x: wx, z: wz, tx: wx, tz: wz, sp: .5 + rnd()*.8, flee: 0, fx: 0, fz: 0,
-      dead: false, deadT: 0, phase: rnd()*6.28 });
+    /* Speed in world units/s. At the model scale of 0.1957 u/m the old
+       0.5-1.3 was 2.5-6.6 m/s — a jog to a sprint, for a shopping crowd. A
+       real walk is 1.2-1.6 m/s, so 0.23-0.32 u/s. */
+    npcs.push({ x: wx, z: wz, tx: wx, tz: wz,
+      sp: 0.20 + rnd()*0.14, cruise: 0, flee: 0, fx: 0, fz: 0,
+      dead: false, deadT: 0, phase: rnd()*6.28,
+      gait: rnd()*AegisAnim.TAU, yaw: rnd()*6.28, pause: rnd()*6 });
+    npcs[i].cruise = npcs[i].sp;
     npcSys.S[i] = hasCity ? 0.9 : 0.0;
   }
   npcSys.cattr.needsUpdate = true;
@@ -1645,20 +1707,24 @@ function populateSite(){
   /* --- traffic --- */
   cars = [];
   vehFleet.forEach(f => { f.cars = []; });
-  if (hasCity){
-    const laneStep = Math.max(4, CITY.r/6);
-    for (let i=0; i<64; i++){
-      const lane = (((rnd()*7)|0) - 3)*laneStep, horiz = rnd() < .5, dir = rnd() < .5 ? 1 : -1;
-      const type = rnd() < .12 ? 'bus' : rnd() < .34 ? 'suv' : rnd() < .5 ? 'pickup' : 'sedan';
-      const c = { kind:'grid', horiz, lane, t: (rnd()-.5)*CITY.r*1.6, dir,
-        sp: 2.8 + rnd()*3.4, halt: 0, type, paint: PAINTS[(rnd()*PAINTS.length)|0] };
-      cars.push(c);
+  /* Cars are placed ON the network now, not on an invented lane grid, and they
+     accelerate to a cruise instead of teleporting at a constant velocity.
+     Speeds are units/s: at 0.1957 u/m, 1.35 u/s is ~25 km/h on a street and
+     2.10 is ~39 km/h on an arterial. The old 2.8-6.2 was 50-115 km/h through
+     a city centre. */
+  if (ROADS && !ROADS.empty){
+    for (let i=0; i<68; i++){
+      const st = ROADS.spawn(rnd);
+      if (!st) break;
+      const type = rnd() < .10 ? 'bus' : rnd() < .32 ? 'suv' : rnd() < .5 ? 'pickup' : 'sedan';
+      const e = ROADS.edges[st.edge];
+      cars.push({ edge: st.edge, s: st.s, lane: st.lane, type,
+        v: 0, cruise: e.speed * (0.82 + rnd()*0.30) * (type === 'bus' ? 0.8 : 1),
+        halt: 0, roll: 0, steer: 0, yaw: 0, prevRot: 0,
+        rnd: WGEN.rngFrom(((rnd()*1e9)|0) + 7),
+        paint: type === 'bus' ? 0xd8d8d8 : PAINTS[(rnd()*PAINTS.length)|0] });
     }
-    for (let i=0; i<4; i++) cars.push({ kind:'diag', t: .15 + rnd()*.7, dir: rnd()<.5?1:-1,
-      sp: 4.2, halt: 0, type:'sedan', paint: PAINTS[(rnd()*PAINTS.length)|0] });
   }
-  for (let i=0; i<4; i++) cars.push({ kind:'farm', lane: [78,102,126,90][i], t: (rnd()-.5)*160,
-    dir: rnd()<.5?1:-1, sp: 1.9, halt: 0, type:'pickup', paint: 0x8a6a3f });
   /* bucket cars into their instanced fleets */
   const tc = new THREE.Color();
   cars.forEach(c => {
@@ -1669,6 +1735,7 @@ function populateSite(){
   });
   vehFleet.forEach(f => {
     f.body.count = f.cars.length; f.trim.count = f.cars.length;
+    f.wheel.count = f.cars.length * 4;
     f.cars.forEach((c, i) => { tc.setHex(c.paint); f.body.setColorAt(i, tc); });
     if (f.body.instanceColor) f.body.instanceColor.needsUpdate = true;
   });
@@ -1689,34 +1756,90 @@ function populateSite(){
 }
 
 /* ---------------- life update ---------------- */
+const _pm4 = new THREE.Matrix4(), _pq = new THREE.Quaternion(), _pe = new THREE.Euler(),
+      _pv = new THREE.Vector3(), _ps = new THREE.Vector3(1,1,1);
+const _walkTgt = { x:0, z:0 };
+function writePed(slot, p, pose, ground){
+  /* five parts share one instance index; each part geometry is authored with
+     its pivot at the origin, so one compose() per part is the whole rig */
+  const yaw = p.yaw, cs = Math.cos(yaw), sn = Math.sin(yaw);
+  const y0 = ground + pose.bob;
+  const sc = p.scale;
+  /* torso: pivots at the feet, leans into the direction of travel */
+  _pe.set(pose.lean, yaw, 0, 'YXZ'); _pq.setFromEuler(_pe);
+  _pv.set(p.x, y0, p.z); _ps.setScalar(sc);
+  _pm4.compose(_pv, _pq, _ps);
+  pedParts.torso.setMatrixAt(slot, _pm4);
+  /* Limbs sit LEFT and RIGHT of the spine — local X, since local +Z is the
+     heading — and then swing about their own joint. Ry(yaw) sends local
+     (offX, jointY, 0) to (offX*cos, jointY, -offX*sin). */
+  const lim = (mesh, offX, jointY, swing) => {
+    _pe.set(swing, yaw, 0, 'YXZ'); _pq.setFromEuler(_pe);
+    _pv.set(p.x + offX * sc * cs, y0 + jointY * sc, p.z - offX * sc * sn);
+    _pm4.compose(_pv, _pq, _ps);
+    mesh.setMatrixAt(slot, _pm4);
+  };
+  lim(pedParts.legL, -AegisAnim.LEG_Z, AegisAnim.HIP_Y, pose.legL);
+  lim(pedParts.legR,  AegisAnim.LEG_Z, AegisAnim.HIP_Y, pose.legR);
+  lim(pedParts.armL, -AegisAnim.ARM_Z, AegisAnim.SHO_Y, pose.armL);
+  lim(pedParts.armR,  AegisAnim.ARM_Z, AegisAnim.SHO_Y, pose.armR);
+}
+
 function updateLife(dt){
   const hasCity = SITE.layout !== 'none';
+  let pedN = 0;
   for (let i=0; i<npcs.length; i++){
     const p = npcs[i];
+    const ground = sampleH(p.x, p.z);
     if (p.dead){
       if (p.deadT > 0){ p.deadT -= dt; p.x += p.fx*dt*7; p.z += p.fz*dt*7; }
-      npcSys.P[i*3] = p.x; npcSys.P[i*3+1] = sampleH(p.x, p.z); npcSys.P[i*3+2] = p.z;
+      npcSys.P[i*3] = p.x; npcSys.P[i*3+1] = ground; npcSys.P[i*3+2] = p.z;
       npcSys.R[i] = 0; npcSys.S[i] = 0.35;
       continue;
     }
+    let moved = 0, speed = 0;
     if (p.flee > 0){
       p.flee -= dt;
-      p.x += p.fx*dt*3.4; p.z += p.fz*dt*3.4;
-      npcSys.R[i] = Math.atan2(p.fx, p.fz);
+      /* a sprint, and the gait speeds up with it because it is driven by
+         distance rather than by a fixed clock */
+      speed = p.cruise * 3.2;
+      const d = speed*dt;
+      p.x += p.fx*d; p.z += p.fz*d; moved = d;
+      p.yaw = Math.atan2(p.fx, p.fz);
+    } else if (p.pause > 0){
+      p.pause -= dt;                                   // stopped at a kerb or a shop front
     } else {
       const dx = p.tx - p.x, dz = p.tz - p.z, d = Math.hypot(dx, dz);
       if (d < .35){
+        /* pick a new errand — on the sidewalk if there is one to walk on */
         const a = ecoRand()*Math.PI*2, r = 3 + ecoRand()*7;
-        const nx = p.x + Math.cos(a)*r, nz = p.z + Math.sin(a)*r;
+        let nx = p.x + Math.cos(a)*r, nz = p.z + Math.sin(a)*r;
+        if (ROADS && !ROADS.empty && ROADS.nearestWalk(nx, nz, _walkTgt)){ nx = _walkTgt.x; nz = _walkTgt.z; }
         if (!hasCity || cityMask(nx, nz) > .2){ p.tx = nx; p.tz = nz; }
+        if (ecoRand() < .30) p.pause = 0.6 + ecoRand()*2.6;     // people stop
       } else {
-        p.x += dx/d*p.sp*dt; p.z += dz/d*p.sp*dt;
-        npcSys.R[i] = Math.atan2(dx, dz);
+        speed = p.cruise;
+        const step = speed*dt;
+        p.x += dx/d*step; p.z += dz/d*step; moved = step;
+        /* turn toward the heading instead of snapping to it */
+        const want = Math.atan2(dx, dz);
+        let da = want - p.yaw;
+        while (da >  Math.PI) da -= Math.PI*2;
+        while (da < -Math.PI) da += Math.PI*2;
+        p.yaw += da * Math.min(1, dt*6);
       }
     }
-    npcSys.P[i*3] = p.x; npcSys.P[i*3+1] = sampleH(p.x, p.z); npcSys.P[i*3+2] = p.z;
-    /* subtle bob so the crowd reads as walking, not sliding */
-    npcSys.P[i*3+1] += Math.abs(Math.sin(perfT*6 + p.phase))*0.03;
+    p.gait = AegisAnim.stepGait(p.gait, moved, speed);
+    npcSys.P[i*3] = p.x; npcSys.P[i*3+1] = ground; npcSys.P[i*3+2] = p.z;
+    npcSys.R[i] = p.yaw;
+    if (npcSys.S[i] > 0.01){
+      p.scale = npcSys.S[i];
+      writePed(pedN++, p, AegisAnim.walkPose(p.gait, speed, PED_POSE), ground);
+    }
+  }
+  for (const k in pedParts){
+    pedParts[k].count = pedN;
+    pedParts[k].instanceMatrix.needsUpdate = true;
   }
   npcSys.flush();
 
@@ -1726,27 +1849,75 @@ function updateLife(dt){
   const eu = updateLife.eu || (updateLife.eu = new THREE.Euler());
   const vp = updateLife.vp || (updateLife.vp = new THREE.Vector3());
   const vs = updateLife.vs || (updateLife.vs = new THREE.Vector3(1,1,1));
-  for (let i=0; i<cars.length; i++){
+  /* Traffic drives the road graph. A car accelerates to a cruise, brakes for a
+     red at signalled crossings and for the car ahead, picks a turn at each
+     junction, and rolls its wheels off the distance actually covered. */
+  if (ROADS && !ROADS.empty) for (let i=0; i<cars.length; i++){
     const c = cars[i];
-    if (c.halt > 0) c.halt -= dt;
-    else if (c.kind === 'diag'){
-      c.t += c.dir*c.sp*dt/64;
-      if (c.t > .85){ c.t = .85; c.dir = -1; } else if (c.t < .15){ c.t = .15; c.dir = 1; }
-    } else {
-      c.t += c.dir*c.sp*dt;
-      const lim = c.kind === 'farm' ? 88 : CITY.r*1.3;
-      if (c.t > lim) c.t = -lim; else if (c.t < -lim) c.t = lim;
+    const e = ROADS.edges[c.edge];
+    if (!e || e.dead){ const st = ROADS.spawn(c.rnd); if (st){ c.edge = st.edge; c.s = st.s; c.lane = st.lane; } continue; }
+    let want = c.cruise;
+    if (c.halt > 0){ c.halt -= dt; want = 0; }
+    /* stop line: hold at a red until the phase flips */
+    const toEnd = e.len - c.s;
+    if (toEnd < 1.1 && !ROADS.signalGreen(e.b, perfT)) want = 0;
+    /* brake into a turn rather than cornering flat out */
+    if (toEnd < 2.0) want *= 0.55;
+    const accel = want > c.v ? 1.6 : 3.2;               // brakes beat the engine
+    c.v += Math.max(-accel*dt, Math.min(accel*dt, want - c.v));
+    if (c.v < 0) c.v = 0;
+    const adv = c.v * dt;
+    c.s += adv;
+    c.roll += adv;
+    while (c.s > e.len){
+      c.s -= e.len;
+      c.edge = ROADS.nextEdge(c.edge, c.rnd);
+      const ne = ROADS.edges[c.edge];
+      c.lane = Math.min(c.lane, ne.lanes - 1);
+      break;
     }
   }
   vehFleet.forEach(f => {
+    const wm4 = updateLife.wm4 || (updateLife.wm4 = new THREE.Matrix4());
+    const we = updateLife.we || (updateLife.we = new THREE.Euler());
+    const wq = updateLife.wq || (updateLife.wq = new THREE.Quaternion());
+    const wv = updateLife.wv || (updateLife.wv = new THREE.Vector3());
+    let wn = 0;
     f.cars.forEach((c, i) => {
-      const p = carPos(c);
-      eu.set(0, p.rot, 0); q.setFromEuler(eu);
-      vp.set(p.x, sampleH(p.x, p.z), p.z);
+      if (!ROADS || ROADS.empty) return;
+      ROADS.posOnEdge(c.edge, c.s, c.lane, carOut);
+      /* steer angle from how fast the heading is actually changing */
+      let d = carOut.rot - c.prevRot;
+      while (d >  Math.PI) d -= Math.PI*2;
+      while (d < -Math.PI) d += Math.PI*2;
+      c.prevRot = carOut.rot;
+      c.steer += (Math.max(-0.5, Math.min(0.5, d * 7)) - c.steer) * Math.min(1, dt*8);
+      c.yaw = carOut.rot;
+      const y = sampleH(carOut.x, carOut.z);
+      eu.set(0, carOut.rot, 0); q.setFromEuler(eu);
+      vp.set(carOut.x, y, carOut.z);
       m4.compose(vp, q, vs);
       f.body.setMatrixAt(i, m4); f.trim.setMatrixAt(i, m4);
+      /* four wheels, each rolled about its own axle and the front pair steered */
+      const cs = Math.cos(carOut.rot), sn = Math.sin(carOut.rot);
+      const roll = -c.roll / f.wheelR;
+      for (let k = 0; k < 4; k++){
+        const wp = f.wheelPos[k];
+        const lx = wp[0], lz = wp[1];
+        /* front axle is whichever end matches the model's nose */
+        const isFront = (f.front < 0) ? (lx < 0) : (lx > 0);
+        we.set(0, carOut.rot + (isFront ? c.steer : 0), roll, 'YXZ');
+        wq.setFromEuler(we);
+        wv.set(carOut.x + lx*cs + lz*sn, y + f.wheelR, carOut.z - lx*sn + lz*cs);
+        wm4.compose(wv, wq, vs);
+        f.wheel.setMatrixAt(wn++, wm4);
+      }
     });
-    if (f.cars.length){ f.body.instanceMatrix.needsUpdate = true; f.trim.instanceMatrix.needsUpdate = true; }
+    if (f.cars.length){
+      f.body.instanceMatrix.needsUpdate = true;
+      f.trim.instanceMatrix.needsUpdate = true;
+      f.wheel.count = wn; f.wheel.instanceMatrix.needsUpdate = true;
+    }
   });
 
   /* birds */
@@ -2348,8 +2519,9 @@ function scatterLife(pos, radius){
     p.fx = dx/(d||1); p.fz = dz/(d||1);
   });
   cars.forEach(c => {
-    const p = carPos(c);
-    if (Math.hypot(p.x-pos.x, p.z-pos.z) < radius*1.3) c.halt = 2 + Math.random()*2.5;
+    if (!ROADS || ROADS.empty) return;
+    ROADS.posOnEdge(c.edge, c.s, c.lane, carOut);
+    if (Math.hypot(carOut.x-pos.x, carOut.z-pos.z) < radius*1.3) c.halt = 2 + Math.random()*2.5;
   });
   flocks.forEach(f => {
     const dx = f.cx-pos.x, dz = f.cz-pos.z, d = Math.hypot(dx, dz);
@@ -3783,6 +3955,19 @@ window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme,
   povSeat: () => pov.unit ? (pov.unit.spec.seat || pov.unit.spec.label) : null,
   liveUnitCount: () => BATTLE ? BATTLE.unitCount() : 0,
   camInfo: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z }),
+  roadProbe: () => {
+    if (!ROADS) return { none: true };
+    const st = ROADS.stats();
+    let moving = 0, onNet = 0, rollSum = 0;
+    cars.forEach(c => { if (c.v > 0.02) moving++; rollSum += c.roll;
+      const e = ROADS.edges[c.edge]; if (e && !e.dead) onNet++; });
+    const walking = npcs.filter(p => !p.dead && p.pause <= 0).length;
+    return { site: SITE.id, nodes: st.nodes, edges: st.edges, arterials: st.arterials,
+      roadTris: roadMesh.geometry.index ? roadMesh.geometry.index.count / 3 : 0,
+      cars: cars.length, carsOnNet: onNet, carsMoving: moving, rolled: +rollSum.toFixed(1),
+      pedParts: pedParts.torso.count, walking,
+      buildingsOnRoad: buildings.filter(b => ROADS.onRoad(b.x, b.z)).length };
+  },
   /* every instanced population, checked against the buffer it was allocated */
   overflowProbe: () => {
     const cap = bMesh.instanceMatrix.count;

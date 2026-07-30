@@ -22,7 +22,7 @@
 (function (global) {
 'use strict';
 
-const ROLES = ['terrain', 'model', 'wire', 'water', 'veg', 'grass', 'fx', 'overlay', 'road', 'life'];
+const ROLES = ['terrain', 'model', 'wire', 'water', 'veg', 'grass', 'fx', 'overlay', 'road', 'road3d', 'life'];
 
 function create(opts) {
   const scene = opts.scene, renderer = opts.renderer;
@@ -134,6 +134,15 @@ function create(opts) {
         m.blending = THREE.AdditiveBlending; m.depthWrite = false;
         m.fog = false;
         break;
+      case 'road3d':
+        /* asphalt has no business glowing, but it still has to read as part of
+           the projection: dim, additive, and never brighter than the buildings */
+        m.vertexColors = b.vertexColors;
+        m.transparent = true; m.opacity = 0.30;
+        m.blending = THREE.AdditiveBlending; m.depthWrite = false;
+        if (m.color) m.color.setHex(0x2c6f86);
+        m.fog = false;
+        break;
       case 'water':
         /* the mask rides in the vertex colour here — additive blending turns a
            dry vertex into nothing at all, which is exactly the falloff wanted */
@@ -197,6 +206,15 @@ function create(opts) {
         m.transparent = true; m.opacity = 0.72;
         m.blending = THREE.NormalBlending; m.depthWrite = false;
         if (m.color) m.color.setHex(0x2f3238);
+        m.fog = true;
+        break;
+      case 'road3d':
+        /* lit asphalt: opaque, its own baked kerb and centreline colours, and
+           depth-written so vehicles sit ON it rather than through it */
+        m.vertexColors = b.vertexColors;
+        m.transparent = false; m.opacity = 1;
+        m.blending = THREE.NormalBlending; m.depthWrite = true;
+        if (m.color) m.color.setRGB(1, 1, 1);
         m.fog = true;
         break;
       default:

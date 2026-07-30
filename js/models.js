@@ -110,24 +110,15 @@ function extrudeProfile(pts, halfW, taperTop) {
    --------------------------------------------------------------------------- */
 const GLASS = 0x2e4a5c, TYRE = 0x14181c, RIM = 0x8fa3b0, LAMP = 0xfff2cc, TAIL = 0xff3b30;
 
-function wheels(cfg) {
-  const parts = [];
-  const r = cfg.wheelR, w = cfg.wheelW;
-  const tyre = new THREE.CylinderGeometry(r, r, w, 10);
-  const rim = new THREE.CylinderGeometry(r * 0.55, r * 0.55, w * 1.04, 8);
-  for (const [x, z] of cfg.wheelPos) {
-    const m = mat([x, r, z], [0, 0, Math.PI / 2]);
-    parts.push({ geo: tyre, matrix: m, color: TYRE });
-    parts.push({ geo: rim, matrix: m, color: RIM });
-  }
-  return parts;
-}
-
 function vehicleFrom(cfg) {
   const bodyParts = [{ geo: extrudeProfile(cfg.profile, cfg.halfW, cfg.taper), color: 0xffffff }];
   if (cfg.extraBody) for (const e of cfg.extraBody) bodyParts.push(e);
 
-  const trim = wheels(cfg);
+  /* Wheels are NOT merged into the trim any more. A merged wheel is welded to
+     the body and can never turn, and these had their axles along X — fore and
+     aft — which nobody can see while they are static and everybody can see the
+     moment they roll. The caller instances them separately off wheelPos. */
+  const trim = [];
   /* glazing sits a hair proud of the body shell so it never z-fights */
   for (const gset of cfg.glass) {
     trim.push({
@@ -141,7 +132,9 @@ function vehicleFrom(cfg) {
     trim.push({ geo: lampGeo, matrix: mat([cfg.front, cfg.lampY, s * cfg.halfW * 0.62]), color: LAMP });
     trim.push({ geo: lampGeo, matrix: mat([cfg.rear, cfg.lampY, s * cfg.halfW * 0.62]), color: TAIL });
   }
-  return { body: mergeParts(bodyParts), trim: mergeParts(trim) };
+  return { body: mergeParts(bodyParts), trim: mergeParts(trim),
+    wheelPos: cfg.wheelPos, wheelR: cfg.wheelR, wheelW: cfg.wheelW,
+    front: cfg.front, rear: cfg.rear };
 }
 
 /* Sedan — 4.6m car rendered at 0.90 long : 0.38 wide : 0.30 tall */
@@ -210,7 +203,8 @@ function buildPickup() {
   ]);
   const merged = mergeParts([{ geo: v.body }, { geo: rails }]);
   v.body.dispose(); rails.dispose();
-  return { body: merged, trim: v.trim };
+  /* keep the wheel metadata — the caller instances the wheels off it */
+  return Object.assign({}, v, { body: merged });
 }
 
 /* Bus / transit — long flat slab with a window band down each flank */
