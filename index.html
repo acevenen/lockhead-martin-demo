@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>AEGIS OVERWATCH — Holo-Tactical Concept Demo</title>
 <style>
 :root{
@@ -19,6 +19,7 @@
   --panel2:rgba(8,20,32,.86);
   --glow:0 0 12px rgba(83,230,255,.35);
   --mono:ui-monospace,'SFMono-Regular','Cascadia Mono','Roboto Mono',Menlo,Consolas,monospace;
+  --topbar-h:127px;
   --disp:'Bahnschrift','Arial Narrow','Avenir Next Condensed','Helvetica Neue',Arial,sans-serif;
 }
 body.mk1{
@@ -53,8 +54,9 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--c1);
 .panel{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(7px);
   -webkit-backdrop-filter:blur(7px);
   clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
-.ptitle{display:flex;align-items:center;gap:8px;padding:7px 10px 6px;border-bottom:1px solid var(--line-soft);
-  font-family:var(--disp);font-size:11px;letter-spacing:.24em;color:var(--c1)}
+.ptitle{position:relative;display:flex;align-items:center;gap:7px;padding:7px 24px 6px 10px;
+  border-bottom:1px solid var(--line-soft);
+  font-family:var(--disp);font-size:11px;letter-spacing:.2em;color:var(--c1)}
 .ptitle::before{content:'';width:6px;height:6px;background:var(--c1);box-shadow:var(--glow);
   clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
 .ptitle .tag{margin-left:auto;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--mut)}
@@ -219,12 +221,12 @@ body.mk1 #satview .sweep{background:linear-gradient(180deg,transparent,rgba(255,
 #toast.show{opacity:1}
 
 /* laptop widths: shed the status pills before the controls can overflow */
-@media (max-width:1340px){
+@media (max-width:1500px){
   #topbar{padding:10px 16px 0;gap:8px}
   #tstatus .pill{display:none}
   .secbtn{padding:8px 10px}
 }
-@media (max-width:1120px){
+@media (max-width:1240px){
   #brand .t2{display:none}
   #brand .t1{font-size:13px;letter-spacing:.24em}
   .secbtn{padding:7px 8px;font-size:9.5px;letter-spacing:.12em}
@@ -354,57 +356,195 @@ body.povmode #scanlines{opacity:.75}
 
 /* ---------- mobile ---------- */
 @media (max-width:940px){
-  #topbar{padding:8px 8px 0;flex-wrap:wrap;gap:6px}
   #brand .t1{font-size:12px;letter-spacing:.2em}
-  /* six controls have to fit a 390px phone without a scrollbar: drop the
-     wordy parts, keep the glyphs, and let the theater name stay visible */
-  #tstatus{display:flex;order:2;margin-left:auto;padding:2px;gap:4px;flex-wrap:nowrap}
-  #tstatus .pill{display:none}
-  #tstatus .iconbtn{flex:none;padding:5px 6px;font-size:8.5px;letter-spacing:.06em}
-  #tstatus .lbl{display:none}
-  #btn-theme{display:none}
-  #btn-cine{font-size:0;padding:5px 8px}
-  #btn-cine::first-letter{font-size:11px}
   .iconbtn{padding:5px 7px;font-size:9px}
-  #sectors{margin:0;order:3;width:100%;justify-content:flex-start;overflow-x:auto}
-  .secbtn{padding:7px 10px;font-size:9.5px;flex:none}
-  /* SIMULATION watermark survives the mobile layout as a header banner */
+}
+/* landscape / short displays: HUD hugs the left edge so the terrain stays tappable */
+/* ================================================================
+   MOBILE HUD SYSTEM — collapsible panels + one-tap full screen
+   ================================================================ */
+
+/* ---------- inline SVG icon sizing (no font glyph may carry meaning) ---------- */
+.ic{width:15px;height:15px;flex:none;display:block;pointer-events:none}
+#tstatus .iconbtn{display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.iconbtn .lbl.sm{display:none}
+#topbar #btn-mode .ic-real,#topbar #btn-mode .on-real{display:none}
+#topbar #btn-mode.real .ic-holo,#topbar #btn-mode.real .on-holo{display:none}
+#topbar #btn-mode.real .ic-real,#topbar #btn-mode.real .on-real{display:block}
+#topbar #btn-cine .ic-stop,#topbar #btn-cine .on-run{display:none}
+#topbar #btn-cine.running .ic-play,#topbar #btn-cine.running .on-idle{display:none}
+#topbar #btn-cine.running .ic-stop,#topbar #btn-cine.running .on-run{display:block}
+#btn-cine.running{color:var(--alert);border-color:rgba(255,77,94,.55)}
+#topbar #btn-audio .ic-mute{display:none}
+#topbar #btn-audio.off .ic-spk{display:none}#topbar #btn-audio.off .ic-mute{display:block}
+/* BATTLE is the control the operator hunts for: it is red before it is anything else */
+#btn-battle{color:var(--alert);border-color:rgba(255,77,94,.55)}
+#btn-battle:hover{border-color:var(--alert);box-shadow:0 0 12px rgba(255,77,94,.4)}
+
+/* ---------- collapsible panels: tap the title bar ---------- */
+.ptitle[role=button]{cursor:pointer;user-select:none;-webkit-user-select:none}
+.ptitle[role=button]:hover{color:#eaf9ff}
+.ptitle[role=button]:focus-visible{outline:1px solid var(--c2);outline-offset:-2px}
+.ptitle .chev{position:absolute;right:9px;top:50%;width:11px;height:11px;color:var(--mut);
+  transform:translateY(-50%);transition:transform .2s}
+.panel.collapsed .ptitle .chev{transform:translateY(-50%) rotate(-90deg)}
+.panel.collapsed .ptitle{border-bottom-color:transparent}
+.panel.collapsed>*:not(.ptitle){display:none!important}
+.panel.collapsed{flex:0 0 auto!important}
+#satwin.collapsed .ptitle{border:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){.ptitle .chev{transition:none}}
+
+/* ---------- COLLAPSE ALL: floating, worded, always in the same corner ---------- */
+#hud-toggle{position:fixed;z-index:55;display:none;align-items:center;gap:8px;
+  right:calc(12px + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));
+  height:44px;padding:0 15px;cursor:pointer;
+  font-family:var(--disp);font-size:11px;letter-spacing:.2em;
+  color:var(--c1);background:var(--panel2);border:1px solid var(--c1);
+  backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+  box-shadow:0 6px 20px rgba(0,0,0,.6),var(--glow);
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  transition:opacity .3s,color .2s,border-color .2s}
+#hud-toggle .ic{width:17px;height:17px}
+#hud-toggle .ic-expand,#hud-toggle .on-min{display:none}
+body.hudmin #hud-toggle{color:var(--c2);border-color:var(--c2)}
+body.hudmin #hud-toggle .ic-collapse,body.hudmin #hud-toggle .on-max{display:none}
+body.hudmin #hud-toggle .ic-expand{display:block}
+body.hudmin #hud-toggle .on-min{display:inline}
+#hud-toggle:focus-visible{outline:1px solid var(--c2);outline-offset:3px}
+#hud-toggle.hint{animation:hudpulse 1.6s ease-out 5}
+@keyframes hudpulse{0%{box-shadow:0 6px 20px rgba(0,0,0,.6),0 0 0 0 var(--c1-dim)}
+  70%,100%{box-shadow:0 6px 20px rgba(0,0,0,.6),0 0 0 14px rgba(83,230,255,0)}}
+@media (prefers-reduced-motion:reduce){#hud-toggle.hint{animation:none}}
+@media (max-width:940px),(max-height:660px){#hud-toggle{display:flex}}
+body.hudmin #hud-toggle{display:flex}
+body.povmode #hud-toggle{opacity:0;pointer-events:none}
+
+/* ---------- HUD collapsed: the hologram gets the glass ---------- */
+body.hudmin #rail-l,body.hudmin #rail-r,body.hudmin #bottombar{opacity:0;pointer-events:none}
+body.hudmin #brand,body.hudmin #sectors{display:none}
+
+/* ---------- crew POV needs a way out that is not a keyboard ---------- */
+#pov-btns{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);display:flex;gap:8px;pointer-events:auto}
+.povbtn{display:flex;align-items:center;justify-content:center;gap:6px;min-width:52px;min-height:44px;
+  padding:0 14px;background:rgba(6,12,18,.86);border:1px solid var(--line);color:var(--c1);
+  font-family:var(--disp);font-size:10px;letter-spacing:.18em;cursor:pointer}
+.povbtn:focus-visible{outline:1px solid var(--c2);outline-offset:2px}
+#pov-exit{color:var(--alert);border-color:rgba(255,77,94,.6)}
+
+/* ================================================================
+   PHONE LAYOUT
+   ================================================================ */
+@media (max-width:940px){
+  /* --- toolbar: seven equal icon+word tiles, 46px tall, nothing unlabelled --- */
+  #topbar{flex-wrap:wrap;gap:6px;
+    padding:calc(6px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) 0 calc(8px + env(safe-area-inset-left))}
+  #brand{display:none}
+  #tstatus{order:2;display:flex;width:100%;margin:0;padding:0;gap:4px;flex-wrap:nowrap}
+  #tstatus .pill{display:none}
+  #tstatus #btn-theme{display:none}
+  #tstatus .iconbtn{flex:1 1 0;min-width:0;min-height:44px;flex-direction:column;gap:3px;
+    padding:4px 2px;font-size:8px;letter-spacing:.04em}
+  #tstatus .iconbtn .ic{width:17px;height:17px}
+  #tstatus .lbl,#tstatus #wc-label{max-width:100%;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;font-size:8px;letter-spacing:.04em;line-height:1.1}
+  #topbar .iconbtn .lbl.lg{display:none}
+  #topbar .iconbtn .lbl.sm{display:block}
+  #topbar #btn-cine.running .lbl.sm{display:none}
+  #tstatus #btn-world .lbl{display:none}
+  #btn-world #wc-label{color:var(--c1);font-weight:400}
+  #btn-battle{border-width:1px;border-color:var(--alert);background:rgba(70,10,18,.42);
+    color:#ff8a94;box-shadow:0 0 10px rgba(255,77,94,.18) inset}
+  #btn-battle .lbl{color:#ff8a94}
+  #btn-battle.on{color:#12040a;background:var(--alert)}
+  #btn-battle.on .lbl{color:#12040a}
+
+  /* --- sector nav: real 44px targets, and the clipped edge reads as scrollable --- */
+  #sectors{margin:0;order:3;width:100%;justify-content:flex-start;overflow-x:auto;gap:6px;
+    scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent);
+            mask-image:linear-gradient(90deg,#000 calc(100% - 24px),transparent)}
+  #sectors::-webkit-scrollbar{display:none}
+  .secbtn{display:flex;align-items:center;min-height:44px;padding:0 12px;font-size:9.5px;
+    flex:none;scroll-snap-align:start}
+
+  /* --- simulation banner stays, but as the thinnest row on the bar --- */
   #topbar::after{content:'SIMULATION · SYNTHETIC RANGE · NO LIVE-WEAPON INTERFACE';
     flex:1 0 100%;order:9;text-align:center;font-size:7.5px;letter-spacing:.16em;
     color:var(--alert);border:1px solid rgba(255,77,94,.4);background:rgba(40,6,12,.6);
     padding:3px 6px;pointer-events:none}
+
   #rail-r{display:none}
-  /* never let the rail swallow the hologram — cap it and scroll instead */
-  #rail-l{left:8px;right:8px;top:auto;bottom:8px;width:auto;flex-direction:column;gap:6px;
-    max-height:56vh;overflow-y:auto}
+  /* --- left rail: never below the safe area, never under the toggle --- */
+  #rail-l{left:calc(8px + env(safe-area-inset-left));right:calc(8px + env(safe-area-inset-right));
+    top:auto;bottom:calc(8px + env(safe-area-inset-bottom));width:auto;flex-direction:column;gap:6px;
+    max-height:56vh;max-height:52svh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:48px}
   #arsenal{flex:none}
-  #weapons{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:6px}
-  .weapon{flex:none;width:168px}
+  #weapons{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:6px;
+    scroll-snap-type:x proximity;scrollbar-width:none}
+  #weapons::-webkit-scrollbar{display:none}
+  .weapon{flex:none;width:158px;min-height:46px;scroll-snap-align:start}
+  .weapon>span:nth-child(2){min-width:0;overflow:hidden}
+  .weapon .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #weapons .weapon .sb{display:none}
   #team-btns{grid-template-columns:repeat(4,1fr)}
+  .tbtn{min-height:44px}
+  #btn-multi{min-height:44px;padding:4px 10px}
   .weapon .hk{display:none}
   #tgt .body{grid-template-columns:auto 1fr auto 1fr}
+  #tgt .k,#tgt .v{font-size:10.5px}
+  #execute{min-height:48px;font-size:13px;margin:4px 8px 8px}
+  .ptitle{min-height:44px;padding-top:0;padding-bottom:0}
   #bottombar{display:none}
   .corner{display:none}
+
+  /* --- floating strips dock under the toolbar instead of colliding with it --- */
+  #battlehud{top:calc(var(--topbar-h) + 8px);left:calc(8px + env(safe-area-inset-left));
+    right:calc(8px + env(safe-area-inset-right));transform:none;min-width:0;width:auto}
+  #explorehud{left:8px;right:8px;bottom:auto;top:calc(var(--topbar-h) + 8px);transform:none;
+    justify-content:center;flex-wrap:wrap;gap:10px 16px}
+  #explorehud span:nth-child(-n+3){display:none}
+  body.hasbattle #explorehud{top:calc(var(--topbar-h) + 78px)}
+  #toast{top:calc(var(--topbar-h) + 8px);left:8px;right:8px;transform:none;width:auto}
+  body.hasexplore #toast{top:calc(var(--topbar-h) + 48px)}
+  body.hasbattle #toast{top:calc(var(--topbar-h) + 78px)}
+  body.hasbattle.hasexplore #toast{top:calc(var(--topbar-h) + 118px)}
+
+  /* --- iOS zooms any input under 16px on focus --- */
+  .wc-input{font-size:16px}
+  #wc-box{max-height:calc(100vh - 120px);max-height:calc(100dvh - 120px)}
+  .wc-row{min-height:48px}
+  #pov-card{bottom:calc(78px + env(safe-area-inset-bottom))}
+  #pov-hint{display:none}
 }
-/* landscape / short displays: HUD hugs the left edge so the terrain stays tappable */
+
+/* landscape phones: the rail is a column again, so nothing has to clear the toggle */
 @media (max-width:940px) and (max-height:660px){
-  #topbar::after{position:fixed;right:8px;bottom:4px;left:auto;flex:none;order:0;z-index:60}
-  #brand{padding:4px 10px}
-  #brand .t2{display:none}
-  #sectors{order:1;width:auto;margin:0 4px;flex:1}
-  #tstatus{order:2}
-  #rail-l{left:8px;right:auto;top:50px;bottom:8px;width:212px;flex-direction:column;
-    max-height:none;overflow-y:auto}
+  #topbar::after{position:fixed;left:236px;right:158px;bottom:6px;top:auto;flex:none;order:0;z-index:43}
+  #sectors{order:1;width:auto;margin:0 4px;flex:1 1 0;min-width:0}
+  #tstatus{order:2;width:auto;flex:0 0 auto;max-width:63%}
+  #tstatus .iconbtn{flex:0 0 46px}
+  #rail-l{left:calc(8px + env(safe-area-inset-left));right:auto;top:calc(var(--topbar-h) + 6px);
+    bottom:calc(8px + env(safe-area-inset-bottom));width:248px;max-height:none;padding-bottom:0}
   #tgt .body{grid-template-columns:auto 1fr;gap:2px 8px}
   #team-btns{grid-template-columns:1fr 1fr;padding:6px 6px 3px}
   #tgt-status{margin:2px 8px 6px;padding:3px 6px}
   #arsenal{flex:0 0 auto}
-  #weapons{flex-direction:column;overflow:visible;padding:5px;gap:4px}
-  .weapon{width:auto;padding:4px 7px;gap:7px}
+  /* five systems will not fit a 390-tall screen in one column: two up, and
+     EXECUTE stays above the fold instead of hiding below a silent scroll */
+  #weapons{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px;
+    overflow:visible;padding:5px}
+  .weapon{width:auto;padding:4px 6px;gap:6px;min-height:44px}
   .weapon .sb{display:none}
-  .weapon .ico{width:20px;height:20px}
-  .weapon .nm{font-size:10px;letter-spacing:.1em}
-  #execute{margin:3px 6px 6px;padding:8px;font-size:11px}
+  .weapon .ico{width:18px;height:18px}
+  .weapon .nm{font-size:9.5px;letter-spacing:.08em}
+  #execute{margin:3px 6px 6px;padding:8px;font-size:11px;min-height:44px}
+  #tgt .ptitle{font-size:10px;letter-spacing:.14em}
+  /* the rail can still outrun a 390-tall screen, so its bottom edge fades to
+     say so — iOS draws no scrollbar until you are already scrolling */
+  #rail-l{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 18px),transparent);
+          mask-image:linear-gradient(180deg,#000 calc(100% - 18px),transparent)}
+  #battlehud,#toast,#explorehud{left:272px;right:12px}
 }
 </style>
 </head>
@@ -428,15 +568,35 @@ body.povmode #scanlines{opacity:.75}
   </nav>
   <div id="tstatus">
     <span class="pill" id="clock">--:--:-- Z</span>
-    <span class="pill">SAT-LINK <b>▮▮▮▮▮</b></span>
-    <button class="iconbtn" id="btn-world">🌐<span class="lbl"> THEATER:</span> <b id="wc-label">DENVER</b></button>
-    <button class="iconbtn" id="btn-cine">▶ CINEMATIC</button>
-    <button class="iconbtn" id="btn-theme">MK-II CYAN</button>
-    <button class="iconbtn off" id="btn-audio">AUDIO</button>
-    <button class="iconbtn" id="btn-mode">◐<span class="lbl"> HOLO</span></button>
-    <button class="iconbtn" id="btn-battle">⚔<span class="lbl"> BATTLE</span></button>
-    <button class="iconbtn" id="btn-explore">◎<span class="lbl"> EXPLORE</span></button>
-    <button class="iconbtn" id="btn-reset">⟲<span class="lbl"> RESET</span></button>
+    <span class="pill">SAT-LINK <b>&#9646;&#9646;&#9646;&#9646;&#9646;</b></span>
+    <button class="iconbtn" id="btn-world" aria-label="Select theater">
+      <svg class="ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="7.6"/><ellipse cx="10" cy="10" rx="3.3" ry="7.6"/><path d="M2.7 7.2h14.6M2.7 12.8h14.6"/></svg>
+      <span class="lbl">THEATER</span><b id="wc-label">DENVER</b></button>
+    <button class="iconbtn" id="btn-battle" aria-pressed="false" aria-label="Force-on-force battle simulation">
+      <svg class="ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.3 14.4 2.6 4.7V2.6h2.1l9.7 9.7"/><path d="m11.2 15.9 4.7-4.7"/><path d="m13.7 13.4 3.7 3.7"/><path d="m16.2 17.9 1.7-1.7"/><path d="M12.4 5.5 15.3 2.6h2.1v2.1l-2.9 2.9"/><path d="m4.3 12.1 3.6 3.6"/><path d="M6.3 14.6 3.4 17.5"/><path d="m2.1 17.2.7.7"/></svg>
+      <span class="lbl">BATTLE</span></button>
+    <button class="iconbtn" id="btn-mode" aria-label="Toggle holographic / photoreal rendering">
+      <svg class="ic ic-holo" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="7.4"/><path d="M10 2.6a7.4 7.4 0 0 0 0 14.8z" fill="currentColor" stroke="none"/></svg>
+      <svg class="ic ic-real" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="7.4"/><path d="M10 2.6a7.4 7.4 0 0 1 0 14.8z" fill="currentColor" stroke="none"/></svg>
+      <span class="lbl on-holo">HOLO</span><span class="lbl on-real">REAL</span></button>
+    <button class="iconbtn" id="btn-explore" aria-pressed="false" aria-label="Free-fly explore mode">
+      <svg class="ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.6 2.4 2.4 8.7l6.3 2.6 2.6 6.3z"/><path d="M17.6 2.4 8.7 11.3"/></svg>
+      <span class="lbl">EXPLORE</span></button>
+    <button class="iconbtn" id="btn-cine" aria-label="Play the cinematic demo">
+      <svg class="ic ic-play" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.4 3.6 16 10l-9.6 6.4z" fill="currentColor"/></svg>
+      <svg class="ic ic-stop" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.8" y="4.8" width="10.4" height="10.4" fill="currentColor"/></svg>
+      <span class="lbl lg on-idle">CINEMATIC</span><span class="lbl sm on-idle">DEMO</span>
+      <span class="lbl on-run">STOP</span></button>
+    <button class="iconbtn off" id="btn-audio" aria-pressed="false" aria-label="Toggle audio">
+      <svg class="ic ic-spk" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.4 7.6h3L10.4 4v12L6.4 12.4h-3z"/><path d="M13.4 7.4a3.8 3.8 0 0 1 0 5.2"/><path d="M15.9 5a7.2 7.2 0 0 1 0 10"/></svg>
+      <svg class="ic ic-mute" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.4 7.6h3L10.4 4v12L6.4 12.4h-3z"/><path d="m13.4 7.8 4.2 4.4M17.6 7.8l-4.2 4.4"/></svg>
+      <span class="lbl">AUDIO</span></button>
+    <button class="iconbtn" id="btn-theme" aria-label="Switch palette">
+      <svg class="ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="7.4"/><path d="M10 2.6v14.8"/><path d="M10 2.6a7.4 7.4 0 0 1 0 14.8z" fill="currentColor" stroke="none" opacity=".45"/></svg>
+      <span class="lbl">MK-II CYAN</span></button>
+    <button class="iconbtn" id="btn-reset" aria-label="Reset the simulation">
+      <svg class="ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.1 10a6.9 6.9 0 1 0 2.1-4.9"/><path d="M2.4 3.1v4.2h4.2"/></svg>
+      <span class="lbl">RESET</span></button>
   </div>
 </header>
 
@@ -546,8 +706,17 @@ body.povmode #scanlines{opacity:.75}
   <div id="pov-card"><span class="fac" id="pov-fac">BLUFOR</span><b id="pov-seat">RIFLEMAN</b>
     <span id="pov-wpn">SMALL ARMS</span><span class="hp"><i id="pov-hp"></i></span></div>
   <div id="pov-hint"><b>[ ]</b> CYCLE CREW · <b>H</b> HOLO / REAL · <b>ESC</b> RETURN TO TABLE</div>
+  <div id="pov-btns">
+    <button class="povbtn" id="pov-prev" aria-label="Previous crew"><svg class="ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.4 3.6 6 10l6.4 6.4"/></svg></button>
+    <button class="povbtn" id="pov-exit">EXIT POV</button>
+    <button class="povbtn" id="pov-next" aria-label="Next crew"><svg class="ic" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.6 3.6 14 10l-6.4 6.4"/></svg></button>
+  </div>
   <div id="pov-flash"></div>
 </div>
+<button id="hud-toggle" aria-pressed="false" aria-controls="rail-l rail-r bottombar">
+  <svg class="ic ic-collapse" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 2.7v5.9H2.7"/><path d="m2.4 2.4 6.2 6.2"/><path d="M11.4 17.3v-5.9h5.9"/><path d="m17.6 17.6-6.2-6.2"/></svg>
+  <svg class="ic ic-expand" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.4 2.7h4.9v4.9"/><path d="M17.3 2.7 11.4 8.6"/><path d="M7.6 17.3H2.7v-4.9"/><path d="m2.7 17.3 5.9-5.9"/></svg>
+  <span class="on-max">HIDE HUD</span><span class="on-min">SHOW HUD</span></button>
 <div id="whiteout"></div>
 <div id="toast"></div>
 
@@ -2907,13 +3076,14 @@ $('btn-audio').addEventListener('click', () => {
   audio.unlock();
   audio.setMuted(!audio.muted);
   $('btn-audio').classList.toggle('off', audio.muted);
+  $('btn-audio').setAttribute('aria-pressed', audio.muted ? 'false' : 'true');
   if (!audio.muted) sfx.blip(880, .07);
 });
 function setTheme(t){
   theme = t;
   document.body.classList.toggle('mk1', t === 'mk1');
   const T = THEMES[t];
-  $('btn-theme').textContent = T.css;
+  $('btn-theme').querySelector('.lbl').textContent = T.css;
   tUni.uCLow.value.set(T.low); tUni.uCHigh.value.set(T.high);
   tUni.uCLine.value.set(T.line); tUni.uCCity.value.set(T.city);
   tUni.uCFarm.value.set(T.farm); tUni.uCRiver.value.set(T.river);
@@ -2997,6 +3167,8 @@ const explore = { on: false, pos: new THREE.Vector3(), yaw: 0, pitch: -0.25, key
 function setExplore(v){
   explore.on = v;
   $('btn-explore').classList.toggle('on', v);
+  $('btn-explore').setAttribute('aria-pressed', v ? 'true' : 'false');
+  document.body.classList.toggle('hasexplore', v);
   $('explorehud').classList.toggle('on', v);
   if (v){
     /* drop in just above the ground where the operator is already looking */
@@ -3087,6 +3259,8 @@ function setBattle(on){
     B.start(c, terrainOkForUnit);
     $('battlehud').classList.add('on');
     $('btn-battle').classList.add('on');
+    $('btn-battle').setAttribute('aria-pressed', 'true');
+    document.body.classList.add('hasbattle');
     $('bh-state').textContent = 'ENGAGED';
     flyTo('city');
     pivotT.set(c.x, 0, c.z); sphT.r = 38; sphT.phi = .74; sphT.theta = .55;
@@ -3096,6 +3270,8 @@ function setBattle(on){
     B.stop();
     $('battlehud').classList.remove('on');
     $('btn-battle').classList.remove('on');
+    $('btn-battle').setAttribute('aria-pressed', 'false');
+    document.body.classList.remove('hasbattle');
     log('BATTLE ▸ ENDEX — FORCES WITHDRAWN', 'sys');
   }
   sfx.blip(on ? 520 : 760, .07); haptic(on ? [30,60,30] : 12);
@@ -3120,7 +3296,6 @@ function setRenderMode(next){
   const real = m === 'real';
   tUni.uReal.value = real ? 1 : 0;
   $('btn-mode').classList.toggle('real', real);
-  $('btn-mode').innerHTML = real ? '◑<span class="lbl"> REAL</span>' : '◐<span class="lbl"> HOLO</span>';
   /* the ground albedo and vegetation tint come from the destination itself */
   tUni.uVeg.value.set(SITE.pal.veg);
   tUni.uRock.value.set(SITE.biome === 'polar' ? 0xdfe8f0
@@ -3333,7 +3508,7 @@ async function cinematic(){
     tick();
   });
   const clear = () => waitFor(() => !state.busy, 26000);
-  $('btn-cine').textContent = '■ STOP';
+  $('btn-cine').classList.add('running');
   try {
     toast('CINEMATIC DEMO — SIT BACK');
     setMulti(false);
@@ -3392,11 +3567,102 @@ async function cinematic(){
   } finally {
     cineRunning = false;
     cineCancel = null;
-    $('btn-cine').textContent = '▶ CINEMATIC';
+    $('btn-cine').classList.remove('running');
   }
 }
 $('btn-cine').addEventListener('click', () => { audio.unlock(); cinematic(); });
 $('btn-reset').addEventListener('click', () => location.replace(location.pathname + '?fastboot'));
+
+/* ---------------- mobile HUD: collapse-all + per-panel collapse ----------------
+   A phone gives the hologram roughly a third of the glass once the toolbar and
+   the rail have taken their cut. COLLAPSE ALL is a floating, worded control —
+   floating because a toolbar button vanishes with the toolbar it collapsed, and
+   worded because the whole bug report is that unlabelled glyphs are unreadable. */
+const HUDS = {
+  key: 'aegis.hud.v1',
+  read(){ try { return JSON.parse(localStorage.getItem(HUDS.key)) || {}; } catch(e){ return {}; } },
+  write(o){ try { localStorage.setItem(HUDS.key, JSON.stringify(o)); } catch(e){} },
+  patch(f){ const s = HUDS.read(); f(s); HUDS.write(s); },
+};
+function syncTopbarH(){
+  document.documentElement.style.setProperty('--topbar-h', $('topbar').offsetHeight + 'px');
+}
+function setHudMin(v){
+  document.body.classList.toggle('hudmin', v);
+  const b = $('hud-toggle');
+  b.setAttribute('aria-pressed', v ? 'true' : 'false');
+  b.classList.remove('hint');
+  HUDS.patch(s => { s.min = v ? 1 : 0; s.seen = 1; });
+  requestAnimationFrame(syncTopbarH);
+  sfx.blip(v ? 700 : 940, .05); haptic(10);
+}
+$('hud-toggle').addEventListener('click', () => setHudMin(!document.body.classList.contains('hudmin')));
+
+function setPanelCollapsed(p, v){
+  p.classList.toggle('collapsed', v);
+  const t = p.querySelector('.ptitle');
+  if (t) t.setAttribute('aria-expanded', v ? 'false' : 'true');
+  HUDS.patch(s => { (s.panels = s.panels || {})[p.id] = v ? 1 : 0; });
+}
+document.querySelectorAll('#rail-l > .panel, #rail-r > .panel').forEach(p => {
+  const t = p.querySelector('.ptitle');
+  if (!t) return;
+  t.setAttribute('role', 'button');
+  t.setAttribute('tabindex', '0');
+  t.setAttribute('aria-expanded', 'true');
+  t.insertAdjacentHTML('beforeend',
+    '<svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.6 4.4 6 7.8l3.4-3.4"/></svg>');
+  const hit = e => {
+    if (e.target.closest && e.target.closest('button')) return;  /* MULTI OFF lives in a title bar */
+    setPanelCollapsed(p, !p.classList.contains('collapsed'));
+    sfx.blip(p.classList.contains('collapsed') ? 620 : 820, .04); haptic(8);
+  };
+  t.addEventListener('click', hit);
+  t.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); hit(e); }
+  });
+});
+
+addEventListener('resize', syncTopbarH);
+addEventListener('keydown', e => {
+  if (worldConsole && worldConsole.isOpen()) return;
+  if (e.target && e.target.closest && e.target.closest('input,textarea')) return;
+  if (e.key === 'z' || e.key === 'Z') setHudMin(!document.body.classList.contains('hudmin'));
+});
+
+/* a designated target unfolds its own panel, once */
+const _setTargetRaw = setTarget;
+setTarget = function(x, z){
+  const r = _setTargetRaw.apply(this, arguments);
+  const p = $('tgt');
+  if (p.classList.contains('collapsed')) setPanelCollapsed(p, false);
+  return r;
+};
+
+/* touch operators need a way out of a helmet cam that is not the ESC key */
+$('pov-exit').addEventListener('click', exitPov);
+$('pov-prev').addEventListener('click', () => cyclePov(-1));
+$('pov-next').addEventListener('click', () => cyclePov(1));
+
+(function initHud(){
+  const s = HUDS.read();
+  const phone = matchMedia('(max-width:940px)').matches;
+  /* TARGET DESIGNATION is a read-out that reads "——" until the operator taps the
+     terrain, so on a phone it starts folded and unfolds itself the moment it has
+     something to say. ARSENAL — the thing you came to touch — never auto-folds. */
+  if (phone && !s.panels) s.panels = { tgt: 1 };
+  Object.keys(s.panels || {}).forEach(id => { const p = $(id); if (p && s.panels[id]) setPanelCollapsed(p, true); });
+  if (s.min) document.body.classList.add('hudmin');
+  $('hud-toggle').setAttribute('aria-pressed', s.min ? 'true' : 'false');
+  syncTopbarH();
+  if (matchMedia('(max-width:940px),(max-height:660px)').matches && !s.seen){
+    $('hud-toggle').classList.add('hint');
+    HUDS.patch(o => { o.seen = 1; });
+    setTimeout(() => { if (booted) toast('TAP  HIDE HUD  FOR A FULL-SCREEN HOLOGRAM'); }, 3400);
+  }
+})();
+
 
 /* ambient life ticker — the theater reports in even when nothing is tasked */
 const AMBIENT_LIVE = [
@@ -3548,6 +3814,8 @@ window.__aegis = { setTarget, selectWeapon, execute, flyTo, cinematic, setTheme,
     ex: pov.eye.x, ey: pov.eye.y, ez: pov.eye.z, type: pov.unit.type } : null,
   killPovUnit: () => { if (pov.unit) { pov.unit.hp = 0; pov.unit.alive = false; } },
   renderMode: () => RM.mode, materialCount: () => RM.count(),
+  setHudMin, hudMin: () => document.body.classList.contains('hudmin'),
+  setPanelCollapsed, syncTopbarH,
   battle: () => BATTLE, battleAlive: f => BATTLE ? BATTLE.alive(f) : 0,
   battleRunning: () => !!(BATTLE && BATTLE.isRunning()),
   isExploring: () => explore.on,
