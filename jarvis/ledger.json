@@ -1,0 +1,19 @@
+{
+  "note": "Daily improvement ledger. Every entry must name an improvement and the pain it removes — recording activity alone is not a day.",
+  "entries": [
+    {
+      "date": "2026-07-27",
+      "improvement": "Sentinel CI goes green on every PR again, and the intrusive-tool parsers plus the authorization gate are hardened against hostile input.",
+      "pain": "CI Lint was red on every branch after the Go 1.26 rollover, and the security-critical parsers and scope matcher had no adversarial tests — a refactor could have silently opened a scope bypass.",
+      "shipped": ["sentinel CI lint fix (#4)", "parser robustness suite (#2)", "authorization-gate adversarial tests (#3)"],
+      "agent": "sentinel-lead"
+    },
+    {
+      "date": "2026-07-28",
+      "improvement": "Spotter turns 'look at a device I own' into an honest identity, real-exposure risk, and a plain-language fix list — and JARVIS now runs as an always-on daemon that greets me with the brief and can power on Node 001 by voice.",
+      "pain": "There was no way to point at a camera and know if it was safe, and no hands-free 'Hey Jarvis' on the PC with the day's brief already prepared — every session started cold.",
+      "shipped": ["Spotter device intelligence (#5)", "Spotter glasses HUD", "jarvisd wake-word daemon", "Wake-on-LAN power-on", "CentLabs architecture record"],
+      "agent": "jarvis-chief-of-staff"
+    }
+  ]
+}
