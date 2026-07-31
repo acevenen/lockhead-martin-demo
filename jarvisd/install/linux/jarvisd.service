@@ -1,0 +1,32 @@
+# systemd --user unit for the JARVIS daemon (Linux, incl. a future Node 001
+# migration). A --user unit runs in the graphical session, so it can reach the
+# PipeWire/PulseAudio microphone; a system unit cannot.
+#
+# Install:
+#   mkdir -p ~/.config/systemd/user
+#   cp jarvisd.service ~/.config/systemd/user/
+#   # edit WorkingDirectory + JARVIS_HOME below
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now jarvisd
+#   # so it runs without an active login session (headless Node):
+#   sudo loginctl enable-linger $USER
+#
+# Logs:  journalctl --user -u jarvisd -f
+
+[Unit]
+Description=CentLabs JARVIS always-on voice daemon
+After=default.target
+
+[Service]
+Type=simple
+# REPLACE_ME: absolute path to the repo's jarvisd/ directory
+WorkingDirectory=%h/centlabs/lockhead-martin-demo/jarvisd
+Environment=PYTHONPATH=.
+# REPLACE_ME: absolute path to the repo root
+Environment=JARVIS_HOME=%h/centlabs/lockhead-martin-demo
+ExecStart=/usr/bin/python3 -m jarvisd.daemon
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    LaunchAgent for the JARVIS daemon on macOS (MacBook Air M2).
+
+    A LaunchAgent (not a LaunchDaemon) runs in the logged-in user's GUI
+    session, which is what lets it reach the microphone and trigger the TCC
+    consent prompt. RunAtLoad starts it at login; KeepAlive restarts it if it
+    crashes.
+
+    Install:
+      cp com.centlabs.jarvisd.plist ~/Library/LaunchAgents/
+      # edit the two REPLACE_ME paths below first
+      launchctl load ~/Library/LaunchAgents/com.centlabs.jarvisd.plist
+
+    The FIRST run pops a microphone-permission prompt — approve it, or the wake
+    word never fires. If it was denied: System Settings > Privacy & Security >
+    Microphone, enable the terminal/Python entry, then `launchctl kickstart`.
+
+    Uninstall:
+      launchctl unload ~/Library/LaunchAgents/com.centlabs.jarvisd.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.centlabs.jarvisd</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>-m</string>
+        <string>jarvisd.daemon</string>
+    </array>
+
+    <!-- REPLACE_ME: absolute path to the repo's jarvisd/ directory -->
+    <key>WorkingDirectory</key>
+    <string>/Users/REPLACE_ME/centlabs/lockhead-martin-demo/jarvisd</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONPATH</key>
+        <string>.</string>
+        <!-- REPLACE_ME: absolute path to the repo root -->
+        <key>JARVIS_HOME</key>
+        <string>/Users/REPLACE_ME/centlabs/lockhead-martin-demo</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/jarvisd.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/jarvisd.err.log</string>
+</dict>
+</plist>

@@ -288,8 +288,8 @@ body.mk2 #scanlines{background:repeating-linear-gradient(0deg,rgba(140,220,255,.
 /* ---------------- embedded state (fallback for file://) -------------- */
 const EMBEDDED_STATE = {
   "meta": {
-    "updated": "2026-07-30",
-    "updatedBy": "demo-engineer"
+    "updated": "2026-07-28",
+    "updatedBy": "jarvis-chief-of-staff"
   },
   "user": {
     "name": "",
@@ -297,8 +297,28 @@ const EMBEDDED_STATE = {
   },
   "brief": {
     "since": "last session",
-    "headline": "AEGIS first launch: first-person view models in every crew seat, a 114-unit war across the whole landscape on three axes, and infantry that walk, aim and fall on an articulated rig.",
+    "headline": "JARVIS is now an always-on daemon — wake word, brief-on-boot, and voice power-on for Node 001. CentLabs architecture recorded.",
     "items": [
+      {
+        "agent": "jarvis-chief-of-staff",
+        "kind": "done",
+        "text": "Shipped jarvisd: an always-on 'Hey Jarvis' daemon (openWakeWord pretrained model, local faster-whisper STT, ElevenLabs-or-system voice). Starts at login, opens the HUD, has the brief ready on boot, and degrades to typed commands with no mic. 54 tests."
+      },
+      {
+        "agent": "jarvis-chief-of-staff",
+        "kind": "done",
+        "text": "Added a daily-improvement ledger the daemon enforces: every entry must name an improvement AND the pain it removes, so a day cannot be closed by recording activity. 'What did you do yesterday' reads it back."
+      },
+      {
+        "agent": "jarvis-chief-of-staff",
+        "kind": "done",
+        "text": "Voice power-on for Node 001: Wake-on-LAN sender + authenticated bridge endpoint, plus verified Windows/BIOS setup (Fast Startup is the silent killer) and an honest smart-plug fallback. Alexa/Shortcuts/Home Assistant can now boot the PC."
+      },
+      {
+        "agent": "jarvis-chief-of-staff",
+        "kind": "done",
+        "text": "Recorded CentLabs Workspace v1 as an architecture decision record (device topology, all 10 phases with WHY/tradeoffs, container-runtime analysis, build order) plus the iPhone-14 headless-node design and recovery runbook — so the projects are never explained twice."
+      },
       {
         "agent": "demo-engineer",
         "kind": "done",
@@ -318,21 +338,6 @@ const EMBEDDED_STATE = {
         "agent": "demo-engineer",
         "kind": "done",
         "text": "Found why the city disappeared on the owner's iPhone in photoreal mode. buildCity thinned its field to the 430-building budget and then pushed up to six signature towers in AFTER the cut, so it returned 434-436 — 12 of the first 15 sites over. index.html then asked GL to draw more instances than the buffer held. That is INVALID_OPERATION per the WebGL spec: Chrome tolerates it via robust buffer access and reports no error, which is why every desktop and headless test passed, while WebKit drops the whole draw call. Real mode made it total because the wireframe cages that survived in holo are faded to zero there. Fixed at the generator and guarded at the consumer; every skyline is unchanged."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS mobile HUD. The battle button was invisible: it used a crossed-swords glyph no font in the stack covers, so iOS drew tofu — a red square with an x, which reads as 'close'. Every control is now an SVG icon plus a word and nothing is under a 44px tap target (six of eight were about 20x22). Added COLLAPSE ALL as a floating pill plus per-panel folding: portrait canvas goes from 49.6% of the screen to 53.1%, 60.9% folded, 91.4% hidden. Also fixed the battle strip and every toast printing on top of each other inside the top bar, EXECUTE being unreachable in landscape, crew POV being an inescapable trap on a device with no ESC key, and no safe-area handling at all."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS roads. The streets were faked twice, independently, and the two fakes disagreed — a painted canvas with no data behind it, and a separate invented lane grid the cars drove on. So traffic ran on invisible lanes unrelated to the visible streets, through buildings. js/roadnet.js is now one directed graph that emits the ribbon mesh, the canvas overlay and the driveable lanes from the same nodes, laid out on the half-offsets of the building block step. Arterials and streets, signals, bridges, left-hand traffic. Zero buildings standing in a carriageway."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS locomotion. Pedestrians were one welded mesh and slid with a sine bob; all four wheels of every car were merged into one geometry, so a wheel could not physically turn. Five instanced parts now give a real walk cycle whose phase advances with DISTANCE TRAVELLED rather than the clock, and four instanced wheels per car roll off distance covered and steer off path curvature. Speeds were 2.5-6.6 m/s for a shopping crowd and 14-32 m/s for city traffic; both are honest now. The work surfaced that the merged person faced +X while the app rotates walkers to face +Z — the entire crowd had been walking sideways."
       }
     ]
   },
@@ -346,6 +351,20 @@ const EMBEDDED_STATE = {
     }
   ],
   "tasks": [
+    {
+      "title": "jarvisd — install on Node 001 + MacBook (autostart)",
+      "project": "CENTLABS",
+      "priority": "P1",
+      "status": "open",
+      "note": "install/ scripts per OS; enable-wol.ps1 + BIOS for voice power-on. Needs the real machines."
+    },
+    {
+      "title": "CentLabs Phase 1 — Node 001 base (WSL2 + Docker + NVIDIA + Compose data plane)",
+      "project": "CENTLABS",
+      "priority": "P1",
+      "status": "open",
+      "note": "Ollama, Postgres, Qdrant, Redis, Caddy. Follow centlabs/ARCHITECTURE.md build order."
+    },
     {
       "title": "Sentinel: audit-chain tamper tests",
       "project": "SENTINEL",
@@ -453,7 +472,6 @@ const EMBEDDED_STATE = {
     }
   ],
   "activity14": [
-    2,
     5,
     4,
     6,
@@ -466,7 +484,8 @@ const EMBEDDED_STATE = {
     31,
     38,
     41,
-    46
+    46,
+    24
   ]
 };
 
