@@ -288,8 +288,8 @@ body.mk2 #scanlines{background:repeating-linear-gradient(0deg,rgba(140,220,255,.
 /* ---------------- embedded state (fallback for file://) -------------- */
 const EMBEDDED_STATE = {
   "meta": {
-    "updated": "2026-07-30",
-    "updatedBy": "demo-engineer"
+    "updated": "2026-07-31",
+    "updatedBy": "iris via chief-of-staff"
   },
   "user": {
     "name": "",
@@ -299,6 +299,21 @@ const EMBEDDED_STATE = {
     "since": "last session",
     "headline": "AEGIS first launch: first-person view models in every crew seat, a 114-unit war across the whole landscape on three axes, and infantry that walk, aim and fall on an articulated rig.",
     "items": [
+      {
+        "agent": "iris",
+        "kind": "done",
+        "text": "Ray-Ban Display setup check, all claims fetched live from Meta's docs. Two real third-party paths onto the lens: Web Apps (standard HTML/CSS/JS rendered ON the glasses' display, fixed 600x600, Neural Band gestures arrive as arrow-key/Enter events, pure black renders transparent on the waveguide — AEGIS's holo-on-black aesthetic is accidentally native to this display) and the Device Access Toolkit (phone-hosted; glasses camera/mic/speakers plus a widget-and-MP4 display surface — NOT a framebuffer). Nothing supports casting the three.js demo to the lens; WebGL on-lens is undocumented and stays unpromised."
+      },
+      {
+        "agent": "iris",
+        "kind": "work",
+        "text": "Recommended play for the Lockheed room: AEGIS UPLINK — a 600x600 dark-background companion Web App on the actual lens (mission ticker, target card, force strength), 2-4 days build, real third-party software on the Ray-Ban Display with no hand-waving. Floor: glasses as worn prop beside the tablet demo. Funded next step to pitch: DAT camera feed fused into the sat-uplink window (2-4+ weeks, native iOS, needs the org chain). Casting/mirroring: not possible, do not promise."
+      },
+      {
+        "agent": "iris",
+        "kind": "blocked",
+        "text": "Hardware is the long pole, not software: Ray-Ban Display is US-only at $799, purchase requires a booked in-store demo appointment, international launch is paused, and waitlists have run well into 2026. Web Apps path needs no org — glasses + Developer Mode (five taps on the app version) + a hosted HTTPS URL. DAT path needs the one-per-company Managed Meta Account org created and owned."
+      },
       {
         "agent": "demo-engineer",
         "kind": "done",
@@ -313,26 +328,6 @@ const EMBEDDED_STATE = {
         "agent": "demo-engineer",
         "kind": "done",
         "text": "Playtested three full walk-in sessions end to end. Caught and fixed: battle stop() crashing on the new infantry rig fleets, view models eaten by the camera near plane, the holo wash rendering the weapon invisible, and table-scale civilians towering like giants over the metric battle from any eye-level camera (the crowd drops to metric scale whenever the camera is on the deck)."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "Found why the city disappeared on the owner's iPhone in photoreal mode. buildCity thinned its field to the 430-building budget and then pushed up to six signature towers in AFTER the cut, so it returned 434-436 — 12 of the first 15 sites over. index.html then asked GL to draw more instances than the buffer held. That is INVALID_OPERATION per the WebGL spec: Chrome tolerates it via robust buffer access and reports no error, which is why every desktop and headless test passed, while WebKit drops the whole draw call. Real mode made it total because the wireframe cages that survived in holo are faded to zero there. Fixed at the generator and guarded at the consumer; every skyline is unchanged."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS mobile HUD. The battle button was invisible: it used a crossed-swords glyph no font in the stack covers, so iOS drew tofu — a red square with an x, which reads as 'close'. Every control is now an SVG icon plus a word and nothing is under a 44px tap target (six of eight were about 20x22). Added COLLAPSE ALL as a floating pill plus per-panel folding: portrait canvas goes from 49.6% of the screen to 53.1%, 60.9% folded, 91.4% hidden. Also fixed the battle strip and every toast printing on top of each other inside the top bar, EXECUTE being unreachable in landscape, crew POV being an inescapable trap on a device with no ESC key, and no safe-area handling at all."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS roads. The streets were faked twice, independently, and the two fakes disagreed — a painted canvas with no data behind it, and a separate invented lane grid the cars drove on. So traffic ran on invisible lanes unrelated to the visible streets, through buildings. js/roadnet.js is now one directed graph that emits the ribbon mesh, the canvas overlay and the driveable lanes from the same nodes, laid out on the half-offsets of the building block step. Arterials and streets, signals, bridges, left-hand traffic. Zero buildings standing in a carriageway."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS locomotion. Pedestrians were one welded mesh and slid with a sine bob; all four wheels of every car were merged into one geometry, so a wheel could not physically turn. Five instanced parts now give a real walk cycle whose phase advances with DISTANCE TRAVELLED rather than the clock, and four instanced wheels per car roll off distance covered and steer off path curvature. Speeds were 2.5-6.6 m/s for a shopping crowd and 14-32 m/s for city traffic; both are honest now. The work surfaced that the merged person faced +X while the app rotates walkers to face +Z — the entire crowd had been walking sideways."
       }
     ]
   },
@@ -346,6 +341,13 @@ const EMBEDDED_STATE = {
     }
   ],
   "tasks": [
+    {
+      "title": "AEGIS UPLINK — 600x600 companion Web App for the Ray-Ban lens",
+      "project": "DEMOS",
+      "priority": "P1",
+      "status": "open",
+      "note": "Dark-background DOM/SVG slice: mission ticker, target designation card, strike auth, force strength. Arrow-key/Enter navigation only. WebGL on-lens unverified — no 3D promised. Blocked on hardware + air-gap call."
+    },
     {
       "title": "Sentinel: audit-chain tamper tests",
       "project": "SENTINEL",
@@ -384,9 +386,21 @@ const EMBEDDED_STATE = {
   ],
   "roadblocks": [
     {
-      "title": "Sentinel next milestone needs direction",
-      "impact": "The team can keep hardening autonomously, but a named milestone focuses P0.",
-      "proposed": "Approve the proposed track — audit-chain tamper tests + authorization-contract fuzzing — or name your own.",
+      "title": "Ray-Ban Display hardware purchase (critical path)",
+      "impact": "Nothing runs on-lens without the physical glasses. US-only, $799 incl. Neural Band, mandatory in-store demo appointment, waitlist risk into 2026.",
+      "proposed": "Book the appointment now (Best Buy / LensCrafters / Sunglass Hut / Ray-Ban / select Verizon) so the wait runs in parallel with the build.",
+      "needsUser": true
+    },
+    {
+      "title": "Air-gap exception for the on-lens companion app",
+      "impact": "The glasses runtime physically requires a publicly hosted HTTPS URL; repo convention is air-gapped. The 600x600 AEGIS UPLINK slice cannot ship without one of them giving.",
+      "proposed": "Approve password-protected HTTPS hosting (Developer Preview supports exactly this sharing mode) for the stripped companion slice only — the full demo stays air-gapped.",
+      "needsUser": true
+    },
+    {
+      "title": "Managed Meta Account org (DAT path only)",
+      "impact": "DAT distribution needs the one-per-company MMA org created and administered. Not needed for the Web Apps path.",
+      "proposed": "Defer to post-meeting per iris's recommendation; decide owner when the DAT phase is funded.",
       "needsUser": true
     },
     {
@@ -450,6 +464,12 @@ const EMBEDDED_STATE = {
       "name": "BIZ OPS",
       "status": "standby",
       "role": "Business problems and roadblocks: triage, propose solutions, flag what needs your call."
+    },
+    {
+      "id": "iris",
+      "name": "IRIS",
+      "status": "active",
+      "role": "Ray-Ban Display integration lead. First setup check delivered: platform paths verified against live Meta docs, org checklist drawn, AEGIS UPLINK recommended as the on-lens play."
     }
   ],
   "activity14": [
