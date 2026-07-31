@@ -7,6 +7,8 @@ from every device I own.
   stack, all ten phases as decisions with WHY and tradeoffs, the container-runtime
   analysis, where Sentinel / Spotter / JARVIS already slot in, and the build
   order to follow.
+- **[CONNECT-CHECKLIST.md](CONNECT-CHECKLIST.md)** — exactly what I need from
+  you (accounts, physical steps, config) to connect everything, in order.
 - **[MOBILE-NODE.md](MOBILE-NODE.md)** — the iPhone 14 headless sensor/relay node
   and the full recovery runbook.
 
