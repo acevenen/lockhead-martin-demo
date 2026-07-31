@@ -302,6 +302,11 @@ const EMBEDDED_STATE = {
       {
         "agent": "iris",
         "kind": "done",
+        "text": "AEGIS UPLINK built and QA'd green: a 600x600 single-file companion HUD for the Ray-Ban Display lens at uplink/index.html. Four screens — MISSION (brevity ticker + force strength), TARGET (designation card with spinning reticle, SCANNING to LOCKED), STRIKE (dual-key arm/authorize machine, STAGED > DUAL-KEY > AWAY > SPLASH with live ETA, weapon-correct BDA posted back to the log), FORCES (7-class ORBAT, three-axis sector status). Arrow-key/Enter navigation only, true-black background that the waveguide renders transparent, zero network calls, opens from file://. 29/29 playwright assertions at exact lens resolution; all 12 state screenshots read and fixed against, not just counted."
+      },
+      {
+        "agent": "iris",
+        "kind": "done",
         "text": "Ray-Ban Display setup check, all claims fetched live from Meta's docs. Two real third-party paths onto the lens: Web Apps (standard HTML/CSS/JS rendered ON the glasses' display, fixed 600x600, Neural Band gestures arrive as arrow-key/Enter events, pure black renders transparent on the waveguide — AEGIS's holo-on-black aesthetic is accidentally native to this display) and the Device Access Toolkit (phone-hosted; glasses camera/mic/speakers plus a widget-and-MP4 display surface — NOT a framebuffer). Nothing supports casting the three.js demo to the lens; WebGL on-lens is undocumented and stays unpromised."
       },
       {
@@ -323,11 +328,6 @@ const EMBEDDED_STATE = {
         "agent": "demo-engineer",
         "kind": "done",
         "text": "AEGIS theater-wide war: 114 units on three simultaneous axes — armour at the city, mech infantry in the hills, a recon screen on the flank — with fires in depth at the map edges whose 21/32 km reach covers every sector. Battle infantry now fight on foot on the articulated rig: walk on the advance, braced aim in contact, a fall about the feet when killed, rifle riding the hand throughout."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "Playtested three full walk-in sessions end to end. Caught and fixed: battle stop() crashing on the new infantry rig fleets, view models eaten by the camera near plane, the holo wash rendering the weapon invisible, and table-scale civilians towering like giants over the metric battle from any eye-level camera (the crowd drops to metric scale whenever the camera is on the deck)."
       }
     ]
   },
@@ -345,8 +345,8 @@ const EMBEDDED_STATE = {
       "title": "AEGIS UPLINK — 600x600 companion Web App for the Ray-Ban lens",
       "project": "DEMOS",
       "priority": "P1",
-      "status": "open",
-      "note": "Dark-background DOM/SVG slice: mission ticker, target designation card, strike auth, force strength. Arrow-key/Enter navigation only. WebGL on-lens unverified — no 3D promised. Blocked on hardware + air-gap call."
+      "status": "done",
+      "note": "Built + QA'd at uplink/index.html. Remaining for on-device: HTTPS hosting (air-gap exception, needsUser), Developer Mode on the paired phone, on-hardware font/input/localStorage verification. Live table-sync deferred until fetch is verified on the glasses runtime."
     },
     {
       "title": "Sentinel: audit-chain tamper tests",
@@ -469,7 +469,7 @@ const EMBEDDED_STATE = {
       "id": "iris",
       "name": "IRIS",
       "status": "active",
-      "role": "Ray-Ban Display integration lead. First setup check delivered: platform paths verified against live Meta docs, org checklist drawn, AEGIS UPLINK recommended as the on-lens play."
+      "role": "Ray-Ban Display integration lead. Setup check delivered and AEGIS UPLINK shipped: the 600x600 on-lens companion HUD, QA'd at lens resolution. Next: hosting + on-hardware verification once glasses are in hand."
     }
   ],
   "activity14": [

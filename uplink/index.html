@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>AEGIS UPLINK — Ray-Ban Display Companion (SIM)</title>
+<style>
+/* ============================================================
+   AEGIS UPLINK — 600x600 companion HUD for Meta Ray-Ban Display
+   Family: AEGIS OVERWATCH (MK-II cyan). Waveguide is ADDITIVE:
+   pure #000 renders transparent, so the page background is true
+   black and the HUD is thin strokes + letterspaced type + small
+   filled accents. No large filled panels. Nothing dark-on-dark.
+   Input: ArrowUp/Down/Left/Right + Enter only (Neural Band).
+   ============================================================ */
+:root{
+  --c1:#53e6ff;                       /* primary holo cyan   */
+  --c1-hi:#a8f2ff;                    /* bright cyan text    */
+  --c1-dim:rgba(83,230,255,.55);
+  --c2:#ffb454;                       /* armed / lock amber  */
+  --alert:#ff5d6e;
+  --ok:#57ffa0;
+  --blu:#5fb8ff;                      /* BLUFOR              */
+  --op:#ff7a68;                       /* OPFOR               */
+  --mut:#8fa7bb;                      /* muted label gray    */
+  --ink:#eaf9ff;                      /* headline ink        */
+  --line:rgba(83,230,255,.34);
+  --line-soft:rgba(83,230,255,.16);
+  --glow:0 0 12px rgba(83,230,255,.38);
+  --glow-hard:0 0 4px rgba(83,230,255,.9),0 0 18px rgba(83,230,255,.55);
+  --mono:ui-monospace,'SFMono-Regular','Cascadia Mono','Roboto Mono',Menlo,Consolas,monospace;
+  --disp:'Bahnschrift','Arial Narrow','Avenir Next Condensed','Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#000}
+body{display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;color:var(--c1);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+
+/* ---------- lens wrapper: bare at 600x600, bezel on desktop ---------- */
+#lens{position:relative;flex:none}
+#stage{position:relative;width:600px;height:600px;background:#000;overflow:hidden}
+#scanlines{display:none}       /* preview-only; never adds haze on-glass */
+#bezel-cap{display:none}
+@media (min-width:640px) and (min-height:640px){
+  #lens{padding:20px;border-radius:38px;background:#06080b;
+    box-shadow:inset 0 0 0 1px rgba(83,230,255,.14),inset 0 0 24px rgba(0,0,0,.9),
+      0 0 60px rgba(83,230,255,.06),0 0 0 1px rgba(255,255,255,.03)}
+  #scanlines{display:block;position:absolute;inset:20px;pointer-events:none;z-index:60;
+    mix-blend-mode:screen;opacity:.30;
+    background:repeating-linear-gradient(0deg,rgba(140,220,255,.05) 0 1px,transparent 1px 3px)}
+  #bezel-cap{display:block;position:absolute;left:0;right:0;bottom:-24px;text-align:center;
+    font-size:9px;letter-spacing:.3em;color:#2c3a46}
+}
+
+/* ---------- shared primitives ---------- */
+.cut{border:1px solid var(--line-soft);
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.k{color:var(--mut);font-size:9.5px;letter-spacing:.16em}
+.v{color:var(--ink);letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.dtitle{display:flex;align-items:center;gap:7px;font-family:var(--disp);
+  font-size:10.5px;letter-spacing:.24em;color:var(--c1)}
+.dtitle::before{content:'';width:6px;height:6px;background:var(--c1);flex:none;
+  box-shadow:var(--glow);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.dtitle .tag{margin-left:auto;font-family:var(--mono);font-size:8.5px;
+  letter-spacing:.12em;color:var(--mut)}
+@keyframes blink{50%{opacity:.4}}
+@keyframes slidein{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+
+/* ---------- FOCUS: unmissable — the wearer navigates blind ---------- */
+.focusable{position:relative;border:1px solid var(--line-soft);transition:border-color .12s,box-shadow .12s}
+.focusable.focus{border-color:var(--c1);box-shadow:var(--glow-hard),inset 0 0 14px rgba(83,230,255,.10)}
+.focusable.focus .k{color:var(--c1)}
+.focusable.focus .fbl{color:var(--c1-hi);text-shadow:0 0 10px var(--c1-dim)}
+.focusable.focus::before{content:'';position:absolute;left:-1px;top:50%;width:4px;height:16px;
+  transform:translateY(-50%);background:var(--c1);box-shadow:var(--glow)}
+.focusable.armed{border-color:var(--c2);
+  box-shadow:0 0 4px rgba(255,180,84,.9),0 0 18px rgba(255,180,84,.5),inset 0 0 14px rgba(255,180,84,.10)}
+.focusable.armed::before{background:var(--c2);box-shadow:0 0 12px rgba(255,180,84,.6)}
+
+/* ---------- top status strip ---------- */
+#topstrip{position:absolute;top:0;left:0;right:0;height:46px;z-index:20;
+  display:flex;align-items:center;padding:0 16px;gap:14px;
+  border-bottom:1px solid var(--line-soft)}
+#topstrip::before,#topstrip::after{content:'';position:absolute;bottom:-1px;width:26px;height:1px;
+  background:var(--c1);box-shadow:var(--glow)}
+#topstrip::before{left:0}#topstrip::after{right:0}
+#brand{font-family:var(--disp);font-size:14px;letter-spacing:.30em;color:var(--ink);
+  text-shadow:0 0 14px var(--c1-dim);white-space:nowrap}
+#brand b{color:var(--c1);font-weight:700}
+#th-wrap{margin-left:auto;text-align:right;line-height:1.5}
+#th-wrap .k{display:block}
+#th-name{font-family:var(--disp);font-size:12px;letter-spacing:.22em;color:var(--ink);
+  text-shadow:0 0 10px var(--c1-dim)}
+#clock{font-size:13px;letter-spacing:.14em;color:var(--c1);text-shadow:0 0 8px var(--c1-dim);
+  font-variant-numeric:tabular-nums;border-left:1px solid var(--line-soft);padding-left:14px}
+
+/* ---------- screens ---------- */
+#screens{position:absolute;top:46px;bottom:62px;left:0;right:0;overflow:hidden}
+.screen{position:absolute;inset:0;padding:12px 16px;display:none;overflow:hidden}
+.screen.on{display:flex;flex-direction:column;gap:9px;animation:slidein .16s ease-out}
+
+/* ---------- bottom chrome ---------- */
+#bottombar{position:absolute;left:0;right:0;bottom:0;height:62px;z-index:20;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding-bottom:5px;gap:4px;border-top:1px solid var(--line-soft)}
+#hint{font-size:9.5px;letter-spacing:.18em;color:var(--mut);white-space:nowrap}
+#hint b{color:var(--c1);font-weight:400}
+#hint.warn b{color:var(--c2)}
+#dots{display:flex;align-items:center;gap:10px}
+#dots .dot{width:8px;height:8px;border:1px solid var(--line);cursor:pointer;
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:transparent;transition:all .15s}
+#dots .dot.on{background:var(--c1);border-color:var(--c1);box-shadow:var(--glow-hard)}
+#scr-name{font-family:var(--disp);font-size:9px;letter-spacing:.30em;color:var(--c1)}
+#fence{font-size:8px;letter-spacing:.26em;color:#5a6c7c}
+
+/* ---------- MISSION ---------- */
+#fs-block{padding:8px 10px 9px}
+.fs-row{display:flex;align-items:center;gap:9px;margin-top:6px}
+.fs-nm{width:52px;font-family:var(--disp);font-size:10px;letter-spacing:.18em}
+.fs-row.blu .fs-nm{color:var(--blu)}.fs-row.op .fs-nm{color:var(--op)}
+.fs-bar{flex:1;height:7px;border:1px solid var(--line-soft);position:relative}
+.fs-fill{position:absolute;inset:1px auto 1px 1px;transition:width .6s}
+.fs-row.blu .fs-fill{background:var(--blu);box-shadow:0 0 8px rgba(95,184,255,.6)}
+.fs-row.op .fs-fill{background:var(--op);box-shadow:0 0 8px rgba(255,122,104,.6)}
+.fs-n{width:40px;text-align:right;font-size:10px;color:var(--ink);font-variant-numeric:tabular-nums}
+#th-card{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer}
+#th-card .fbl{font-family:var(--disp);font-size:13px;letter-spacing:.22em;color:var(--ink)}
+#th-card .sub{font-size:9px;letter-spacing:.14em;color:var(--mut)}
+#th-card .cue{margin-left:auto;font-size:9px;letter-spacing:.12em;color:var(--mut);
+  border:1px solid var(--line-soft);padding:3px 7px}
+#log-block{flex:1;display:flex;flex-direction:column;padding:8px 10px 6px;min-height:0}
+#log{flex:1;margin-top:6px;overflow:hidden;line-height:17px;font-size:10.5px}
+#log .ln{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#log .t{color:#5a6c7c;margin-right:8px;font-variant-numeric:tabular-nums}
+#log .sys{color:var(--c1)}#log .warn{color:var(--c2)}
+#log .crit{color:var(--alert)}#log .good{color:var(--ok)}
+#log .ln:first-child{text-shadow:0 0 8px currentColor}
+
+/* ---------- TARGET ---------- */
+#tgt-grid{flex:1;display:grid;grid-template-columns:1fr 168px;gap:12px;min-height:0}
+#tgt-card{padding:12px 16px;display:flex;flex-direction:column;cursor:pointer}
+#tgt-card .rows{flex:1;display:grid;grid-template-columns:auto 1fr;gap:11px 12px;
+  align-content:center}
+#tgt-card .rows .k{border-bottom:1px solid rgba(83,230,255,.08);padding-bottom:9px}
+#tgt-card .rows .v{border-bottom:1px solid rgba(83,230,255,.08);padding-bottom:9px}
+#tgt-card .v{text-align:right;font-size:14px;text-shadow:0 0 8px rgba(120,220,255,.25)}
+#tgt-id{font-family:var(--disp);font-size:16px;letter-spacing:.24em;color:var(--ink)}
+#tgt-state{margin-top:8px;padding:6px 8px;font-size:10px;letter-spacing:.26em;text-align:center;
+  border:1px dashed var(--line-soft);color:var(--mut)}
+#tgt-state.scanning{color:var(--c1);border-color:var(--line);animation:blink 1s infinite}
+#tgt-state.locked{color:var(--c2);border-style:solid;border-color:rgba(255,180,84,.6);
+  text-shadow:0 0 10px rgba(255,180,84,.5)}
+#roe-line{margin-top:7px;font-size:9px;letter-spacing:.14em;color:var(--c2);text-align:center}
+#ret-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+#reticle{width:150px;height:150px}
+#ret-ring{transform-origin:75px 75px;animation:spin 14s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#reticle .rs{stroke:var(--c1);fill:none}
+#reticle.locked .rs{stroke:var(--c2)}
+#reticle.locked #ret-ring{animation:none}
+#ret-lbl{font-size:9px;letter-spacing:.24em;color:var(--mut)}
+#sector-tabs{display:flex;gap:6px}
+.sec-tab{flex:1;text-align:center;padding:6px 2px;font-family:var(--disp);font-size:9.5px;
+  letter-spacing:.18em;color:var(--mut);border:1px solid var(--line-soft)}
+.sec-tab.on{color:var(--c1-hi);border-color:var(--c1);box-shadow:var(--glow);
+  text-shadow:0 0 8px var(--c1-dim)}
+
+/* ---------- STRIKE ---------- */
+#wpn-list{display:flex;flex-direction:column;gap:6px}
+.wpn{display:flex;align-items:center;gap:11px;padding:8px 12px;cursor:pointer}
+.wpn svg{width:26px;height:26px;flex:none;stroke:var(--c1);fill:none;opacity:.8}
+.wpn .nm{font-family:var(--disp);font-size:12.5px;letter-spacing:.18em;color:var(--ink)}
+.wpn .sb{font-size:8.5px;letter-spacing:.10em;color:var(--mut);margin-top:2px}
+.wpn .hk{margin-left:auto;color:var(--mut);font-size:9px;border:1px solid var(--line-soft);
+  padding:1px 6px}
+.wpn.focus .hk{color:var(--c1);border-color:var(--line)}
+.wpn.armed svg{stroke:var(--c2)}
+#auth-rail{display:flex;align-items:center;gap:6px;padding:0 2px}
+.astate{flex:1;text-align:center;padding:6px 2px;font-family:var(--disp);font-size:9.5px;
+  letter-spacing:.20em;color:#44586a;border:1px solid rgba(83,230,255,.10)}
+.astate.lit{color:#031318;background:var(--c1);border-color:var(--c1);
+  box-shadow:var(--glow-hard);font-weight:700}
+.astate.lit.hot{background:var(--c2);border-color:var(--c2);
+  box-shadow:0 0 4px rgba(255,180,84,.9),0 0 18px rgba(255,180,84,.55)}
+.astate.done{color:var(--c1);border-color:var(--line)}
+.arrow{color:#44586a;font-size:9px;flex:none}
+#auth-status{padding:9px 12px;text-align:center}
+#as-main{font-family:var(--disp);font-size:14px;letter-spacing:.30em;color:var(--mut)}
+#as-main.armed{color:var(--c2);animation:blink 1.1s infinite;text-shadow:0 0 12px rgba(255,180,84,.5)}
+#as-main.away{color:var(--c1-hi);text-shadow:0 0 12px var(--c1-dim)}
+#as-main.splash{color:var(--ok);text-shadow:0 0 12px rgba(87,255,160,.5)}
+#as-sub{margin-top:5px;font-size:9.5px;letter-spacing:.16em;color:var(--mut);
+  font-variant-numeric:tabular-nums}
+#as-sub b{color:var(--ink);font-weight:400}
+#rel-params{padding:9px 12px 11px}
+#rp-rows{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:9px 14px;margin-top:8px}
+#rp-rows .v{text-align:right;font-size:11.5px}
+
+/* ---------- FORCES ---------- */
+#orbat{padding:8px 12px}
+#orbat table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+#orbat th{font-family:var(--disp);font-size:9.5px;letter-spacing:.20em;font-weight:400;
+  padding:2px 4px 6px;border-bottom:1px solid var(--line-soft)}
+#orbat th.b{color:var(--blu);text-align:left}
+#orbat th.o{color:var(--op);text-align:right}
+#orbat th.c{color:var(--mut)}
+#orbat td{padding:6px 4px;font-size:11px}
+#orbat td.b{color:var(--ink);text-align:left}
+#orbat td.o{color:var(--ink);text-align:right}
+#orbat td.c{color:var(--mut);text-align:center;font-size:9px;letter-spacing:.18em;
+  font-family:var(--disp)}
+#orbat td .dead{color:#5a6c7c;font-size:9px}
+#orbat.fb td.b,#orbat.fb th.b{text-shadow:0 0 8px rgba(95,184,255,.55)}
+#orbat.fo td.o,#orbat.fo th.o{text-shadow:0 0 8px rgba(255,122,104,.55)}
+#wreck-row{display:flex;justify-content:space-between;padding:9px 12px;
+  border:1px solid var(--line-soft);font-size:10px;letter-spacing:.14em}
+#wreck-row b{color:var(--alert);font-weight:400;text-shadow:0 0 8px rgba(255,93,110,.4)}
+#sectors-block{padding:8px 12px 13px}
+.sx-row{display:flex;align-items:center;gap:10px;margin-top:13px}
+.sx-nm{width:110px;font-family:var(--disp);font-size:9.5px;letter-spacing:.16em;color:var(--ink)}
+.sx-bar{flex:1;height:6px;border:1px solid var(--line-soft);position:relative;overflow:hidden}
+.sx-blu{position:absolute;top:1px;bottom:1px;left:1px;background:var(--blu)}
+.sx-op{position:absolute;top:1px;bottom:1px;right:1px;background:var(--op)}
+.sx-st{width:118px;text-align:right;font-size:8.5px;letter-spacing:.14em}
+.sx-st.good{color:var(--ok)}.sx-st.warn{color:var(--c2)}.sx-st.bad{color:var(--alert)}
+
+/* ---------- boot overlay ---------- */
+#boot{position:absolute;inset:0;z-index:50;background:#000;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:26px;
+  transition:opacity .5s}
+#boot.off{opacity:0;pointer-events:none}
+#boot-brand{font-family:var(--disp);font-size:24px;letter-spacing:.44em;color:var(--ink);
+  text-shadow:0 0 22px var(--c1-dim);padding-left:.44em}
+#boot-brand b{color:var(--c1)}
+#boot-rule{width:220px;height:1px;background:var(--line);box-shadow:var(--glow)}
+#boot-lines{font-size:10px;line-height:20px;letter-spacing:.08em;color:var(--mut);
+  min-height:80px;width:430px}
+#boot-lines .bl{visibility:hidden;white-space:pre}
+#boot-lines .bl.show{visibility:visible}
+#boot-lines .ok{color:var(--ok)}
+#boot-ready{font-family:var(--disp);font-size:10px;letter-spacing:.4em;color:var(--c1);
+  opacity:0;transition:opacity .3s}
+#boot-ready.show{opacity:1;animation:blink 1s infinite}
+</style>
+</head>
+<body>
+<div id="lens">
+  <div id="stage">
+
+    <!-- persistent top strip -->
+    <div id="topstrip">
+      <div id="brand">AEGIS <b>UPLINK</b></div>
+      <div id="th-wrap">
+        <span class="k">THEATER</span>
+        <span id="th-name">DENVER</span>
+      </div>
+      <div id="clock">--:--:--Z</div>
+    </div>
+
+    <div id="screens">
+
+      <!-- 01 MISSION -->
+      <section class="screen" id="scr-0">
+        <div class="cut" id="fs-block">
+          <div class="dtitle">FORCE STRENGTH<span class="tag" id="fs-tag">ENGAGEMENT ACTIVE</span></div>
+          <div class="fs-row blu"><span class="fs-nm">BLUFOR</span>
+            <span class="fs-bar"><span class="fs-fill" id="fs-blu" style="width:88%"></span></span>
+            <span class="fs-n" id="fsn-blu">–</span></div>
+          <div class="fs-row op"><span class="fs-nm">OPFOR</span>
+            <span class="fs-bar"><span class="fs-fill" id="fs-op" style="width:86%"></span></span>
+            <span class="fs-n" id="fsn-op">–</span></div>
+        </div>
+        <div class="focusable cut" id="th-card">
+          <div>
+            <div class="fbl" id="thc-name">DENVER</div>
+            <div class="sub" id="thc-sub">FRONT RANGE</div>
+          </div>
+          <span class="cue">&#9166; CYCLE THEATER</span>
+        </div>
+        <div class="cut" id="log-block">
+          <div class="dtitle">MISSION LOG<span class="tag">LIVE · SIM</span></div>
+          <div id="log"></div>
+        </div>
+      </section>
+
+      <!-- 02 TARGET -->
+      <section class="screen" id="scr-1">
+        <div id="sector-tabs">
+          <div class="sec-tab" data-s="0">ALPHA · CITY</div>
+          <div class="sec-tab" data-s="1">BRAVO · HILLS</div>
+          <div class="sec-tab" data-s="2">CHARLIE · FLANK</div>
+        </div>
+        <div id="tgt-grid">
+          <div class="focusable cut" id="tgt-card">
+            <div class="rows">
+              <span class="k">DESIGNATE</span><span class="v" id="tgt-id">–</span>
+              <span class="k">GRID</span><span class="v" id="tgt-gr">–</span>
+              <span class="k">LAT</span><span class="v" id="tgt-lat">–</span>
+              <span class="k">LON</span><span class="v" id="tgt-lon">–</span>
+              <span class="k">ELEV</span><span class="v" id="tgt-elev">–</span>
+              <span class="k">SECTOR</span><span class="v" id="tgt-sec">–</span>
+            </div>
+            <div id="tgt-state" class="locked">LOCKED</div>
+            <div id="roe-line">ROE: WEAPONS TIGHT · PID REQUIRED · COLLATERAL HIGH</div>
+          </div>
+          <div id="ret-wrap">
+            <svg id="reticle" viewBox="0 0 150 150" class="locked">
+              <g id="ret-ring">
+                <circle class="rs" cx="75" cy="75" r="60" stroke-width="1" stroke-dasharray="18 8"/>
+                <path class="rs" d="M75 8 L75 22 M75 128 L75 142 M8 75 L22 75 M128 75 L142 75" stroke-width="1.5"/>
+              </g>
+              <circle class="rs" cx="75" cy="75" r="34" stroke-width="1"/>
+              <path class="rs" d="M75 55 L75 68 M75 82 L75 95 M55 75 L68 75 M82 75 L95 75" stroke-width="1"/>
+              <circle class="rs" cx="75" cy="75" r="2.5" fill="currentColor" stroke="none"/>
+            </svg>
+            <div id="ret-lbl">TRACK QUALITY 0.94</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 STRIKE -->
+      <section class="screen" id="scr-2">
+        <div class="dtitle">STRIKE PACKAGE<span class="tag" id="stk-tgt">TGT –</span></div>
+        <div id="wpn-list"></div>
+        <div id="auth-rail">
+          <div class="astate" data-a="0">STAGED</div><span class="arrow">&#9656;</span>
+          <div class="astate" data-a="1">DUAL-KEY</div><span class="arrow">&#9656;</span>
+          <div class="astate" data-a="2">AWAY</div><span class="arrow">&#9656;</span>
+          <div class="astate" data-a="3">SPLASH</div>
+        </div>
+        <div class="cut" id="auth-status">
+          <div id="as-main">SAFE · SELECT SYSTEM</div>
+          <div id="as-sub">DUAL-KEY REQUIRED FOR RELEASE · SIM SANDBOX</div>
+        </div>
+        <div class="cut" id="rel-params">
+          <div class="dtitle">RELEASE PARAMETERS<span class="tag">SIM SANDBOX</span></div>
+          <div id="rp-rows">
+            <span class="k">SYSTEM</span><span class="v" id="rp-sys">–</span>
+            <span class="k">FLIGHT ETA</span><span class="v" id="rp-eta">–</span>
+            <span class="k">TRACK</span><span class="v" id="rp-trk">–</span>
+            <span class="k">GRID</span><span class="v" id="rp-gr">–</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 FORCES -->
+      <section class="screen" id="scr-3">
+        <div class="cut" id="orbat">
+          <div class="dtitle">ORBAT<span class="tag">&#9652;&#9662; FACTION</span></div>
+          <table>
+            <thead><tr><th class="b">BLUFOR</th><th class="c">CLASS</th><th class="o">OPFOR</th></tr></thead>
+            <tbody id="orbat-body"></tbody>
+          </table>
+        </div>
+        <div id="wreck-row"><span class="k">WRECKS · THEATER TOTAL</span><b id="wreck-n">0</b></div>
+        <div class="cut" id="sectors-block">
+          <div class="dtitle">SECTOR STATUS<span class="tag">THREE-AXIS</span></div>
+          <div class="sx-row"><span class="sx-nm">ALPHA · CITY</span>
+            <span class="sx-bar"><span class="sx-blu" id="sxb-0"></span><span class="sx-op" id="sxo-0"></span></span>
+            <span class="sx-st" id="sxs-0">–</span></div>
+          <div class="sx-row"><span class="sx-nm">BRAVO · HILLS</span>
+            <span class="sx-bar"><span class="sx-blu" id="sxb-1"></span><span class="sx-op" id="sxo-1"></span></span>
+            <span class="sx-st" id="sxs-1">–</span></div>
+          <div class="sx-row"><span class="sx-nm">CHARLIE · FLANK</span>
+            <span class="sx-bar"><span class="sx-blu" id="sxb-2"></span><span class="sx-op" id="sxo-2"></span></span>
+            <span class="sx-st" id="sxs-2">–</span></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- persistent bottom chrome -->
+    <div id="bottombar">
+      <div id="hint"></div>
+      <div id="dots">
+        <span id="scr-name">MISSION</span>
+        <span class="dot on" data-d="0"></span><span class="dot" data-d="1"></span>
+        <span class="dot" data-d="2"></span><span class="dot" data-d="3"></span>
+      </div>
+      <div id="fence">SIM · SYNTHETIC RANGE · NO LIVE-WEAPON INTERFACE</div>
+    </div>
+
+    <!-- boot -->
+    <div id="boot">
+      <div id="boot-brand">AEGIS <b>UPLINK</b></div>
+      <div id="boot-rule"></div>
+      <div id="boot-lines">
+        <div class="bl">NEURAL HUD ........ META RAY-BAN DISPLAY <span class="ok">[SIM · DAT-READY]</span></div>
+        <div class="bl">INPUT ............. NEURAL BAND &#9656; D-PAD + ENTER <span class="ok">[OK]</span></div>
+        <div class="bl">UPLINK ............ LOCAL · NO EXTERNAL FEED <span class="ok">[OK]</span></div>
+        <div class="bl">ROE ............... TRAINING SIMULATION — SANDBOX ONLY <span class="ok">[OK]</span></div>
+      </div>
+      <div id="boot-ready">ANY KEY</div>
+    </div>
+
+    <div id="scanlines"></div>
+  </div>
+  <div id="bezel-cap">RAY-BAN DISPLAY · 600 × 600 PREVIEW</div>
+</div>
+
+<script>
+'use strict';
+/* ================= seeded PRNG — the sim feels deterministic ============= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296}}
+const rng=mulberry32(0xA361C0DE);
+const pick=arr=>arr[(rng()*arr.length)|0];
+const $=id=>document.getElementById(id);
+
+/* ================= theaters (from the AEGIS atlas) ======================= */
+const THEATERS=[
+  {name:'DENVER',       sub:'FRONT RANGE',      lat: 39.7392,lon:-104.9903,e0:1529,e1:2667},
+  {name:'TOKYO',        sub:'KANTO PLAIN',      lat: 35.6762,lon: 139.6503,e0:   2,e1: 153},
+  {name:'PARIS',        sub:'SEINE BASIN',      lat: 48.8566,lon:   2.3522,e0:  31,e1: 170},
+  {name:'HONG KONG',    sub:'VICTORIA HARBOUR', lat: 22.3193,lon: 114.1694,e0:   4,e1: 568},
+  {name:'SAN FRANCISCO',sub:'BAY PENINSULA',    lat: 37.7749,lon:-122.4194,e0:   2,e1: 547},
+  {name:'DUBAI',        sub:'ARABIAN GULF',     lat: 25.2048,lon:  55.2708,e0:   2,e1: 152},
+  {name:'NEW YORK',     sub:'MANHATTAN',        lat: 40.7580,lon: -73.9855,e0:   1,e1: 202},
+  {name:'LONDON',       sub:'THAMES',           lat: 51.5074,lon:  -0.1278,e0:   1,e1: 207},
+];
+const SECTORS=['ALPHA · CITY','BRAVO · HILLS','CHARLIE · FLANK'];
+
+/* ================= weapons (same board as the command table) ============= */
+const WEAPONS=[
+  {id:'jassm', name:'JASSM-ER',       sub:'AGM-158B · STANDOFF CRUISE',    eta:3.4, kinetic:true,
+   ico:'M3 13 L20 13 L26 10 M20 13 L16 8 M6 16 L14 16'},
+  {id:'ucav',  name:'VECTIS UCAV',    sub:'SKUNK WORKS · AUTONOMOUS STRIKE',eta:4.2, kinetic:true,
+   ico:'M13 4 L23 20 L13 16 L3 20 Z'},
+  {id:'c130',  name:'C-130J AIRDROP', sub:'RESUPPLY PALLET · 2,400 KG',    eta:5.0, kinetic:false,
+   ico:'M3 12 L23 12 M13 5 L13 19 M8 8 L8 16 M18 8 L18 16'},
+  {id:'recon', name:'PATHFINDER TEAM',sub:'4-MAN ISR + STALKER VXE',       eta:4.6, kinetic:false,
+   ico:'M13 13 m-8 0 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 M13 2 L13 7 M13 19 L13 24 M2 13 L7 13 M19 13 L24 13'},
+];
+
+/* ================= sim state ============================================ */
+const ORBAT_CLASSES=[
+  ['MBT', 8,10],['IFV',10,12],['APC', 8, 6],['SPH', 4, 6],
+  ['MLRS',2, 2],['INF',24,28],['ATK HELO',2, 1],
+];
+const S={
+  scr:0, theater:0, wpn:0,
+  auth:'idle',            /* idle | staged | dualkey | away | splash */
+  eta:0, authTimers:[],
+  tgt:null, sector:0, scanT:0,
+  facFocus:0,             /* 0 BLUFOR · 1 OPFOR (FORCES highlight)   */
+  orbat:ORBAT_CLASSES.map(c=>({cls:c[0],
+    blu:{alive:c[1],total:c[1]},op:{alive:c[2],total:c[2]}})),
+  wrecks:0,
+  sx:[0.52,0.38,0.66],    /* blu control share per sector            */
+  log:[],
+};
+try{const t=parseInt(localStorage.getItem('aegis-uplink-theater'),10);
+  if(t>=0&&t<THEATERS.length)S.theater=t;}catch(e){}
+
+/* opening losses — the battle is already running when we join it */
+(function(){for(let i=0;i<15;i++){const side=rng()<.6?'op':'blu';
+  const rows=S.orbat.filter(r=>r[side].alive>1);
+  if(!rows.length)continue;pick(rows)[side].alive--;S.wrecks++;}})();
+
+/* ================= tiny helpers ========================================= */
+function zclock(){const d=new Date();
+  return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')
+    +':'+String(d.getUTCSeconds()).padStart(2,'0')+'Z';}
+function fmtLL(lat,lon){return[
+  Math.abs(lat).toFixed(4)+'° '+(lat>=0?'N':'S'),
+  Math.abs(lon).toFixed(4)+'° '+(lon<=0?'W':'E')];}
+function strength(side){let a=0,t=0;
+  for(const r of S.orbat){a+=r[side].alive;t+=r[side].total}return{a,t,pct:a/t*100}}
+
+/* ================= mission log ========================================== */
+const LOG_MAX=17;
+function log(txt,kind){S.log.unshift({t:zclock(),txt,kind:kind||'sys'});
+  if(S.log.length>40)S.log.length=40;renderLog();}
+function renderLog(){const el=$('log');
+  el.innerHTML=S.log.slice(0,LOG_MAX).map(l=>
+    '<div class="ln '+l.kind+'"><span class="t">'+l.t+'</span>'+l.txt+'</div>').join('');}
+
+/* ================= targets ============================================== */
+let tgtSeq=4470;
+function designate(silent){const th=THEATERS[S.theater];const r=mulberry32(0xBEEF^(S.theater*7919)^(++tgtSeq));
+  S.tgt={
+    id:'TGT-'+tgtSeq,
+    gr:'GR '+String(10000+(r()*89999|0))+' '+String(10000+(r()*89999|0)),
+    lat:th.lat+(r()-.5)*.34, lon:th.lon+(r()-.5)*.34,
+    elev:Math.round(th.e0+r()*(th.e1-th.e0)),
+    sector:S.sector, locked:false, q:(0.90+r()*0.09).toFixed(2),
+  };
+  clearTimeout(S.scanT);
+  S.scanT=setTimeout(()=>{if(!S.tgt)return;S.tgt.locked=true;
+    log('TRACK &#9656; '+S.tgt.id+' LOCKED · '+S.tgt.gr,'warn');renderTarget();renderStrike();},1400);
+  if(!silent)log('ISR &#9656; DESIGNATE '+SECTORS[S.sector]+' — SCANNING','sys');
+  renderTarget();renderStrike();}
+
+function renderTarget(){const t=S.tgt;if(!t)return;const ll=fmtLL(t.lat,t.lon);
+  $('tgt-id').textContent=t.id;$('tgt-gr').textContent=t.gr;
+  $('tgt-lat').textContent=ll[0];$('tgt-lon').textContent=ll[1];
+  $('tgt-elev').textContent=t.elev+' M MSL';$('tgt-sec').textContent=SECTORS[t.sector];
+  const st=$('tgt-state');
+  st.textContent=t.locked?'LOCKED':'SCANNING';
+  st.className=t.locked?'locked':'scanning';
+  $('reticle').setAttribute('class',t.locked?'locked':'');
+  $('ret-lbl').textContent=t.locked?'TRACK QUALITY '+t.q:'ACQUIRING…';
+  document.querySelectorAll('.sec-tab').forEach((el,i)=>
+    el.classList.toggle('on',i===S.sector));}
+
+/* ================= strike / dual-key state machine ====================== */
+function renderStrike(){
+  const list=$('wpn-list');
+  if(!list.childElementCount){
+    WEAPONS.forEach((w,i)=>{const d=document.createElement('div');
+      d.className='wpn focusable cut';d.dataset.w=i;
+      d.innerHTML='<svg viewBox="0 0 26 26"><path d="'+w.ico+'" stroke-width="1.4"/></svg>'
+        +'<div><div class="nm fbl">'+w.name+'</div><div class="sb">'+w.sub+'</div></div>'
+        +'<span class="hk">0'+(i+1)+'</span>';
+      d.addEventListener('click',()=>{if(S.auth==='idle'){S.wpn=i;renderStrike();}});
+      list.appendChild(d);});
+  }
+  document.querySelectorAll('.wpn').forEach((el,i)=>{
+    el.classList.toggle('focus',i===S.wpn&&S.scr===2&&S.auth==='idle');
+    el.classList.toggle('armed',i===S.wpn&&S.auth!=='idle');});
+  const phase={idle:-1,staged:0,dualkey:1,away:2,splash:3}[S.auth];
+  document.querySelectorAll('.astate').forEach((el,i)=>{
+    el.classList.toggle('lit',i===phase);
+    el.classList.toggle('hot',i===phase&&(S.auth==='staged'||S.auth==='dualkey'));
+    el.classList.toggle('done',i<phase);});
+  const w=WEAPONS[S.wpn],main=$('as-main'),sub=$('as-sub');
+  $('stk-tgt').textContent=S.tgt?(S.tgt.id+' · '+(S.tgt.locked?'LOCKED':'SCANNING')):'NO TRACK';
+  $('rp-sys').textContent=w.name;
+  $('rp-eta').textContent=(S.auth==='away'?S.eta:w.eta).toFixed(1)+' S';
+  $('rp-trk').textContent=S.tgt?S.tgt.id+(S.tgt.locked?' · LOCKED':' · SCAN'):'—';
+  $('rp-gr').textContent=S.tgt?S.tgt.gr:'—';
+  if(S.auth==='idle'){main.textContent='SAFE · SELECT SYSTEM';main.className='';
+    sub.innerHTML='DUAL-KEY REQUIRED FOR RELEASE · SIM SANDBOX';}
+  else if(S.auth==='staged'){main.textContent='ARMED · KEY 1 OF 2';main.className='armed';
+    sub.innerHTML='<b>&#9166;</b> AUTHORIZE — <b>&#9666; &#9656;</b> STANDDOWN';}
+  else if(S.auth==='dualkey'){main.textContent='DUAL-KEY CONFIRMED';main.className='armed';
+    sub.innerHTML='RELEASE CONSENT VERIFIED · SIM SANDBOX';}
+  else if(S.auth==='away'){main.textContent=w.name+' AWAY';main.className='away';
+    sub.innerHTML='ETA <b>'+S.eta.toFixed(1)+' S</b> · '+(S.tgt?S.tgt.gr:'');}
+  else if(S.auth==='splash'){main.textContent=w.kinetic?'SPLASH':'COMPLETE';main.className='splash';
+    sub.innerHTML='BDA POSTED TO MISSION LOG';}
+  renderHint();}
+
+function clearAuthTimers(){S.authTimers.forEach(t=>clearTimeout(t));S.authTimers=[];}
+function standdown(){if(S.auth==='staged'){clearAuthTimers();S.auth='idle';
+  log('AUTH &#9656; STANDDOWN — KEY WITHDRAWN','warn');renderStrike();}}
+
+function strikeEnter(){
+  const w=WEAPONS[S.wpn];
+  if(S.auth==='idle'){
+    if(!S.tgt||!S.tgt.locked){log('AUTH &#9656; NO LOCK — DESIGNATE ON TARGET','warn');return;}
+    S.auth='staged';
+    log('AUTH &#9656; '+w.name+' STAGED · KEY 1/2 · SIM','warn');renderStrike();return;}
+  if(S.auth!=='staged')return;
+  /* key 2 — commit. machine runs even if the wearer navigates away */
+  S.auth='dualkey';
+  log(w.kinetic?'AUTH &#9656; DUAL-KEY CONFIRMED · SIM SANDBOX'
+               :'AUTH &#9656; TASKING CONFIRMED · SIM SANDBOX','crit');
+  renderStrike();
+  S.authTimers.push(setTimeout(()=>{
+    S.auth='away';S.eta=w.eta;
+    const away={jassm:'RIFLE &#9656; JASSM-ER AWAY · ETA 3.4 S',
+      ucav:'VECTIS &#9656; INGRESS 240 KT · AUTONOMY LEVEL 4',
+      c130:'HERKY &#9656; C-130J ON FINAL · DZ MARKED',
+      recon:'PATHFINDER &#9656; INSERTION VECTOR CONFIRMED'}[w.id];
+    log(away,w.kinetic?'crit':'sys');renderStrike();
+    const tick=setInterval(()=>{S.eta=Math.max(0,S.eta-.1);
+      if(S.scr===2)renderStrike();
+      if(S.eta<=0){clearInterval(tick);splash(w);}},100);
+    S.authTimers.push(tick);
+  },700));}
+
+function splash(w){
+  S.auth='splash';
+  const g=S.tgt?S.tgt.gr:'GR —';
+  if(w.id==='jassm'){const ll=S.tgt?fmtLL(S.tgt.lat,S.tgt.lon):['',''];
+    log('SPLASH &#9656; IMPACT '+ll[0]+' '+ll[1],'crit');
+    S.authTimers.push(setTimeout(()=>log('BDA &#9656; '+g+' NEUTRALIZED · SIM','good'),800));
+    casualties('op',3);}
+  else if(w.id==='ucav'){
+    log('SPLASH &#9656; DIRECT HIT · CEP 1.1 M','crit');
+    S.authTimers.push(setTimeout(()=>{log('BDA &#9656; '+g+' NEUTRALIZED · SIM','good');
+      log('VECTIS &#9656; EGRESS CLEAN · RTB','good');},800));
+    casualties('op',2);}
+  else if(w.id==='c130'){
+    log('SPLASH &#9656; PALLET DOWN · CHUTES GOOD','sys');
+    S.authTimers.push(setTimeout(()=>log('BDA &#9656; RESUPPLY COMPLETE · 2,400 KG ON DZ','good'),800));}
+  else{
+    log('PATHFINDER &#9656; 4/4 IN POSITION · AWAITING ORDERS','good');
+    S.authTimers.push(setTimeout(()=>log('ISR &#9656; STALKER VXE ORBIT ESTABLISHED','sys'),800));}
+  renderStrike();
+  S.authTimers.push(setTimeout(()=>{S.auth='idle';
+    if(w.kinetic&&S.tgt){S.tgt.locked=false;designate(true);/* old track gone — re-acquire */}
+    renderStrike();},2200));}
+
+/* ================= forces / ORBAT ======================================= */
+function casualties(side,n){
+  for(let i=0;i<n;i++){const rows=S.orbat.filter(r=>r[side].alive>0);
+    if(!rows.length)break;pick(rows)[side].alive--;S.wrecks++;}
+  if(side==='op')S.sx[S.tgt?S.tgt.sector:0]=Math.min(.9,S.sx[S.tgt?S.tgt.sector:0]+.05);
+  renderForces();renderBars();}
+
+function renderBars(){const b=strength('blu'),o=strength('op');
+  $('fs-blu').style.width=b.pct.toFixed(1)+'%';$('fs-op').style.width=o.pct.toFixed(1)+'%';
+  $('fsn-blu').textContent=b.a+'/'+b.t;$('fsn-op').textContent=o.a+'/'+o.t;}
+
+function renderForces(){
+  $('orbat').className='cut '+(S.facFocus===0?'fb':'fo');
+  $('orbat-body').innerHTML=S.orbat.map(r=>
+    '<tr><td class="b">'+r.blu.alive+'<span class="dead">/'+r.blu.total+'</span></td>'
+    +'<td class="c">'+r.cls+'</td>'
+    +'<td class="o">'+r.op.alive+'<span class="dead">/'+r.op.total+'</span></td></tr>').join('');
+  $('wreck-n').textContent=S.wrecks;
+  S.sx.forEach((v,i)=>{
+    $('sxb-'+i).style.width=(v*100-2)+'%';$('sxo-'+i).style.width=((1-v)*100-2)+'%';
+    const st=$('sxs-'+i);
+    if(v>.60){st.textContent='BLUFOR ADVANCING';st.className='sx-st good';}
+    else if(v<.42){st.textContent='OPFOR PRESSING';st.className='sx-st bad';}
+    else{st.textContent='CONTESTED';st.className='sx-st warn';}});}
+
+/* ================= ambient sim ticks ==================================== */
+const AMBIENT=[
+  ()=>'WX &#9656; WINDS 240/15KT · CAVU',
+  ()=>'CIV &#9656; '+(30+(rng()*40|0))+' TRACKS ACTIVE · PATTERN NOMINAL',
+  ()=>'ROE &#9656; WEAPONS TIGHT · PID REQUIRED',
+  ()=>'ISR &#9656; KEYHOLE 7 PASS COMPLETE · NTR',
+  ()=>'EW &#9656; SPECTRUM CLEAN · NO JAMMING',
+  ()=>'CAP &#9656; VECTIS CAP 2 ON STATION · ANGELS 18',
+  ()=>'CITY &#9656; POWER LOAD '+(55+(rng()*22|0))+'% · GRID NOMINAL',
+  ()=>'NET &#9656; UPLINK LOCAL · NO EXTERNAL FEED',
+  ()=>'LOG &#9656; CLASS III/V AT 82% · RESUPPLY QUEUED',
+];
+setInterval(()=>{if(booted)log(pick(AMBIENT)(),'sys');},8200);
+
+setInterval(()=>{ /* the battle grinds on */
+  if(!booted)return;
+  const roll=rng();let side=null;
+  if(roll<.42)side='op';else if(roll<.72)side='blu';
+  if(!side)return;
+  if(strength(side).pct<42)return;      /* neither side collapses in the sim */
+  const rows=S.orbat.filter(r=>r[side].alive>1);if(!rows.length)return;
+  const row=pick(rows);row[side].alive--;S.wrecks++;
+  const sec=pick(SECTORS);
+  log('CONTACT &#9656; '+sec+' — '+(side==='op'?'OPFOR':'BLUFOR')+' '+row.cls+' DOWN',
+      side==='op'?'good':'crit');
+  const i=SECTORS.indexOf(sec);
+  S.sx[i]=Math.max(.1,Math.min(.9,S.sx[i]+(side==='op'?.03:-.03)));
+  renderForces();renderBars();
+},6700);
+
+setInterval(()=>{$('clock').textContent=zclock();},500);
+
+/* ================= navigation =========================================== */
+const SCREEN_NAMES=['MISSION','TARGET','STRIKE','FORCES'];
+const HINTS=[
+  '&#9666; &#9656; <b>SCREEN</b> &nbsp;·&nbsp; &#9166; <b>CYCLE THEATER</b>',
+  '&#9666; &#9656; <b>SCREEN</b> &nbsp;·&nbsp; &#9652; &#9662; <b>SECTOR</b> &nbsp;·&nbsp; &#9166; <b>DESIGNATE</b>',
+  '&#9666; &#9656; <b>SCREEN</b> &nbsp;·&nbsp; &#9652; &#9662; <b>SYSTEM</b> &nbsp;·&nbsp; &#9166; <b>ARM</b>',
+  '&#9666; &#9656; <b>SCREEN</b> &nbsp;·&nbsp; &#9652; &#9662; <b>FACTION</b> &nbsp;·&nbsp; &#9166; <b>SITREP</b>',
+];
+function renderHint(){const h=$('hint');
+  if(S.scr===2&&S.auth==='staged'){h.className='warn';
+    h.innerHTML='&#9166; <b>AUTHORIZE — KEY 2 OF 2</b> &nbsp;·&nbsp; &#9666; &#9656; <b>STANDDOWN</b>';}
+  else{h.className='';h.innerHTML=HINTS[S.scr];}}
+
+function gotoScreen(n){
+  standdown();                           /* leaving STRIKE mid-arm = safe   */
+  S.scr=(n+4)%4;
+  document.querySelectorAll('.screen').forEach((el,i)=>el.classList.toggle('on',i===S.scr));
+  document.querySelectorAll('#dots .dot').forEach((el,i)=>el.classList.toggle('on',i===S.scr));
+  $('scr-name').textContent=SCREEN_NAMES[S.scr];
+  $('th-card').classList.toggle('focus',S.scr===0);
+  $('tgt-card').classList.toggle('focus',S.scr===1);
+  renderHint();
+  if(S.scr===1)renderTarget();
+  if(S.scr===2)renderStrike();
+  if(S.scr===3)renderForces();}
+
+function setTheater(n){
+  S.theater=(n+THEATERS.length)%THEATERS.length;
+  try{localStorage.setItem('aegis-uplink-theater',String(S.theater));}catch(e){}
+  const th=THEATERS[S.theater];
+  $('th-name').textContent=th.name;
+  $('thc-name').textContent=th.name;$('thc-sub').textContent=th.sub;
+  log('THEATER &#9656; '+th.name+' · '+th.sub+' — SYNC LOCAL','warn');
+  designate(true);}
+
+function onKey(e){
+  const k=e.key;
+  if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'].includes(k))return;
+  e.preventDefault();
+  if(!booted){finishBoot();return;}
+  if(k==='ArrowLeft'){gotoScreen(S.scr-1);return;}
+  if(k==='ArrowRight'){gotoScreen(S.scr+1);return;}
+  if(S.scr===0){ if(k==='Enter')setTheater(S.theater+1); }
+  else if(S.scr===1){
+    if(k==='ArrowUp'){S.sector=(S.sector+2)%3;designate();}
+    else if(k==='ArrowDown'){S.sector=(S.sector+1)%3;designate();}
+    else if(k==='Enter')designate();}
+  else if(S.scr===2){
+    if(k==='ArrowUp'&&S.auth==='idle'){S.wpn=(S.wpn+3)%4;renderStrike();}
+    else if(k==='ArrowDown'&&S.auth==='idle'){S.wpn=(S.wpn+1)%4;renderStrike();}
+    else if(k==='Enter')strikeEnter();}
+  else if(S.scr===3){
+    if(k==='ArrowUp'||k==='ArrowDown'){S.facFocus=1-S.facFocus;renderForces();}
+    else if(k==='Enter'){const b=strength('blu'),o=strength('op');
+      log('SITREP &#9656; BLUFOR '+b.a+'/'+b.t+' · OPFOR '+o.a+'/'+o.t
+        +' · WRECKS '+S.wrecks,'sys');}}
+}
+window.addEventListener('keydown',onKey);
+
+/* redundant click targets — desktop preview only, glasses use the band */
+document.querySelectorAll('#dots .dot').forEach(el=>
+  el.addEventListener('click',()=>{if(booted)gotoScreen(+el.dataset.d);}));
+$('th-card').addEventListener('click',()=>{if(booted&&S.scr===0)setTheater(S.theater+1);});
+$('tgt-card').addEventListener('click',()=>{if(booted&&S.scr===1)designate();});
+$('auth-status').addEventListener('click',()=>{if(booted&&S.scr===2)strikeEnter();});
+
+/* ================= boot ================================================= */
+let booted=false;
+function finishBoot(){if(booted)return;booted=true;
+  $('boot').classList.add('off');
+  log('UPLINK &#9656; COMPANION HUD ONLINE · '+THEATERS[S.theater].name,'good');
+  log('NET &#9656; UPLINK LOCAL · NO EXTERNAL FEED','sys');
+  log('ROE &#9656; TRAINING SIMULATION — SANDBOX ONLY','warn');}
+(function boot(){
+  const lines=document.querySelectorAll('#boot-lines .bl');
+  lines.forEach((el,i)=>setTimeout(()=>el.classList.add('show'),350+i*420));
+  setTimeout(()=>$('boot-ready').classList.add('show'),350+lines.length*420);
+  setTimeout(finishBoot,2900);
+})();
+
+/* ================= init ================================================= */
+/* backfill — the log is already lived-in when the wearer joins the net */
+(function(){
+  const ago=s=>{const d=new Date(Date.now()-s*1000);
+    return String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0')
+      +':'+String(d.getUTCSeconds()).padStart(2,'0')+'Z';};
+  [[96,'WX &#9656; WINDS 240/15KT · CAVU','sys'],
+   [84,'CAP &#9656; VECTIS CAP 2 ON STATION · ANGELS 18','sys'],
+   [71,'EW &#9656; SPECTRUM CLEAN · NO JAMMING','sys'],
+   [58,'CONTACT &#9656; BRAVO · HILLS — OPFOR MBT DOWN','good'],
+   [46,'ISR &#9656; KEYHOLE 7 PASS COMPLETE · NTR','sys'],
+   [33,'CIV &#9656; 44 TRACKS ACTIVE · PATTERN NOMINAL','sys'],
+   [21,'LOG &#9656; CLASS III/V AT 82% · RESUPPLY QUEUED','sys'],
+   [12,'ROE &#9656; WEAPONS TIGHT · PID REQUIRED','warn'],
+  ].forEach(l=>S.log.unshift({t:ago(l[0]),txt:l[1],kind:l[2]}));
+})();
+const th0=THEATERS[S.theater];
+$('th-name').textContent=th0.name;
+$('thc-name').textContent=th0.name;$('thc-sub').textContent=th0.sub;
+designate(true);
+/* the opening track arrives already locked so STRIKE is demo-ready */
+clearTimeout(S.scanT);S.tgt.locked=true;
+renderTarget();renderBars();renderForces();renderStrike();gotoScreen(0);
+log('CONTACT &#9656; THREE AXES — CITY · HILLS · FLANK','crit');
+log('TRACK &#9656; '+S.tgt.id+' LOCKED · '+S.tgt.gr,'warn');
+</script>
+</body>
+</html>

@@ -253,6 +253,22 @@ node tools/build-artifact.mjs dist/artifact.html
 9. Toggle MK-I Amber. If the room wants the big one: `SUNDOWN`, then ⟲ RESET.
    Book the meeting.
 
+## AEGIS UPLINK — the on-lens companion (`uplink/index.html`)
+
+A 600×600 self-contained Web App built for the **Ray-Ban Display's own screen**
+per Meta's Wearables webapps constraints: fixed viewport, no scrolling,
+navigation entirely by the arrow-key/Enter events the Neural Band emits, and a
+true-black background — on the additive waveguide, black renders transparent,
+so the HUD floats on the wearer's vision. Four screens (MISSION log + force
+strength, TARGET designation card, STRIKE with the full dual-key arm/authorize
+machine, FORCES ORBAT), a seeded offline sim core, zero network calls, zero
+dependencies. Open it in a browser and a lens-bezel preview frames the stage;
+on the glasses the viewport is exactly 600×600 and the frame never renders.
+To put it on hardware: host at a password-protected HTTPS URL, enable
+Developer Mode on the paired Meta AI app, add the URL under App Connections →
+Web Apps. Same honesty fence as the table: simulation only, `SIM · DAT-READY`,
+never "paired."
+
 ## Production integration path
 
 | Demo stand-in | Production system |
