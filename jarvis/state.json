@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updated": "2026-07-28",
+    "updated": "2026-07-31",
     "updatedBy": "jarvis-chief-of-staff"
   },
   "user": {
@@ -9,8 +9,18 @@
   },
   "brief": {
     "since": "last session",
-    "headline": "JARVIS is now an always-on daemon — wake word, brief-on-boot, and voice power-on for Node 001. CentLabs architecture recorded.",
+    "headline": "The glasses are wired: web-app bridge on Node 001 runs the real Spotter and renders a HUD to the Ray-Ban Display. Data plane written. Web-app path chosen and built.",
     "items": [
+      {
+        "agent": "jarvis-chief-of-staff",
+        "kind": "done",
+        "text": "Built the glasses web-app bridge — the chosen path onto the Ray-Ban Display. A relay on Node 001 serves a glanceable HUD to the glasses' web view and answers /assess by shelling to the REAL `sentinel spot` (never reimplements Spotter) and /brief from state.json. Fails closed on its token, degrades to an honest card with no binary, blocks path traversal. 20 tests. Verified end-to-end: page → /assess → sentinel spot → HUD card rendered (Hikvision, critical, 4 risk pips, spoken action), zero console errors."
+      },
+      {
+        "agent": "jarvis-chief-of-staff",
+        "kind": "done",
+        "text": "Wrote the Node 001 Phase-1 data plane: one Compose file (Ollama+GPU, Open WebUI, Postgres, Qdrant, Redis, Caddy), a Caddyfile serving the HUD over `tls internal` (the secure context the web view needs for camera/mic) and proxying the bridge, a Makefile (make bootstrap), and .env.example. Only Caddy publishes ports — the brain isn't exposed to the LAN. `docker compose config` validates. `make bootstrap` after Docker's installed and it's live."
+      },
       {
         "agent": "jarvis-chief-of-staff",
         "kind": "done",
@@ -75,7 +85,14 @@
       "project": "CENTLABS",
       "priority": "P1",
       "status": "open",
-      "note": "Ollama, Postgres, Qdrant, Redis, Caddy. Follow centlabs/ARCHITECTURE.md build order."
+      "note": "Compose + Caddy + Makefile written in centlabs/node001/ and validated. Remaining is on-machine: install Docker Desktop + NVIDIA toolkit, then `make bootstrap`."
+    },
+    {
+      "title": "Glasses: native iOS bridge (real camera frames)",
+      "project": "CENTLABS",
+      "priority": "P2",
+      "status": "open",
+      "note": "Web-app path is built (centlabs/bridge/). Native path is the upgrade: feeds real camera frames to Spotter over the same /assess API. Needs the four Meta IDs + Apple Developer account (CONNECT-CHECKLIST §5)."
     },
     {
       "title": "Sentinel: audit-chain tamper tests",
@@ -184,7 +201,6 @@
     }
   ],
   "activity14": [
-    5,
     4,
     6,
     8,
@@ -197,6 +213,7 @@
     38,
     41,
     46,
-    24
+    24,
+    33
   ]
 }

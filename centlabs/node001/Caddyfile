@@ -1,0 +1,32 @@
+# Caddy reverse proxy for Node 001.
+#
+# `tls internal` uses Caddy's local CA, so everything is HTTPS on the LAN /
+# tailnet — a secure context, which the glasses web app needs for camera/mic.
+# Install Caddy's root CA on your devices once (Caddy prints how), or swap in a
+# Tailscale cert with `tls {$NODE_HOST}.your-tailnet.ts.net` for trusted certs.
+
+{
+	# One site, the Node's hostname. Override with NODE_HOST in the env.
+	auto_https disable_redirects
+}
+
+{$NODE_HOST:node001} {
+	tls internal
+
+	# The glasses web-app bridge (static HUD + relay API). Runs on the host,
+	# not in Compose, so Caddy reaches it via the Docker host gateway.
+	handle /bridge* {
+		reverse_proxy host.docker.internal:8794
+	}
+	handle /assess* {
+		reverse_proxy host.docker.internal:8794
+	}
+	handle /brief* {
+		reverse_proxy host.docker.internal:8794
+	}
+
+	# Everything else → the Open WebUI chat surface.
+	handle {
+		reverse_proxy open-webui:8080
+	}
+}

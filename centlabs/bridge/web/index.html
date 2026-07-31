@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>CentLabs · Glasses</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23ff9a3c' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23ff9a3c'/%3E%3C/svg%3E">
+<style>
+/* ============================================================
+   CentLabs glasses web HUD (web-app path).
+   Renders on the Meta Ray-Ban Display: tiny monocular FOV,
+   read in bright sun, glanceable in under two seconds. So:
+   very high contrast, large type, one thing at a time, no chrome.
+   It renders payloads; the Node reasons. Same amber house style.
+   ============================================================ */
+:root{
+  --bg:#000;
+  --c1:#ff9a3c; --c1-hot:#ffd9a0;
+  --ok:#6dff9e; --watch:#ffd166; --warn:#ff9a3c; --alert:#ff5a4d;
+  --ink:#fff6ea; --ink2:#d8c4a6; --mut:#9a856a;
+  --mono:ui-monospace,'SFMono-Regular','Cascadia Mono','Roboto Mono',Menlo,Consolas,monospace;
+  --disp:'Bahnschrift','Arial Narrow','Avenir Next Condensed','Helvetica Neue',Arial,sans-serif;
+  --accent:var(--c1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#000;color:var(--ink);font-family:var(--mono);
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none}
+body{display:flex;flex-direction:column;min-height:100vh;padding:22px 24px}
+
+/* top strip: brand + brief line */
+#top{display:flex;align-items:baseline;gap:12px;flex:none}
+#brand{font-family:var(--disp);letter-spacing:.34em;font-size:15px;color:var(--c1)}
+#brief{margin-left:auto;font-size:13px;color:var(--ink2);letter-spacing:.04em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+
+/* the card fills the field of view */
+#card{flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px;
+  min-height:0}
+#state{display:flex;align-items:center;gap:10px;font-family:var(--disp);
+  font-size:13px;letter-spacing:.28em;color:var(--accent)}
+#state .dot{width:9px;height:9px;background:var(--accent);
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+#l1{font-family:var(--disp);font-size:40px;line-height:1.02;letter-spacing:.02em;
+  color:#fff;text-shadow:0 0 1px #000,0 2px 10px rgba(0,0,0,.9)}
+#l2{font-size:20px;color:var(--ink2);letter-spacing:.02em}
+#pips{display:flex;gap:5px;margin-top:2px}
+#pips i{width:34px;height:6px;background:rgba(255,255,255,.14)}
+#pips i.on{background:var(--accent)}
+#action{margin-top:6px;display:none;gap:10px;align-items:flex-start;
+  font-size:22px;color:var(--c1-hot);line-height:1.25}
+#action.show{display:flex}
+#action::before{content:'▸';color:var(--accent);flex:none}
+#notice{font-size:12px;color:var(--mut);line-height:1.4;margin-top:4px;
+  max-height:3.4em;overflow:hidden}
+
+/* input row: on a real device this comes from voice / gaze; the buttons are
+   the fallback and the demo driver. Big hit targets for pinch/gaze. */
+#bar{flex:none;display:flex;gap:8px;flex-wrap:wrap;padding-top:14px}
+.b{flex:1;min-width:120px;background:rgba(255,154,60,.10);border:1px solid rgba(255,154,60,.4);
+  color:var(--ink);font-family:var(--disp);letter-spacing:.14em;font-size:14px;
+  padding:14px 10px;text-align:center;cursor:pointer}
+.b:active{background:rgba(255,154,60,.28)}
+#status{position:fixed;left:24px;bottom:6px;font-size:11px;color:var(--mut);
+  letter-spacing:.1em}
+.busy #l1::after{content:' …'}
+@media (prefers-reduced-motion:no-preference){
+  #state .dot{animation:b 1.4s infinite}@keyframes b{50%{opacity:.3}}
+}
+</style>
+</head>
+<body>
+  <div id="top">
+    <div id="brand">CENTLABS</div>
+    <div id="brief">connecting…</div>
+  </div>
+
+  <div id="card">
+    <div id="state"><span class="dot"></span><span id="st">READY</span></div>
+    <div id="l1">Look at a device</div>
+    <div id="l2">Say what you see, or pick one below</div>
+    <div id="pips"></div>
+    <div id="action"></div>
+    <div id="notice"></div>
+  </div>
+
+  <div id="bar">
+    <button class="b" data-scene="hik">MY CAMERA</button>
+    <button class="b" data-scene="dahua">GARAGE CAM</button>
+    <button class="b" data-scene="unenrolled">NOT MINE</button>
+    <button class="b" id="againBtn">RE-SCAN</button>
+  </div>
+  <div id="status"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   The glass renders; Node 001 reasons. This page POSTs observations to
+   the CentLabs bridge (/assess), which runs the real `sentinel spot`, and
+   renders the returned HUD card. Same-origin by default (Caddy serves this
+   page and proxies /assess on the Node); override with ?api= for testing.
+   A token, if the Node requires one, comes from ?token= or localStorage.
+   ===================================================================== */
+const qs = new URLSearchParams(location.search);
+const API = (qs.get('api') || '').replace(/\/$/, '');   // '' = same origin
+const TOKEN = qs.get('token') || localStorage.getItem('centlabs.token') || '';
+if (qs.get('token')) localStorage.setItem('centlabs.token', qs.get('token'));
+
+const ACCENT = { ok:'var(--ok)', watch:'var(--watch)', warn:'var(--warn)', alert:'var(--alert)' };
+const PIPS = { none:0, low:1, medium:2, high:3, critical:4 };
+
+// What the operator "sees" — on a real device this is voice/vision; here,
+// preset scenes plus room to add a free-form field. Each is the observation
+// set the bridge forwards to Spotter.
+const SCENES = {
+  hik:        { observe:[{kind:'logo',value:'hikvision'},{kind:'mac-oui',value:'44:19:B6:11:22:33'},{kind:'http-server',value:'Hikvision-Webs'}], exposure:'internet', default_credentials_suspected:true },
+  dahua:      { observe:[{kind:'logo',value:'dahua'},{kind:'mac-oui',value:'90:02:a9:00:00:01'},{kind:'http-server',value:'dahua-httpd'}], exposure:'lan' },
+  unenrolled: { observe:[{kind:'logo',value:'hikvision'},{kind:'mac-oui',value:'44:19:B6:11:22:33'}], exposure:'internet', unenrolled:true },
+};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let last = 'hik';
+
+function setStatus(t){ $('#status').textContent = t; }
+
+async function api(path, opts={}){
+  const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  if (TOKEN) headers['X-CentLabs-Token'] = TOKEN;
+  const res = await fetch(API + path, Object.assign({}, opts, {headers}));
+  if (!res.ok) throw new Error(path + ' → ' + res.status);
+  return res.json();
+}
+
+async function loadBrief(){
+  try {
+    const b = await api('/brief');
+    $('#brief').textContent = b.line || '';
+  } catch (e) {
+    $('#brief').textContent = 'brief offline';
+  }
+}
+
+function renderCard(c){
+  document.documentElement.style.setProperty('--accent', ACCENT[c.accent] || 'var(--c1)');
+  $('#st').textContent = (c.state || '').toUpperCase();
+  $('#l1').textContent = c.line1 || '—';
+  $('#l2').textContent = c.line2 || '';
+
+  const pips = $('#pips'); pips.innerHTML = '';
+  const n = PIPS[c.risk_band] ?? 0;
+  if (c.risk_band) for (let i=0;i<4;i++){ const el=document.createElement('i'); if(i<n) el.className='on'; pips.appendChild(el); }
+
+  const action = $('#action');
+  if (c.next_action){ action.textContent = c.next_action; action.classList.add('show'); }
+  else action.classList.remove('show');
+
+  $('#notice').textContent = c.unavailable ? c.line2 : (c.notice ? 'ⓘ ' + c.notice : '');
+  speak(c.speech);
+}
+
+function speak(text){
+  if (!text || !window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text);
+  const v = (speechSynthesis.getVoices()||[]).find(x=>/en-GB/i.test(x.lang));
+  if (v) u.voice = v; u.rate = 1.03; u.pitch = 0.95;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+async function assess(sceneKey){
+  last = sceneKey;
+  const scene = SCENES[sceneKey];
+  document.body.classList.add('busy');
+  $('#st').textContent = 'SCANNING'; $('#l1').textContent = 'Reading device';
+  $('#l2').textContent = ''; $('#action').classList.remove('show'); $('#notice').textContent='';
+  setStatus('assessing on Node 001…');
+  try {
+    const card = await api('/assess', { method:'POST', body: JSON.stringify(scene) });
+    renderCard(card);
+    setStatus('Node 001 · ' + (card.confidence || ''));
+  } catch (e) {
+    renderCard({ state:'searching', line1:'Node unreachable', line2:String(e.message||e),
+                 accent:'watch', speech:'I could not reach the node.' });
+    setStatus('offline — check Tailscale / bridge');
+  } finally {
+    document.body.classList.remove('busy');
+  }
+}
+
+document.querySelectorAll('.b[data-scene]').forEach(b =>
+  b.addEventListener('click', () => assess(b.dataset.scene)));
+$('#againBtn').addEventListener('click', () => assess(last));
+addEventListener('keydown', e => {
+  const k = {'1':'hik','2':'dahua','3':'unenrolled'}[e.key];
+  if (k) assess(k);
+  if (e.key === ' ') { e.preventDefault(); assess(last); }
+});
+
+if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => {};
+loadBrief();
+setStatus(API ? ('api ' + API) : 'same-origin');
+</script>
+</body>
+</html>

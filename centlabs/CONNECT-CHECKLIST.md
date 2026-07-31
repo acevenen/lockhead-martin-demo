@@ -13,11 +13,15 @@ what I do with it.
 
 ---
 
-## 0. One decision (unblocks the glasses)
+## 0. One decision (unblocks the glasses) — DECIDED: web-app path ✅
 
-- [ ] **Glasses build path:** the fast **web-app path** (reuse the JARVIS/Spotter
-  HUDs we already have — something on-glass soonest) **or** the full **native
-  iOS bridge** (more work, full camera + audio + display). Just say which.
+- [x] **Glasses build path: web-app path.** Built. The relay
+  ([`bridge/`](bridge/README.md)) serves a glanceable HUD to the glasses' web
+  view and runs the real `sentinel spot` on Node 001; the Node 001 data plane
+  ([`node001/`](node001/)) serves it over `tls internal`. See
+  [GLASSES-BRIDGE.md](GLASSES-BRIDGE.md). The native iOS bridge is a later
+  upgrade (real camera frames) and reuses the same bridge API — nothing wasted.
+  **On-glass needs only §1 Tailscale + §2 Node up + §5 glasses paired.**
 
 ---
 
@@ -104,11 +108,12 @@ any other model keys later.
 ## What I do once you hand me each piece
 
 - The **Node 001 Compose data plane** (Ollama, Postgres, Qdrant, Redis, Caddy) —
-  I can write this **now**, no input needed; you just `make up` after Docker's in.
+  **built** in [`node001/`](node001/); you just `make bootstrap` after Docker's in.
+- The **glasses bridge (web-app path)** — **built** in [`bridge/`](bridge/README.md):
+  serves the HUD to the glasses' web view and runs the real `sentinel spot` on the
+  Node, degraded-clean and token-locked. Open `https://node001/bridge/` once §1/§2/§5
+  are done. The native iOS bridge (real camera frames) is the next upgrade.
 - **Hermes v0** — the one `/ask` + `/memory` + model-router endpoint on Node 001.
-- The **glasses bridge** — the app (web or native) that forwards the glasses'
-  camera/audio to Hermes/`jarvisd` over Tailscale and renders the Spotter HUD
-  contract + JARVIS brief back onto the display.
 - Wiring **`jarvisd` ↔ Node 001**, memory indexing of this repo first, and the
   model-routing rules.
 

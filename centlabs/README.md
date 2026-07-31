@@ -11,6 +11,10 @@ from every device I own.
   you (accounts, physical steps, config) to connect everything, in order.
 - **[MOBILE-NODE.md](MOBILE-NODE.md)** — the iPhone 14 headless sensor/relay node
   and the full recovery runbook.
+- **[GLASSES-BRIDGE.md](GLASSES-BRIDGE.md)** — how JARVIS/Spotter reach the Meta
+  Ray-Ban Display: the web-app path (built), the native path (next), and what's
+  gated on you. The relay itself lives in [`bridge/`](bridge/README.md); the
+  Node 001 data plane it runs behind is in [`node001/`](node001/).
 
 **The thesis:** the intelligence lives on Node 001; the MacBook, phones, and
 Ray-Bans are interfaces into it. Local-first where practical, cloud-assisted when

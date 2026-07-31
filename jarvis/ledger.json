@@ -14,6 +14,13 @@
       "pain": "There was no way to point at a camera and know if it was safe, and no hands-free 'Hey Jarvis' on the PC with the day's brief already prepared — every session started cold.",
       "shipped": ["Spotter device intelligence (#5)", "Spotter glasses HUD", "jarvisd wake-word daemon", "Wake-on-LAN power-on", "CentLabs architecture record"],
       "agent": "jarvis-chief-of-staff"
+    },
+    {
+      "date": "2026-07-31",
+      "improvement": "Spotter's answer now reaches the Ray-Ban Display: a web-app bridge on Node 001 serves a glanceable HUD and runs the REAL `sentinel spot` on what the glass sees, and the Node 001 data plane it runs behind is written and validated — so the glasses and the desktop show the same audited answer from the same binary.",
+      "pain": "Spotter and JARVIS could only be reached from a terminal or a local page; there was no path onto the actual glasses and no server for them to talk to, so 'look at this device' was still a desk task, not a glance.",
+      "shipped": ["glasses web-app bridge + 20 tests (centlabs/bridge/)", "Node 001 Compose data plane (centlabs/node001/)", "GLASSES-BRIDGE.md", "web-app path decided in CONNECT-CHECKLIST"],
+      "agent": "jarvis-chief-of-staff"
     }
   ]
 }

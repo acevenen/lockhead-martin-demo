@@ -1,0 +1,126 @@
+# CentLabs Node 001 — Phase 1 data plane.
+#
+# Reproducible by construction: one file, one `.env`, one `make up`. Every
+# service is a container; nothing is configured by hand. The runtime is Docker
+# Desktop today, but this file is plain Compose, so Rancher Desktop or Podman
+# consume it unchanged — the choice stays reversible (see ARCHITECTURE.md §2).
+#
+# Only Caddy publishes ports. Everything else talks over the internal network,
+# so the brain is not exposed to the LAN except through the reverse proxy.
+
+name: centlabs
+
+x-restart: &restart
+  restart: unless-stopped
+
+networks:
+  centlabs:
+    driver: bridge
+
+volumes:
+  ollama:
+  postgres:
+  qdrant:
+  redis:
+  openwebui:
+  caddy_data:
+  caddy_config:
+
+services:
+  # ---- Local models (GPU) -------------------------------------------------
+  ollama:
+    <<: *restart
+    image: ollama/ollama:latest
+    networks: [centlabs]
+    volumes:
+      - ollama:/root/.ollama
+    # RTX 5060 Ti passthrough. Requires the NVIDIA Container Toolkit in WSL2.
+    # If the GPU is not yet wired, comment this block out and Ollama runs on CPU.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ---- Chat front door over local models ----------------------------------
+  open-webui:
+    <<: *restart
+    image: ghcr.io/open-webui/open-webui:main
+    networks: [centlabs]
+    depends_on: [ollama]
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_AUTH: "true"
+    volumes:
+      - openwebui:/app/backend/data
+
+  # ---- Memory: relational truth -------------------------------------------
+  postgres:
+    <<: *restart
+    image: postgres:16-alpine
+    networks: [centlabs]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-centlabs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-memory}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-centlabs}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ---- Memory: vector search ----------------------------------------------
+  qdrant:
+    <<: *restart
+    image: qdrant/qdrant:latest
+    networks: [centlabs]
+    volumes:
+      - qdrant:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY in .env}
+
+  # ---- Cache + job queue for Hermes ---------------------------------------
+  redis:
+    <<: *restart
+    image: redis:7-alpine
+    networks: [centlabs]
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "yes"]
+    volumes:
+      - redis:/data
+
+  # ---- Reverse proxy + automatic TLS --------------------------------------
+  # The only service that publishes ports. `tls internal` gives HTTPS on the
+  # LAN/tailnet via Caddy's local CA, so the glasses web app runs in a secure
+  # context (required for camera/mic in a web view).
+  caddy:
+    <<: *restart
+    image: caddy:2-alpine
+    networks: [centlabs]
+    ports:
+      - "80:80"
+      - "443:443"
+    # The glasses bridge runs on the host, not in Compose, so Caddy reaches it
+    # via the host gateway. Docker Desktop maps host.docker.internal for free;
+    # this line makes it resolve on native-Linux Docker too, so the file stays
+    # runtime-portable.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [open-webui]
+
+  # ---- Optional Phase-8 additions (uncomment when needed) -----------------
+  # n8n:      visual automation      image: n8nio/n8n
+  # searxng:  private metasearch     image: searxng/searxng
+  # grafana/prometheus/loki: Phase-6 monitoring
