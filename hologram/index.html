@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>CentLabs · Hologram spike</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23ff9a3c' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23ff9a3c'/%3E%3C/svg%3E">
+<style>
+/* CentLabs hologram spike — glowing object on a dark field, manipulated by a
+   fingertip. Amber MK-I house style. The interaction logic lives in
+   lib/interaction.js (Node-tested); this file is the surface + hand source. */
+:root{ --c1:#ff9a3c; --c1-hot:#ffd9a0; --ink:#fff6ea; --mut:#9a856a; --bg:#04030a;
+  --mono:ui-monospace,'SFMono-Regular','Cascadia Mono',Menlo,Consolas,monospace;
+  --disp:'Bahnschrift','Arial Narrow','Avenir Next Condensed',Arial,sans-serif; }
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--mono);overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#stage{position:fixed;inset:0;display:block;cursor:none;touch-action:none}
+#top{position:fixed;top:16px;left:20px;right:20px;display:flex;align-items:baseline;gap:14px;pointer-events:none}
+#brand{font-family:var(--disp);letter-spacing:.34em;font-size:15px;color:var(--c1)}
+#hint{margin-left:auto;font-size:12px;color:var(--mut);letter-spacing:.06em;text-align:right}
+#src{font-size:11px;color:var(--c1);letter-spacing:.2em}
+#foot{position:fixed;bottom:12px;left:20px;font-size:11px;color:var(--mut);letter-spacing:.08em}
+.b{position:fixed;bottom:12px;right:20px;background:rgba(255,154,60,.1);border:1px solid rgba(255,154,60,.4);
+  color:var(--ink);font-family:var(--disp);letter-spacing:.14em;font-size:12px;padding:9px 14px;cursor:pointer}
+</style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <div id="top">
+    <div id="brand">CENTLABS · HOLOGRAM</div>
+    <div id="hint">
+      <div id="src">POINTER</div>
+      pinch / click &amp; drag the object · pinch = mouse-down
+    </div>
+  </div>
+  <div id="foot">spike · Milestone 1–4 · one-euro smoothing + debounced pinch</div>
+  <button class="b" id="camBtn">TRY CAMERA</button>
+
+<script type="module">
+import { PointSmoother, PinchDetector, GrabController, mapNormalizedToCanvas } from './lib/interaction.js';
+
+const cv = document.getElementById('stage');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = Math.min(devicePixelRatio || 1, 2);
+function resize(){ W = innerWidth; H = innerHeight; cv.width = W*DPR; cv.height = H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize', resize);
+
+// --- interaction state (driven identically by pointer or camera) -------------
+const object = { x: 0, y: 0, r: 74 };
+const smoother = new PointSmoother({ minCutoff: 1.4, beta: 0.02 });
+const pinch = new PinchDetector({ debounceMs: 60 });
+const grab = new GrabController(object, { grabRadius: 46 });
+let rawCursor = null, cursor = { x: 0, y: 0 }, distance = 1, mode = 'POINTER';
+
+function center(){ object.x = W/2; object.y = H/2; cursor = { x: W/2, y: H/2 }; }
+
+// --- pointer hand source (default; runs with no camera) ----------------------
+function toLocal(e){ const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+cv.addEventListener('pointermove', (e) => { rawCursor = toLocal(e); });
+cv.addEventListener('pointerdown', (e) => { rawCursor = toLocal(e); distance = 0; });
+addEventListener('pointerup', () => { distance = 1; });
+
+// --- optional camera hand source (opt-in: needs a webcam + network) ----------
+// Loads MediaPipe Hands only when asked, so the default demo stays offline-safe.
+async function enableCamera(){
+  try {
+    document.getElementById('src').textContent = 'CAMERA…';
+    const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+    const { HandLandmarker, FilesetResolver } = vision;
+    const files = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    const landmarker = await HandLandmarker.createFromOptions(files, {
+      baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task' },
+      numHands: 1, runningMode: 'VIDEO',
+    });
+    const video = document.createElement('video'); video.playsInline = true;
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    video.srcObject = stream; await video.play();
+    mode = 'CAMERA'; document.getElementById('src').textContent = 'CAMERA';
+    const pump = () => {
+      const res = landmarker.detectForVideo(video, performance.now());
+      if (res.landmarks && res.landmarks[0]) {
+        const lm = res.landmarks[0];
+        rawCursor = mapNormalizedToCanvas(lm[8], W, H, { mirror: true }); // index tip
+        distance = Math.hypot(lm[8].x - lm[4].x, lm[8].y - lm[4].y);       // to thumb tip
+      }
+      requestAnimationFrame(pump);
+    };
+    pump();
+  } catch (err) {
+    document.getElementById('src').textContent = 'POINTER';
+    document.getElementById('hint').lastChild.textContent = ' camera unavailable — using pointer';
+    console.warn('camera hand source unavailable:', err?.message || err);
+  }
+}
+document.getElementById('camBtn').addEventListener('click', enableCamera);
+
+// --- main loop ---------------------------------------------------------------
+function frame(){
+  const t = performance.now();
+  if (rawCursor) cursor = smoother.filter(rawCursor, t);
+  const ev = pinch.update(distance, t);
+  if (ev === 'pinchstart') grab.tryGrab(cursor);
+  else if (ev === 'pinchend') grab.release();
+  grab.drag(cursor);
+  render(t);
+  requestAnimationFrame(frame);
+}
+
+function render(t){
+  ctx.clearRect(0,0,W,H);
+  // vignette field
+  const vg = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.7);
+  vg.addColorStop(0,'#0a0713'); vg.addColorStop(1,'#04030a');
+  ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+
+  // glowing object — layered additive gradients + rotating ring
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const pulse = 1 + 0.04*Math.sin(t/420) + (grab.grabbed?0.10:0);
+  const R = object.r * pulse;
+  for (const [rad,alpha] of [[R*2.4,0.10],[R*1.5,0.16],[R,0.5],[R*0.5,0.9]]){
+    const g = ctx.createRadialGradient(object.x,object.y,0,object.x,object.y,rad);
+    g.addColorStop(0,`rgba(255,208,150,${alpha})`);
+    g.addColorStop(0.5,`rgba(255,154,60,${alpha*0.6})`);
+    g.addColorStop(1,'rgba(255,154,60,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(object.x,object.y,rad,0,7); ctx.fill();
+  }
+  // spatial ring
+  ctx.strokeStyle = `rgba(255,208,150,${grab.grabbed?0.9:0.5})`; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i=0;i<=48;i++){ const a=i/48*Math.PI*2; const rr=R*1.15*(1+0.06*Math.sin(a*3+t/500));
+    const x=object.x+Math.cos(a+t/1600)*rr, y=object.y+Math.sin(a+t/1600)*rr*0.42;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.closePath(); ctx.stroke();
+  ctx.restore();
+
+  // fingertip cursor
+  ctx.save();
+  ctx.strokeStyle = grab.grabbed ? 'var(--c1-hot)' : '#ffd9a0';
+  ctx.strokeStyle = grab.grabbed ? '#ffd9a0' : 'rgba(255,246,234,.8)';
+  ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cursor.x,cursor.y, distance<=0.05?9:14, 0, 7); ctx.stroke();
+  ctx.fillStyle = '#ff9a3c'; ctx.beginPath(); ctx.arc(cursor.x,cursor.y,3,0,7); ctx.fill();
+  ctx.restore();
+}
+
+resize(); center(); requestAnimationFrame(frame);
+
+// test hook: lets headless verification read interaction state without a camera.
+window.__holo = { object, get grabbed(){return grab.grabbed;}, get cursor(){return cursor;}, get mode(){return mode;} };
+</script>
+</body>
+</html>

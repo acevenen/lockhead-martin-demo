@@ -21,6 +21,16 @@ the active lessons that apply, and only that subset is placed in the worker's
 context — the brain does not dump every lesson into every task.
 
 ## Current lessons
-- _(none curated into this file yet)_ — the mocked run produces one example:
-  *"Every discrete gesture must debounce its trigger edge; add a regression
-  check."* Once a real gesture regression test exists and passes, promote it here.
+
+### L-1 — Debounce every discrete gesture edge · **active**
+- **Trigger:** gesture/edge detection without debouncing.
+- **Scope/tags:** `project:hologram`, `frontend`, `gesture`.
+- **Prevention:** every discrete gesture must debounce its trigger edge (add
+  hysteresis + a hold window) so it can't double-fire.
+- **Enforcement:** implemented in `hologram/lib/interaction.js` (`PinchDetector`).
+- **Regression check:** `hologram/test/interaction.test.js` — "pinch debounces
+  chatter — no double fire" (passing).
+- **Status:** `active` — verified by a passing regression check (not just
+  proposed). This is the loop working end to end: a mocked failure produced the
+  lesson; a real test now enforces it.
+- **Last verified:** 2026-08-01.

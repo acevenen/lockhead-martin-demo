@@ -8,14 +8,16 @@ Project-level decisions. Architecture-wide decisions live in `docs/decisions/`.
 - **Status:** proposed — confirm after Milestone 1 measures fps on the owner's
   hardware. Alternative: handpose/TF.js if MediaPipe underperforms.
 
-## D-2 — Where the application code lives (OPEN — needs owner)
+## D-2 — Where the application code lives (RESOLVED → option a)
 - **Context:** this repo is the demos/AEGIS + Jarvis platform repo. The hologram
   app could live here (as another single-file demo) or in a dedicated repo.
 - **Options:** (a) here under a `hologram/` dir following the single-file no-build
   house style; (b) a new dedicated repo.
-- **Status:** OPEN. Recommendation: start as a single-file `hologram/` spike here
-  (matches house conventions, fastest to a demo), promote to its own repo only if
-  it outgrows that. Owner decides.
+- **Decision:** (a) — the spike lives at `hologram/` (single-file `index.html` +
+  a Node-tested `lib/`). Fastest to a demo, matches house conventions.
+  **Reversible:** promote to its own repo if it outgrows this. Owner may override.
+- **Status:** RESOLVED (proceeding on owner's "keep going"). Revisit if the app
+  grows a backend or heavy build.
 
 ## D-3 — Physical reflector (Pepper's Ghost): stretch goal (proposed)
 - **Context:** the acrylic reflector sells the "hologram" look but adds optics +

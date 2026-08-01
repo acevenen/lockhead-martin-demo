@@ -1,7 +1,15 @@
 # Hologram — current state
 
-**Phase:** planning + spike scaffolding. No application code written yet; the
-mocked workflow proves the company can plan/route/review/verify this project.
+**Phase:** spike landed. The interaction core is built and tested; a runnable
+demo grabs and drags a glowing object with the fingertip (pointer today, camera
+opt-in). See `../../../../hologram/` (`README.md`).
+
+**Verified:** `hologram/test/interaction.test.js` (6 tests: smoothing, pinch
+debounce, grab/drag) + a headless Playwright pass (grab → drag → release, 0
+console errors). Milestones 1 (logic + camera hook), 4 (debounced pinch), 5
+(drag), and 6 (smoothing) are demonstrated; Milestone 1 on a real webcam still
+needs an fps check on the owner's hardware, and 7–9 (holographic depth, reflector,
+rehearsal) remain.
 
 ## Hardware inventory questionnaire (owner to fill — do not assume)
 | Item | Value |
