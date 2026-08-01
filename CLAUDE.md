@@ -59,3 +59,26 @@ Route work to them; synthesize their results; you own the state file.
 - `jarvis/knowledge/` — owner's values + business knowledge base
 - `.claude/agents/` — the subagent roster
 - `tools/build-artifact.mjs` — inline vendored deps for single-file hosting
+
+## Shared brain / multi-agent OS (added by the Jarvis bootstrap)
+
+The personal HUD above is one surface of a larger, local-first multi-agent
+system. When doing consequential work, read the shared brain — it is the source
+of truth, not this protocol duplicated:
+
+- `jarvis/brain/constitution/` — mission + approval / memory / delegation /
+  review policies (the governing rules).
+- `jarvis/brain/profile/` and `jarvis/brain/goals/` — who the owner is (facts
+  only; `unknown` where not provided) and the goals work ladders up to.
+- `jarvis/brain/agents/registry/` — the normalized agent company (the four
+  `.claude/agents/` specialists are mirrored here as manifests; **the originals
+  in `.claude/agents/` are unchanged**).
+- `jarvis/brain/projects/` — project charters (first: the hologram demo).
+- `jarvis/os/` — the control-plane code (tasks, memory, routing, review,
+  learning, board). Zero-dependency; `cd jarvis/os && node --test`.
+- `docs/handoffs/protocol.md` — the handoff envelope for agent-to-agent work.
+- `AGENTS.md` — the same neutral contract for Codex and other coding agents.
+
+Guardrails unchanged and reinforced: never fabricate progress; secrets stay out
+of the repo; durable memory is proposal-first; the owner approves anything
+irreversible or external (`jarvis/brain/constitution/approval-policy.md`).

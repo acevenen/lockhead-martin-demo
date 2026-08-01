@@ -1,0 +1,69 @@
+{
+  "policy_version": "0.1.0",
+  "note": "Model IDs come from configuration/env, never hardcoded in code. `model_env` names the env var that supplies the concrete model id at runtime. `privacy` classifies data egress: 'local' never leaves the machine; 'cloud' may. The router refuses to send restricted/identity-scoped data to a 'cloud' profile.",
+  "profiles": {
+    "ceo_strategy": {
+      "provider": "anthropic", "model_env": "JARVIS_MODEL_CEO",
+      "modalities": ["text"], "tools": true, "context_tokens": 200000,
+      "quality": "high", "latency": "medium", "cost": "high",
+      "privacy": "cloud", "allowed_risk": ["none", "low", "medium", "high", "critical"],
+      "fallbacks": ["deep_reasoning", "fast_general"], "requires_review": false
+    },
+    "deep_reasoning": {
+      "provider": "anthropic", "model_env": "JARVIS_MODEL_REASONING",
+      "modalities": ["text"], "tools": true, "context_tokens": 200000,
+      "quality": "high", "latency": "slow", "cost": "high",
+      "privacy": "cloud", "allowed_risk": ["none", "low", "medium", "high", "critical"],
+      "fallbacks": ["ceo_strategy", "fast_general"], "requires_review": true
+    },
+    "coding_primary": {
+      "provider": "openai", "model_env": "JARVIS_MODEL_CODING",
+      "modalities": ["text"], "tools": true, "context_tokens": 200000,
+      "quality": "high", "latency": "medium", "cost": "medium",
+      "privacy": "cloud", "allowed_risk": ["none", "low", "medium", "high"],
+      "fallbacks": ["deep_reasoning", "fast_general"], "requires_review": true
+    },
+    "coding_review": {
+      "provider": "openai", "model_env": "JARVIS_MODEL_CODE_REVIEW",
+      "modalities": ["text"], "tools": true, "context_tokens": 200000,
+      "quality": "high", "latency": "medium", "cost": "medium",
+      "privacy": "cloud", "allowed_risk": ["none", "low", "medium", "high", "critical"],
+      "fallbacks": ["deep_reasoning"], "requires_review": false
+    },
+    "fast_general": {
+      "provider": "anthropic", "model_env": "JARVIS_MODEL_FAST",
+      "modalities": ["text"], "tools": true, "context_tokens": 100000,
+      "quality": "medium", "latency": "fast", "cost": "low",
+      "privacy": "cloud", "allowed_risk": ["none", "low", "medium"],
+      "fallbacks": ["local_private"], "requires_review": false
+    },
+    "research": {
+      "provider": "anthropic", "model_env": "JARVIS_MODEL_RESEARCH",
+      "modalities": ["text"], "tools": true, "context_tokens": 200000,
+      "quality": "high", "latency": "medium", "cost": "medium",
+      "privacy": "cloud", "allowed_risk": ["none", "low", "medium"],
+      "fallbacks": ["fast_general"], "requires_review": true
+    },
+    "vision": {
+      "provider": "anthropic", "model_env": "JARVIS_MODEL_VISION",
+      "modalities": ["text", "image"], "tools": true, "context_tokens": 200000,
+      "quality": "high", "latency": "medium", "cost": "high",
+      "privacy": "cloud", "allowed_risk": ["none", "low", "medium"],
+      "fallbacks": ["fast_general"], "requires_review": false
+    },
+    "embedding": {
+      "provider": "ollama", "model_env": "JARVIS_MODEL_EMBED",
+      "modalities": ["text"], "tools": false, "context_tokens": 8192,
+      "quality": "medium", "latency": "fast", "cost": "low",
+      "privacy": "local", "allowed_risk": ["none", "low", "medium", "high", "critical"],
+      "fallbacks": [], "requires_review": false
+    },
+    "local_private": {
+      "provider": "ollama", "model_env": "JARVIS_MODEL_LOCAL",
+      "modalities": ["text"], "tools": false, "context_tokens": 32000,
+      "quality": "medium", "latency": "medium", "cost": "none",
+      "privacy": "local", "allowed_risk": ["none", "low", "medium", "high", "critical"],
+      "fallbacks": [], "requires_review": false
+    }
+  }
+}

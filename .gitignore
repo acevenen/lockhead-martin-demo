@@ -2,3 +2,11 @@ dist/
 node_modules/
 __pycache__/
 *.pyc
+.pytest_cache/
+
+# Jarvis OS operational store + generated board JSON (local-only, rebuildable)
+jarvis/data/*.db
+jarvis/data/*.db-wal
+jarvis/data/*.db-shm
+jarvis/data/board/
+.env

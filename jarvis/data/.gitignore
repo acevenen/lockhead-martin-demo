@@ -1,0 +1,8 @@
+# The operational store and generated board JSON are local-only and rebuildable.
+# Keep this directory in the repo (via README + this file), ignore its contents.
+*.db
+*.db-wal
+*.db-shm
+board/
+!.gitignore
+!README.md
