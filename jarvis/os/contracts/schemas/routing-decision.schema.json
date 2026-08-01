@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "routing-decision",
+  "type": "object",
+  "required": [
+    "task_id",
+    "selected_agent",
+    "selected_model_profile",
+    "decision_summary",
+    "created_at"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "selected_agent": {
+      "type": "string"
+    },
+    "selected_model_profile": {
+      "type": "string",
+      "enum": [
+        "ceo_strategy",
+        "deep_reasoning",
+        "coding_primary",
+        "coding_review",
+        "fast_general",
+        "research",
+        "vision",
+        "embedding",
+        "local_private"
+      ]
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "alternatives_considered": {
+      "type": "array"
+    },
+    "decision_summary": {
+      "type": "string"
+    },
+    "policy_version": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

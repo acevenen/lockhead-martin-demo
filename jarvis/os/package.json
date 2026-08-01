@@ -13,6 +13,7 @@
     "status": "node cli/jarvis.js status",
     "board": "node cli/jarvis.js board",
     "smoke": "node cli/jarvis.js demo:e2e",
+    "schemas": "node contracts/export-schemas.js",
     "cli": "node cli/jarvis.js"
   },
   "dependencies": {},

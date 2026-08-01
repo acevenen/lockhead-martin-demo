@@ -1,0 +1,176 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "agent-manifest",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "role",
+    "department",
+    "purpose",
+    "status",
+    "risk_ceiling",
+    "default_model_profile"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string"
+    },
+    "department": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "non_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "accepted_task_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_inputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "output_contract": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "available_tools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tool_restrictions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "memory_read_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "memory_write_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "risk_ceiling": {
+      "type": "string",
+      "enum": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "allowed_model_profiles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ceo_strategy",
+          "deep_reasoning",
+          "coding_primary",
+          "coding_review",
+          "fast_general",
+          "research",
+          "vision",
+          "embedding",
+          "local_private"
+        ]
+      }
+    },
+    "default_model_profile": {
+      "type": "string",
+      "enum": [
+        "ceo_strategy",
+        "deep_reasoning",
+        "coding_primary",
+        "coding_review",
+        "fast_general",
+        "research",
+        "vision",
+        "embedding",
+        "local_private"
+      ]
+    },
+    "reviewer_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "escalation_rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source_provenance": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "imported_prompt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "standby",
+        "discovery_required",
+        "deprecated",
+        "draft"
+      ]
+    }
+  },
+  "additionalProperties": false
+}
