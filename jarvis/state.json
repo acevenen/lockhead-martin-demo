@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updated": "2026-07-31",
+    "updated": "2026-08-01",
     "updatedBy": "iris via chief-of-staff"
   },
   "user": {
@@ -11,6 +11,11 @@
     "since": "last session",
     "headline": "AEGIS first launch: first-person view models in every crew seat, a 114-unit war across the whole landscape on three axes, and infantry that walk, aim and fall on an articulated rig.",
     "items": [
+      {
+        "agent": "iris",
+        "kind": "done",
+        "text": "UPLINK access lock shipped. The glasses have no text input, so the password is a four-dial code spun with the arrow keys the Neural Band emits — up/down turns the focused dial, left/right moves between dials, Enter submits. Wrong code shakes amber with an escalating 1-2-4-8s lockout; a correct entry is remembered per device via localStorage keyed to the salted SHA-256 hash, so rotating the code re-locks every device. Verified independently: 37/37 QA checks re-run green, hash for the default code recomputed and matched byte-for-byte, zero network calls, noindex meta added."
+      },
       {
         "agent": "iris",
         "kind": "done",
@@ -35,11 +40,6 @@
         "agent": "demo-engineer",
         "kind": "done",
         "text": "AEGIS view models: enter any crew seat and you are holding something — rifle with iron sights, scoped M107, pintle .50 with a feeding belt, Apache canopy with glareshield MFDs, binoculars at the gun line. They sway with movement, kick with the unit's real recoil and muzzle-flash when it actually fires. Kept solid in both render modes deliberately: the weapon is the operator's hands, not part of the projection."
-      },
-      {
-        "agent": "demo-engineer",
-        "kind": "done",
-        "text": "AEGIS theater-wide war: 114 units on three simultaneous axes — armour at the city, mech infantry in the hills, a recon screen on the flank — with fires in depth at the map edges whose 21/32 km reach covers every sector. Battle infantry now fight on foot on the articulated rig: walk on the advance, braced aim in contact, a fall about the feet when killed, rifle riding the hand throughout."
       }
     ]
   },
@@ -58,7 +58,7 @@
       "project": "DEMOS",
       "priority": "P1",
       "status": "done",
-      "note": "Built + QA'd at uplink/index.html. Remaining for on-device: HTTPS hosting (air-gap exception, needsUser), Developer Mode on the paired phone, on-hardware font/input/localStorage verification. Live table-sync deferred until fetch is verified on the glasses runtime."
+      "note": "Built, QA'd, and PIN-locked (dial lock, wristband-navigable). Owner approved password-protected hosting. Remaining: Netlify deploy (owner's account), then on-hardware verification once glasses arrive."
     },
     {
       "title": "Sentinel: audit-chain tamper tests",
@@ -101,12 +101,6 @@
       "title": "Ray-Ban Display hardware purchase (critical path)",
       "impact": "Nothing runs on-lens without the physical glasses. US-only, $799 incl. Neural Band, mandatory in-store demo appointment, waitlist risk into 2026.",
       "proposed": "Book the appointment now (Best Buy / LensCrafters / Sunglass Hut / Ray-Ban / select Verizon) so the wait runs in parallel with the build.",
-      "needsUser": true
-    },
-    {
-      "title": "Air-gap exception for the on-lens companion app",
-      "impact": "The glasses runtime physically requires a publicly hosted HTTPS URL; repo convention is air-gapped. The 600x600 AEGIS UPLINK slice cannot ship without one of them giving.",
-      "proposed": "Approve password-protected HTTPS hosting (Developer Preview supports exactly this sharing mode) for the stripped companion slice only — the full demo stays air-gapped.",
       "needsUser": true
     },
     {

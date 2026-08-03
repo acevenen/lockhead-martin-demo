@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="robots" content="noindex,nofollow">
 <title>AEGIS UPLINK — Ray-Ban Display Companion (SIM)</title>
 <style>
 /* ============================================================
@@ -226,6 +227,49 @@ body{display:flex;align-items:center;justify-content:center;
 .sx-st{width:118px;text-align:right;font-size:8.5px;letter-spacing:.14em}
 .sx-st.good{color:var(--ok)}.sx-st.warn{color:var(--c2)}.sx-st.bad{color:var(--alert)}
 
+/* ---------- access lock (pre-boot dial gate) ---------- */
+#lock{position:absolute;inset:0;z-index:55;background:#000;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;transition:opacity .45s}
+#lock.off{opacity:0;pointer-events:none}
+#lock-card{padding:24px 30px 20px;display:flex;flex-direction:column;
+  align-items:center;gap:13px;border-color:var(--line)}
+#lock-brand{font-family:var(--disp);font-size:21px;letter-spacing:.42em;color:var(--ink);
+  text-shadow:0 0 20px var(--c1-dim);padding-left:.42em;white-space:nowrap}
+#lock-brand b{color:var(--c1);font-weight:700}
+#lock-rule{width:210px;height:1px;background:var(--line);box-shadow:var(--glow)}
+#lock-sub{font-family:var(--disp);font-size:10px;letter-spacing:.38em;color:var(--c2);
+  padding-left:.38em;text-shadow:0 0 10px rgba(255,180,84,.35);white-space:nowrap}
+#dials{display:flex;gap:16px;margin:4px 0 0}
+.dial{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
+.dial .car{font-size:11px;line-height:1;color:#3a4c5c;transition:color .12s,text-shadow .12s}
+.dial .dg{width:76px;height:92px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-size:58px;color:var(--mut);
+  font-variant-numeric:tabular-nums;border:1px solid var(--line-soft);
+  transition:border-color .12s,box-shadow .12s,color .12s}
+.dial.focus .car{color:var(--c1);text-shadow:0 0 8px var(--c1-dim)}
+.dial.focus .dg{border-color:var(--c1);color:var(--c1-hi);
+  box-shadow:var(--glow-hard),inset 0 0 16px rgba(83,230,255,.12);
+  text-shadow:0 0 18px var(--c1-dim)}
+#dials.denied{animation:shake .42s}
+#dials.denied .dg{border-color:rgba(255,180,84,.65);color:var(--c2)}
+#dials.denied .dial.focus .car{color:var(--c2);text-shadow:0 0 8px rgba(255,180,84,.5)}
+#dials.denied .dial.focus .dg{
+  box-shadow:0 0 4px rgba(255,180,84,.9),0 0 18px rgba(255,180,84,.5),
+    inset 0 0 16px rgba(255,180,84,.10);text-shadow:0 0 18px rgba(255,180,84,.5)}
+#dials.granted .dg{border-color:rgba(87,255,160,.6);color:var(--ok);
+  text-shadow:0 0 14px rgba(87,255,160,.5)}
+@keyframes shake{0%,100%{transform:none}18%{transform:translateX(-8px)}
+  36%{transform:translateX(7px)}54%{transform:translateX(-5px)}
+  72%{transform:translateX(4px)}88%{transform:translateX(-2px)}}
+#lock-status{min-height:14px;font-family:var(--disp);font-size:11px;letter-spacing:.32em;
+  color:var(--mut);padding-left:.32em;white-space:nowrap;font-variant-numeric:tabular-nums}
+#lock-status.deny{color:var(--c2);text-shadow:0 0 10px rgba(255,180,84,.5)}
+#lock-status.grant{color:var(--ok);text-shadow:0 0 12px rgba(87,255,160,.5)}
+#lock-hint{font-size:9.5px;letter-spacing:.18em;color:var(--mut);cursor:pointer;white-space:nowrap}
+#lock-hint b{color:var(--c1);font-weight:400}
+#lock-fence{position:absolute;left:0;right:0;bottom:12px;text-align:center;
+  font-size:8px;letter-spacing:.26em;color:#5a6c7c}
+
 /* ---------- boot overlay ---------- */
 #boot{position:absolute;inset:0;z-index:50;background:#000;display:flex;
   flex-direction:column;align-items:center;justify-content:center;gap:26px;
@@ -394,6 +438,24 @@ body{display:flex;align-items:center;justify-content:center;
       <div id="boot-ready">ANY KEY</div>
     </div>
 
+    <!-- access lock — dial gate, renders before boot (config: LOCK, top of script) -->
+    <div id="lock">
+      <div class="cut" id="lock-card">
+        <div id="lock-brand">AEGIS <b>UPLINK</b></div>
+        <div id="lock-rule"></div>
+        <div id="lock-sub">RESTRICTED ACCESS</div>
+        <div id="dials">
+          <div class="dial focus"><span class="car up">&#9650;</span><span class="dg">0</span><span class="car dn">&#9660;</span></div>
+          <div class="dial"><span class="car up">&#9650;</span><span class="dg">0</span><span class="car dn">&#9660;</span></div>
+          <div class="dial"><span class="car up">&#9650;</span><span class="dg">0</span><span class="car dn">&#9660;</span></div>
+          <div class="dial"><span class="car up">&#9650;</span><span class="dg">0</span><span class="car dn">&#9660;</span></div>
+        </div>
+        <div id="lock-status">ENTER ACCESS CODE</div>
+        <div id="lock-hint">&#9652; &#9662; <b>DIGIT</b> &nbsp;&#183;&nbsp; &#9666; &#9656; <b>DIAL</b> &nbsp;&#183;&nbsp; &#9166; <b>UNLOCK</b></div>
+      </div>
+      <div id="lock-fence">SIM &#183; SYNTHETIC RANGE &#183; NO LIVE-WEAPON INTERFACE</div>
+    </div>
+
     <div id="scanlines"></div>
   </div>
   <div id="bezel-cap">RAY-BAN DISPLAY · 600 × 600 PREVIEW</div>
@@ -401,6 +463,62 @@ body{display:flex;align-items:center;justify-content:center;
 
 <script>
 'use strict';
+/* ================= ACCESS LOCK — config =================================
+   BE HONEST ABOUT WHAT THIS IS: a client-side gate on a static file is
+   deterrence, not cryptography. Anyone who has this file has the code
+   hash, and a 4-digit space is trivially brute-forceable offline
+   (10,000 hashes — milliseconds). The actual security model here is
+   capability-URL (the random hosting subdomain nobody can guess) with
+   this PIN as the lowkey second layer — proportionate for a
+   synthetic-data concept demo, nothing more. Do not overestimate it,
+   and do not reuse this pattern for anything that matters.
+
+   Default code: 1943 (Skunk Works' founding year).
+   ROTATE THE CODE — run this one-liner, paste the output into saltedHash:
+   node -e "console.log(require('crypto').createHash('sha256').update('AEGIS-UPLINK-LOCK-v1:'+process.argv[1]).digest('hex'))" NEWCODE
+   Changing saltedHash re-locks every device: the localStorage unlock
+   token is the hash itself, so stale tokens stop matching.
+   ======================================================================== */
+const LOCK={
+  enabled:true,
+  salt:'AEGIS-UPLINK-LOCK-v1',
+  saltedHash:'06ae66c35440e1cce2c51f8c930f2489ca776dca5502e849582c8d665b69447a',
+};
+
+/* compact known-good SHA-256 (ASCII input only — ours always is).
+   Pure JS + synchronous so it works in every context including file://,
+   where crypto.subtle is unavailable. Verified against node crypto. */
+function sha256(ascii){
+  function rr(v,c){return(v>>>c)|(v<<(32-c))}
+  const maxWord=Math.pow(2,32);let result='';
+  const words=[],bitLen=ascii.length*8;
+  const hash=sha256.h=sha256.h||[],k=sha256.k=sha256.k||[];
+  let primeCounter=k.length;const isComposite={};
+  for(let candidate=2;primeCounter<64;candidate++){
+    if(!isComposite[candidate]){
+      for(let i=0;i<313;i+=candidate)isComposite[i]=candidate;
+      hash[primeCounter]=(Math.pow(candidate,.5)*maxWord)|0;
+      k[primeCounter++]=(Math.pow(candidate,1/3)*maxWord)|0;}}
+  ascii+='\x80';
+  while(ascii.length%64-56)ascii+='\x00';
+  for(let i=0;i<ascii.length;i++){const j=ascii.charCodeAt(i);
+    if(j>>8)return;words[i>>2]|=j<<((3-i)%4)*8;}
+  words[words.length]=(bitLen/maxWord)|0;words[words.length]=bitLen;
+  let h=hash;
+  for(let j=0;j<words.length;){
+    const w=words.slice(j,j+=16),oldHash=h;h=h.slice(0,8);
+    for(let i=0;i<64;i++){
+      const w15=w[i-15],w2=w[i-2],a=h[0],e=h[4];
+      const t1=h[7]+(rr(e,6)^rr(e,11)^rr(e,25))+((e&h[5])^(~e&h[6]))+k[i]
+        +(w[i]=i<16?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))
+          +w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
+      const t2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&h[1])^(a&h[2])^(h[1]&h[2]));
+      h=[(t1+t2)|0].concat(h);h[4]=(h[4]+t1)|0;}
+    for(let i=0;i<8;i++)h[i]=(h[i]+oldHash[i])|0;}
+  for(let i=0;i<8;i++)for(let j=3;j+1;j--){
+    const b=(h[i]>>(j*8))&255;result+=(b<16?'0':'')+b.toString(16);}
+  return result;}
+
 /* ================= seeded PRNG — the sim feels deterministic ============= */
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
   let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
@@ -691,6 +809,7 @@ function onKey(e){
   const k=e.key;
   if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter'].includes(k))return;
   e.preventDefault();
+  if(!unlocked){lockKey(k);return;}
   if(!booted){finishBoot();return;}
   if(k==='ArrowLeft'){gotoScreen(S.scr-1);return;}
   if(k==='ArrowRight'){gotoScreen(S.scr+1);return;}
@@ -718,6 +837,58 @@ $('th-card').addEventListener('click',()=>{if(booted&&S.scr===0)setTheater(S.the
 $('tgt-card').addEventListener('click',()=>{if(booted&&S.scr===1)designate();});
 $('auth-status').addEventListener('click',()=>{if(booted&&S.scr===2)strikeEnter();});
 
+/* ================= access lock runtime ================================== */
+/* unlock remembered per-device, KEYED TO THE HASH — rotate the code and
+   every stored token stops matching, so every device re-locks. */
+let unlocked=!LOCK.enabled;
+try{if(!unlocked&&localStorage.getItem('aegis-uplink-unlock')===LOCK.saltedHash)
+  unlocked=true;}catch(e){}
+const LK={dial:0,code:[0,0,0,0],fails:0,until:0,cdT:null,granted:false};
+const lockLive=()=>!unlocked&&!LK.granted&&Date.now()>=LK.until;
+function renderLock(){
+  document.querySelectorAll('#dials .dial').forEach((el,i)=>{
+    el.classList.toggle('focus',i===LK.dial);
+    el.querySelector('.dg').textContent=LK.code[i];});}
+function spinDial(d){LK.code[LK.dial]=(LK.code[LK.dial]+d+10)%10;renderLock();}
+function moveDial(d){LK.dial=(LK.dial+d+4)%4;renderLock();}
+function submitCode(){
+  if(sha256(LOCK.salt+':'+LK.code.join(''))===LOCK.saltedHash)grantAccess();
+  else denyAccess();}
+function grantAccess(){
+  LK.granted=true;clearInterval(LK.cdT);
+  try{localStorage.setItem('aegis-uplink-unlock',LOCK.saltedHash);}catch(e){}
+  $('dials').classList.remove('denied');$('dials').classList.add('granted');
+  const st=$('lock-status');st.textContent='ACCESS GRANTED';st.className='grant';
+  setTimeout(()=>{unlocked=true;$('lock').classList.add('off');startBoot();},900);}
+function denyAccess(){
+  LK.fails++;LK.dial=0;
+  /* exponential backoff: 1s, 2s, 4s, then capped at 8s */
+  LK.until=Date.now()+Math.min(8,Math.pow(2,LK.fails-1))*1000;
+  const dl=$('dials');
+  dl.classList.remove('denied');void dl.offsetWidth;dl.classList.add('denied');
+  const st=$('lock-status');st.className='deny';renderLock();
+  clearInterval(LK.cdT);
+  const tick=()=>{const rem=Math.ceil((LK.until-Date.now())/1000);
+    if(rem>0)st.textContent='ACCESS DENIED · RETRY IN '+rem+'S';
+    else{clearInterval(LK.cdT);dl.classList.remove('denied');
+      st.textContent='ENTER ACCESS CODE';st.className='';}};
+  tick();LK.cdT=setInterval(tick,200);}
+function lockKey(k){
+  if(!lockLive())return;               /* frozen during backoff + grant beat */
+  if(k==='ArrowUp')spinDial(1);
+  else if(k==='ArrowDown')spinDial(-1);
+  else if(k==='ArrowLeft')moveDial(-1);
+  else if(k==='ArrowRight')moveDial(1);
+  else if(k==='Enter')submitCode();}
+/* redundant mouse targets — desktop preview only, nothing depends on them */
+document.querySelectorAll('#dials .dial').forEach((el,i)=>{
+  el.querySelector('.car.up').addEventListener('click',ev=>{ev.stopPropagation();
+    if(lockLive()){LK.dial=i;spinDial(1);}});
+  el.querySelector('.car.dn').addEventListener('click',ev=>{ev.stopPropagation();
+    if(lockLive()){LK.dial=i;spinDial(-1);}});
+  el.addEventListener('click',()=>{if(lockLive()){LK.dial=i;renderLock();}});});
+$('lock-hint').addEventListener('click',()=>{if(lockLive())submitCode();});
+
 /* ================= boot ================================================= */
 let booted=false;
 function finishBoot(){if(booted)return;booted=true;
@@ -725,12 +896,12 @@ function finishBoot(){if(booted)return;booted=true;
   log('UPLINK &#9656; COMPANION HUD ONLINE · '+THEATERS[S.theater].name,'good');
   log('NET &#9656; UPLINK LOCAL · NO EXTERNAL FEED','sys');
   log('ROE &#9656; TRAINING SIMULATION — SANDBOX ONLY','warn');}
-(function boot(){
+let bootStarted=false;
+function startBoot(){if(bootStarted)return;bootStarted=true;
   const lines=document.querySelectorAll('#boot-lines .bl');
   lines.forEach((el,i)=>setTimeout(()=>el.classList.add('show'),350+i*420));
   setTimeout(()=>$('boot-ready').classList.add('show'),350+lines.length*420);
-  setTimeout(finishBoot,2900);
-})();
+  setTimeout(finishBoot,2900);}
 
 /* ================= init ================================================= */
 /* backfill — the log is already lived-in when the wearer joins the net */
@@ -757,6 +928,10 @@ clearTimeout(S.scanT);S.tgt.locked=true;
 renderTarget();renderBars();renderForces();renderStrike();gotoScreen(0);
 log('CONTACT &#9656; THREE AXES — CITY · HILLS · FLANK','crit');
 log('TRACK &#9656; '+S.tgt.id+' LOCKED · '+S.tgt.gr,'warn');
+/* lock gate: device already unlocked (or lock disabled) goes straight to
+   boot; otherwise the dial lock holds the stage and boot waits. */
+if(unlocked){$('lock').classList.add('off');startBoot();}
+else renderLock();
 </script>
 </body>
 </html>
