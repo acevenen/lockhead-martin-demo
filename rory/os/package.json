@@ -1,0 +1,21 @@
+{
+  "name": "@rory/os",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Rory shared-brain control plane — local-first, zero external dependencies (node:sqlite + node:test).",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "test": "node --disable-warning=ExperimentalWarning --test",
+    "init": "node cli/rory.js init",
+    "status": "node cli/rory.js status",
+    "board": "node cli/rory.js board",
+    "smoke": "node cli/rory.js demo:e2e",
+    "schemas": "node contracts/export-schemas.js",
+    "cli": "node cli/rory.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

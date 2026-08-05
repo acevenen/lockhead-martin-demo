@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The bootstrap directive's default stack was TypeScript + ajv + Vitest. Jarvis is
+The bootstrap directive's default stack was TypeScript + ajv + Vitest. Rory is
 local-first: it must run robustly on the owner's machine with minimal moving
 parts, ideally with no network at test time and no native toolchain to break
 across machines. Node 22 ships the pieces we need in the standard library —

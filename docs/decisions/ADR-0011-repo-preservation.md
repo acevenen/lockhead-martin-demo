@@ -6,16 +6,16 @@ Accepted
 
 ## Context
 
-The Jarvis OS was bootstrapped inside an existing, active repository that already
-contained the AEGIS Overwatch demo, the JARVIS command HUD, a knowledge base,
-four Claude subagents, `jarvisd`, and CentLabs. None of that could be broken, and
+The Rory OS was bootstrapped inside an existing, active repository that already
+contained the AEGIS Overwatch demo, the RORY command HUD, a knowledge base,
+four Claude subagents, `roryd`, and CentLabs. None of that could be broken, and
 the addition could not become a competing or nested project.
 
 ## Decision
 
 Add the OS **alongside** what exists, never in place of it. New code and data live
-under `jarvis/brain/` (canonical memory), `jarvis/os/` (control plane), and
-`jarvis/data/` (operational DB, gitignored), next to the existing `jarvis/` HUD.
+under `rory/brain/` (canonical memory), `rory/os/` (control plane), and
+`rory/data/` (operational DB, gitignored), next to the existing `rory/` HUD.
 The HUD's `index.html` and `state.json` were left untouched. The four existing
 `.claude/agents/*.md` were normalized into new manifests that record a source
 hash of each original; the originals were not modified. The root `CLAUDE.md` was

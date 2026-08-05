@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Jarvis handles the owner's identity, goals, and boundaries. In the bootstrap
+Rory handles the owner's identity, goals, and boundaries. In the bootstrap
 phase the safest posture is to keep everything on the owner's machine, with no
 public attack surface, while avoiding any laptop-specific assumption that would
 force a rewrite to scale later.

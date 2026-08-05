@@ -1,6 +1,6 @@
 # CentLabs → Meta Ray-Ban Display: the glasses bridge
 
-How JARVIS and Spotter reach the glasses, why it's built the way it is, and the
+How RORY and Spotter reach the glasses, why it's built the way it is, and the
 short list of things that are gated on you (accounts + physical steps) versus
 already done in software.
 
@@ -15,7 +15,7 @@ So the split is deliberate:
   ┌───────────────────┐   Tailscale   ┌───────────────────────────────┐
   │  Ray-Ban Display  │──────────────▶│  Node 001                     │
   │  (web view / app) │   HTTPS       │   Caddy → bridge → sentinel    │
-  │  renders the HUD  │◀──────────────│   spot / jarvisd / Hermes      │
+  │  renders the HUD  │◀──────────────│   spot / roryd / Hermes      │
   └───────────────────┘   HUD card    └───────────────────────────────┘
 ```
 
@@ -84,7 +84,7 @@ Developer account — all tracked in [CONNECT-CHECKLIST.md](CONNECT-CHECKLIST.md
 
 - **Native iOS bridge** — real camera frames → Spotter automatically, no preset
   scenes; push-to-talk over the same `/assess` API.
-- **Voice in, on-glass** — wire `jarvisd`'s intents to `/brief` and Spotter so
+- **Voice in, on-glass** — wire `roryd`'s intents to `/brief` and Spotter so
   "hey jarvis, what is this?" runs the assessment hands-free.
 - **Hermes `/ask`** — the glass asks the Node a free-form question and gets a
   spoken, memory-grounded answer, routed to the right model.

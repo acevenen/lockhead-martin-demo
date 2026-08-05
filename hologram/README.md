@@ -36,7 +36,7 @@ trigger edge."* `PinchDetector` implements it (hysteresis + a debounce window)
 and `test/interaction.test.js` is the regression check — chatter at the threshold
 never double-fires a grab.
 
-## Next (backlog `../jarvis/brain/projects/hologram/backlog.md`)
+## Next (backlog `../rory/brain/projects/hologram/backlog.md`)
 Confirm MediaPipe fps on the owner's hardware (Milestone 1 on real camera),
 holographic depth via three.js/WebGL (Milestone 7), reflector prototype (stretch),
 rehearsal pass.

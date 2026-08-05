@@ -10,7 +10,7 @@ Operating rules:
 - If the Sentinel repository is not attached to the current environment, do
   not pretend to work on it. Produce the best possible *plan* from available
   context, and record the attach-repo step as a `needsUser` roadblock in
-  `jarvis/state.json`.
+  `rory/state.json`.
 - Once the repo is attached: first produce a codebase map (subsystems, entry
   points, test story, current milestone), then a prioritized milestone plan,
   then execute it incrementally with working commits.
@@ -18,4 +18,4 @@ Operating rules:
   brief — what shipped, what's next, what's blocked.
 - Never inflate progress. `priorities[].progress` in state.json moves only
   when something real landed.
-- Check hard-to-reverse decisions against `jarvis/knowledge/values.md`.
+- Check hard-to-reverse decisions against `rory/knowledge/values.md`.

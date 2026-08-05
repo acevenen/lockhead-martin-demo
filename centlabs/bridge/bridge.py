@@ -8,7 +8,7 @@ which runs the real CentLabs tools and returns a render-ready payload.
 Endpoints (all JSON, loopback/tailnet only, behind Caddy TLS in production):
 
     GET  /bridge/            the glasses web HUD (static)
-    GET  /brief              the JARVIS brief, from the same state.json the HUD uses
+    GET  /brief              the RORY brief, from the same state.json the HUD uses
     POST /assess             device observations -> the Spotter HUD contract
     GET  /health             which capabilities this Node can serve
 
@@ -42,7 +42,7 @@ WEB_DIR = Path(__file__).resolve().parent / "web"
 
 
 def repo_root() -> Path:
-    override = os.environ.get("JARVIS_HOME", "").strip()
+    override = os.environ.get("RORY_HOME", "").strip()
     if override:
         return Path(override).expanduser().resolve()
     # centlabs/bridge/bridge.py -> repo root is two levels up.
@@ -141,7 +141,7 @@ def _unavailable_card(reason: str) -> dict:
 def read_brief() -> dict:
     """The one-line brief for the glass. Reads the same state.json the HUD and
     the agents use; never invents progress."""
-    state_file = repo_root() / "jarvis" / "state.json"
+    state_file = repo_root() / "rory" / "state.json"
     try:
         state = json.loads(state_file.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -208,7 +208,7 @@ def make_server(port: int) -> ThreadingHTTPServer:
                 self._send({
                     "ok": True,
                     "spotter": sentinel_bin() is not None,
-                    "brief": (repo_root() / "jarvis" / "state.json").exists(),
+                    "brief": (repo_root() / "rory" / "state.json").exists(),
                     "token_required": bool(_token()),
                 })
             elif path == "/brief":

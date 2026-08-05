@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>R.O.R.Y — Personal Command HUD</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='7' fill='%23ff9a3c'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%23ffe9c8'/%3E%3Ccircle cx='16' cy='16' r='12' fill='none' stroke='%23ff9a3c' stroke-width='1.5' opacity='.6'/%3E%3C/svg%3E">
+<style>
+/* ============================================================
+   R.O.R.Y — MK-I amber default (arc-reactor orange),
+   MK-II cyan alternate. Same HUD language as AEGIS OVERWATCH.
+   ============================================================ */
+:root{
+  --bg:#0a0602;
+  --c1:#ff9a3c;                       /* primary holo — orange */
+  --c1-hot:#ffd9a0;
+  --c1-dim:rgba(255,154,60,.55);
+  --c2:#53e6ff;                       /* accent */
+  --alert:#ff4d5e;
+  --ok:#6dff9e;
+  --warn:#ffd166;
+  --ink:#f5ead9;                      /* primary text ink */
+  --ink2:#c9b393;                     /* secondary ink */
+  --mut:#8a7457;                      /* muted ink */
+  --line:rgba(255,154,60,.32);
+  --line-soft:rgba(255,154,60,.14);
+  --panel:rgba(20,10,3,.78);
+  --panel2:rgba(26,14,4,.90);
+  --glow:0 0 12px rgba(255,154,60,.35);
+  --mono:ui-monospace,'SFMono-Regular','Cascadia Mono','Roboto Mono',Menlo,Consolas,monospace;
+  --disp:'Bahnschrift','Arial Narrow','Avenir Next Condensed','Helvetica Neue',Arial,sans-serif;
+}
+body.mk2{
+  --bg:#04080f;
+  --c1:#53e6ff; --c1-hot:#d3f6ff; --c1-dim:rgba(83,230,255,.55); --c2:#ffb454;
+  --ink:#e8f6fb; --ink2:#a8c6d5; --mut:#5f7d93;
+  --line:rgba(83,230,255,.30); --line-soft:rgba(83,230,255,.14);
+  --panel:rgba(6,16,26,.78); --panel2:rgba(8,20,32,.90);
+  --glow:0 0 12px rgba(83,230,255,.35);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
+  font-family:var(--mono);font-size:12px;-webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent}
+button,input{font-family:var(--mono)}
+#orb{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+/* ---------- atmosphere ---------- */
+#scanlines{position:fixed;inset:0;pointer-events:none;z-index:40;mix-blend-mode:screen;opacity:.45;
+  background:repeating-linear-gradient(0deg,rgba(255,190,120,.04) 0 1px,transparent 1px 3px)}
+body.mk2 #scanlines{background:repeating-linear-gradient(0deg,rgba(140,220,255,.04) 0 1px,transparent 1px 3px)}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:39;
+  background:radial-gradient(ellipse at 50% 44%,transparent 52%,rgba(5,2,0,.8) 100%)}
+.corner{position:fixed;width:26px;height:26px;z-index:41;pointer-events:none;opacity:.8}
+.corner::before,.corner::after{content:'';position:absolute;background:var(--c1);box-shadow:var(--glow)}
+.corner::before{width:100%;height:1px}.corner::after{width:1px;height:100%}
+#c-tl{top:10px;left:10px}#c-tr{top:10px;right:10px;transform:scaleX(-1)}
+#c-bl{bottom:10px;left:10px;transform:scaleY(-1)}#c-br{bottom:10px;right:10px;transform:scale(-1)}
+
+/* ---------- shared panel chrome ---------- */
+.panel{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+.ptitle{display:flex;align-items:center;gap:8px;padding:8px 10px 7px;border-bottom:1px solid var(--line-soft);
+  font-family:var(--disp);font-size:11px;letter-spacing:.24em;color:var(--c1);cursor:grab;touch-action:none}
+.ptitle::before{content:'';width:6px;height:6px;background:var(--c1);box-shadow:var(--glow);
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.ptitle .x{margin-left:auto;cursor:pointer;color:var(--mut);border:1px solid var(--line-soft);
+  background:none;padding:2px 8px;font-size:11px;letter-spacing:0}
+.ptitle .x:hover{color:var(--alert);border-color:var(--alert)}
+.pbody{padding:10px 12px;overflow-y:auto;color:var(--ink2);line-height:1.55}
+.pbody::-webkit-scrollbar{width:4px}
+.pbody::-webkit-scrollbar-thumb{background:var(--line)}
+
+/* ---------- top bar ---------- */
+#topbar{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:42;
+  display:flex;align-items:center;gap:14px;pointer-events:none}
+#topbar .sys{font-family:var(--disp);letter-spacing:.42em;font-size:15px;color:var(--c1);
+  text-shadow:var(--glow)}
+#topbar .sub{font-size:10px;letter-spacing:.3em;color:var(--mut)}
+
+/* ---------- left column widgets ---------- */
+#leftcol{position:fixed;left:16px;top:56px;z-index:42;display:flex;flex-direction:column;
+  gap:10px;width:190px}
+.widget{background:var(--panel);border:1px solid var(--line-soft);padding:9px 11px;
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%)}
+.widget .wlab{font-size:9px;letter-spacing:.3em;color:var(--mut);margin-bottom:5px}
+#w-clock .time{font-family:var(--disp);font-size:26px;letter-spacing:.08em;color:var(--ink);
+  text-shadow:0 0 10px var(--c1-dim)}
+#w-clock .date{font-size:10px;letter-spacing:.2em;color:var(--ink2);margin-top:2px}
+.meter{height:5px;background:rgba(255,255,255,.06);margin-top:5px;position:relative}
+.meter i{position:absolute;inset:0;right:auto;background:var(--c1);box-shadow:var(--glow)}
+.kv{display:flex;justify-content:space-between;gap:8px;font-size:10px;margin-top:3px}
+.kv b{color:var(--ink);font-weight:normal}
+#w-spark canvas{width:100%;height:34px;display:block;margin-top:4px}
+
+/* ---------- right dock ---------- */
+#dock{position:fixed;right:16px;top:56px;z-index:42;display:flex;flex-direction:column;gap:7px}
+.dockbtn{display:flex;align-items:center;gap:9px;background:var(--panel);border:1px solid var(--line-soft);
+  color:var(--ink2);padding:9px 12px;cursor:pointer;font-size:10px;letter-spacing:.22em;
+  font-family:var(--disp);min-width:150px;text-align:left;
+  clip-path:polygon(0 0,100% 0,100% 100%,10px 100%,0 calc(100% - 10px))}
+.dockbtn .ic{flex:none;width:14px;text-align:center;color:var(--c1);font-size:12px;
+  text-shadow:var(--glow);font-family:var(--mono)}
+.dockbtn:hover,.dockbtn.on{color:var(--c1);border-color:var(--line);text-shadow:var(--glow)}
+.dockbtn .n{margin-left:auto;color:var(--mut);font-family:var(--mono)}
+
+/* ---------- orb state label ---------- */
+#orbstate{position:fixed;left:50%;top:66%;transform:translateX(-50%);z-index:42;
+  font-family:var(--disp);font-size:11px;letter-spacing:.5em;color:var(--c1);
+  text-shadow:var(--glow);pointer-events:none;text-align:center}
+#orbstate .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c1);
+  margin-right:8px;box-shadow:var(--glow);vertical-align:1px}
+#orbstate.rec .dot{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.15}}
+#orbhint{position:fixed;left:50%;top:calc(66% + 22px);transform:translateX(-50%);z-index:42;
+  font-size:9px;letter-spacing:.26em;color:var(--mut);pointer-events:none}
+
+/* ---------- captions ---------- */
+#captions{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:43;width:min(680px,92vw);
+  display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:none;text-align:center}
+#captions .cap{background:rgba(10,5,0,.72);border:1px solid var(--line-soft);padding:6px 14px;
+  max-width:100%;line-height:1.5;letter-spacing:.04em}
+#captions .cap.you{color:var(--mut);font-size:10px}
+#captions .cap.jv{color:var(--ink);font-size:12px;text-shadow:0 0 8px var(--c1-dim)}
+#captions .cap .who{color:var(--c1);letter-spacing:.2em;font-size:9px;margin-right:8px}
+
+/* ---------- command bar ---------- */
+#cmdbar{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:44;
+  display:flex;align-items:stretch;gap:8px;width:min(720px,94vw)}
+#micbtn{flex:none;width:52px;border:1px solid var(--line);background:var(--panel2);color:var(--c1);
+  font-size:19px;cursor:pointer;box-shadow:var(--glow);
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+#micbtn.live{background:var(--c1);color:#140a02;animation:micpulse 1.4s infinite}
+@keyframes micpulse{50%{box-shadow:0 0 26px var(--c1-dim)}}
+#cmdinput{flex:1;background:var(--panel2);border:1px solid var(--line-soft);color:var(--ink);
+  padding:11px 14px;font-size:12px;letter-spacing:.06em;outline:none;min-width:0}
+#cmdinput::placeholder{color:var(--mut)}
+#cmdinput:focus{border-color:var(--line);box-shadow:var(--glow)}
+.barbtn{flex:none;border:1px solid var(--line-soft);background:var(--panel2);color:var(--ink2);
+  padding:0 13px;cursor:pointer;font-size:13px}
+.barbtn:hover{color:var(--c1);border-color:var(--line)}
+.barbtn.off{color:var(--alert)}
+
+/* ---------- popups ---------- */
+.popup{position:fixed;z-index:50;width:min(390px,92vw);max-height:min(66vh,560px);
+  display:flex;flex-direction:column;animation:pop .18s ease-out}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.popup .pbody{max-height:calc(min(66vh,560px) - 36px)}
+.row{border-bottom:1px solid var(--line-soft);padding:7px 0}
+.row:last-child{border-bottom:0}
+.row .h{display:flex;align-items:baseline;gap:8px}
+.row .h b{color:var(--ink);font-weight:normal;letter-spacing:.04em}
+.row .h .tag{margin-left:auto;flex:none;font-size:9px;letter-spacing:.14em;padding:2px 7px;
+  border:1px solid var(--line-soft);color:var(--mut)}
+.row .h .tag.p0{color:var(--alert);border-color:rgba(255,77,94,.5)}
+.row .h .tag.act{color:var(--ok);border-color:rgba(109,255,158,.4)}
+.row .h .tag.warn{color:var(--warn);border-color:rgba(255,209,102,.4)}
+.row .d{color:var(--ink2);font-size:11px;margin-top:3px;line-height:1.5}
+.row .m{color:var(--mut);font-size:10px;margin-top:3px;letter-spacing:.06em}
+.bigbtn{display:block;width:100%;margin-top:9px;padding:10px;background:none;border:1px solid var(--line);
+  color:var(--c1);letter-spacing:.3em;font-family:var(--disp);font-size:11px;cursor:pointer}
+.bigbtn:hover{background:var(--c1);color:#140a02;box-shadow:var(--glow)}
+.pbody .field{margin:8px 0}
+.pbody .field label{display:block;font-size:9px;letter-spacing:.24em;color:var(--mut);margin-bottom:4px}
+.pbody .field input{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--line-soft);
+  color:var(--ink);padding:8px 10px;outline:none}
+.pbody .field input:focus{border-color:var(--line)}
+.progress-lab{display:flex;justify-content:space-between;font-size:10px;color:var(--mut);margin-top:6px}
+.progress-lab b{color:var(--c1);font-weight:normal}
+
+/* ---------- boot ---------- */
+#boot{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;
+  align-items:center;justify-content:center;transition:opacity .8s}
+#boot.done{opacity:0;pointer-events:none}
+#bootin{width:min(520px,88vw)}
+#bootlogo{font-family:var(--disp);font-size:30px;letter-spacing:.5em;color:var(--c1);
+  text-shadow:0 0 24px var(--c1-dim);text-align:center;margin-bottom:22px}
+#bootlines{height:150px;overflow:hidden;font-size:11px;line-height:1.8;color:var(--ink2)}
+#bootlines .ok{color:var(--ok)}
+#bootbar{height:3px;background:rgba(255,255,255,.07);margin-top:16px}
+#bootbar i{display:block;height:100%;width:0;background:var(--c1);box-shadow:var(--glow);
+  transition:width .3s}
+#boottap{margin-top:14px;text-align:center;font-size:10px;letter-spacing:.3em;color:var(--mut)}
+
+/* ---------- responsive: phone / Meta display ---------- */
+@media (max-width:760px){
+  #leftcol{width:142px;gap:6px}
+  #w-clock .time{font-size:19px}
+  .widget{padding:7px 9px}
+  .dockbtn{min-width:0;padding:10px 8px;gap:6px}
+  .dockbtn span.lab{display:none}          /* icon-only dock on small displays */
+  .dockbtn .n{font-size:9px}
+  #topbar .sub{display:none}
+  #orbstate{top:62%}
+  #orbhint{top:calc(62% + 20px)}
+  #captions{bottom:86px}
+}
+@media (max-height:520px){ /* wide short viewport = glasses HUD */
+  #leftcol{top:44px}#dock{top:44px}
+  #captions{bottom:74px}#cmdbar{bottom:10px}
+}
+@media (prefers-reduced-motion:reduce){
+  #micbtn.live,#orbstate.rec .dot{animation:none}
+}
+</style>
+</head>
+<body>
+
+<canvas id="orb"></canvas>
+<div id="scanlines"></div><div id="vignette"></div>
+<div class="corner" id="c-tl"></div><div class="corner" id="c-tr"></div>
+<div class="corner" id="c-bl"></div><div class="corner" id="c-br"></div>
+
+<div id="topbar">
+  <div class="sys">R.O.R.Y</div>
+  <div class="sub">PERSONAL COMMAND INTERFACE · MK-I</div>
+</div>
+
+<div id="leftcol">
+  <div class="widget" id="w-clock">
+    <div class="wlab">LOCAL TIME</div>
+    <div class="time" id="clock">--:--</div>
+    <div class="date" id="date">—</div>
+  </div>
+  <div class="widget" id="w-prio">
+    <div class="wlab">PRIORITY ONE</div>
+    <div class="kv"><span id="prio-name">SENTINEL</span><b id="prio-pct">—</b></div>
+    <div class="meter"><i id="prio-bar" style="width:0%"></i></div>
+    <div class="kv" style="margin-top:6px"><span style="color:var(--mut)" id="prio-next">—</span></div>
+  </div>
+  <div class="widget" id="w-sys">
+    <div class="wlab">SYSTEM</div>
+    <div class="kv"><span>AGENTS</span><b id="sys-agents">—</b></div>
+    <div class="kv"><span>OPEN TASKS</span><b id="sys-tasks">—</b></div>
+    <div class="kv"><span>ROADBLOCKS</span><b id="sys-blocks">—</b></div>
+    <div class="kv"><span>VOICE</span><b id="sys-voice">SYNTH</b></div>
+  </div>
+  <div class="widget" id="w-spark">
+    <div class="wlab">ACTIVITY · 14 DAYS</div>
+    <canvas id="spark" width="166" height="34"></canvas>
+  </div>
+</div>
+
+<div id="dock">
+  <button class="dockbtn" data-open="brief" title="Daily brief"><span class="ic">▤</span><span class="lab">DAILY BRIEF</span><span class="n" id="n-brief"></span></button>
+  <button class="dockbtn" data-open="sentinel" title="Priority One — Sentinel"><span class="ic">◆</span><span class="lab">SENTINEL</span><span class="n">P0</span></button>
+  <button class="dockbtn" data-open="tasks" title="Task board"><span class="ic">☰</span><span class="lab">TASKS</span><span class="n" id="n-tasks"></span></button>
+  <button class="dockbtn" data-open="ops" title="Operations — roadblocks"><span class="ic">⚠</span><span class="lab">OPERATIONS</span><span class="n" id="n-ops"></span></button>
+  <button class="dockbtn" data-open="demos" title="Demo bay"><span class="ic">▶</span><span class="lab">DEMOS</span><span class="n" id="n-demos"></span></button>
+  <button class="dockbtn" data-open="agents" title="Agent roster"><span class="ic">⬡</span><span class="lab">AGENT ROSTER</span><span class="n" id="n-agents"></span></button>
+  <button class="dockbtn" data-open="help" title="Voice commands"><span class="ic">?</span><span class="lab">VOICE COMMANDS</span></button>
+  <button class="dockbtn" data-open="settings" title="Settings"><span class="ic">⚙</span><span class="lab">SETTINGS</span></button>
+</div>
+
+<div id="orbstate"><span class="dot"></span><span id="orbstate-t">STANDBY</span></div>
+<div id="orbhint">TAP ORB OR SAY “RORY” · TYPE BELOW</div>
+
+<div id="captions"></div>
+
+<div id="cmdbar">
+  <button id="micbtn" title="voice input" aria-label="toggle voice input">◉</button>
+  <input id="cmdinput" placeholder="type a command — “brief me”, “open sentinel”, “show demos”…"
+         autocomplete="off" autocapitalize="off" spellcheck="false">
+  <button class="barbtn" id="mutebtn" title="mute voice">🔊</button>
+  <button class="barbtn" id="themebtn" title="toggle MK-I / MK-II palette">MK</button>
+</div>
+
+<div id="boot">
+  <div id="bootin">
+    <div id="bootlogo">R.O.R.Y</div>
+    <div id="bootlines"></div>
+    <div id="bootbar"><i></i></div>
+    <div id="boottap">INITIALIZING…</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   R.O.R.Y — personal command HUD
+   Single file, no build, no runtime dependencies. Voice via Web Speech
+   API; optional ElevenLabs TTS (key stored locally, never committed).
+   State is read from ./state.json when served over HTTP; an embedded
+   snapshot keeps file:// double-click fully working.
+   ===================================================================== */
+
+/* ---------------- embedded state (fallback for file://) -------------- */
+const EMBEDDED_STATE = {
+  "meta": {
+    "updated": "2026-08-05",
+    "updatedBy": "rory-chief-of-staff"
+  },
+  "user": {
+    "name": "",
+    "honorific": "sir"
+  },
+  "brief": {
+    "since": "last session",
+    "headline": "The glasses are wired: web-app bridge on Node 001 runs the real Spotter and renders a HUD to the Ray-Ban Display. Data plane written. Web-app path chosen and built.",
+    "items": [
+      {
+        "agent": "rory-chief-of-staff",
+        "kind": "done",
+        "text": "Renamed the assistant JARVIS → Rory across the whole repo — directories (jarvis/→rory/, jarvisd/→roryd/), the control-plane code + CLI (cli/rory.js), env vars, docs, agents, and this HUD — while preserving the openWakeWord \"hey_jarvis\" model the daemon still wakes on (a custom \"hey rory\" model is a follow-up). Added a trigger: typing \"hey rory, what's the update for today?\" (or variants) now fires a UserPromptSubmit hook that has Rory read state.json, give the since-you-left brief, and propose the day's tasks. Verified: OS 56/56, hologram 6/6, roryd 54/54 tests pass; demo:e2e runs; no straggler references."
+      },
+      {
+        "agent": "rory-chief-of-staff",
+        "kind": "done",
+        "text": "Built the glasses web-app bridge — the chosen path onto the Ray-Ban Display. A relay on Node 001 serves a glanceable HUD to the glasses' web view and answers /assess by shelling to the REAL `sentinel spot` (never reimplements Spotter) and /brief from state.json. Fails closed on its token, degrades to an honest card with no binary, blocks path traversal. 20 tests. Verified end-to-end: page → /assess → sentinel spot → HUD card rendered (Hikvision, critical, 4 risk pips, spoken action), zero console errors."
+      },
+      {
+        "agent": "rory-chief-of-staff",
+        "kind": "done",
+        "text": "Wrote the Node 001 Phase-1 data plane: one Compose file (Ollama+GPU, Open WebUI, Postgres, Qdrant, Redis, Caddy), a Caddyfile serving the HUD over `tls internal` (the secure context the web view needs for camera/mic) and proxying the bridge, a Makefile (make bootstrap), and .env.example. Only Caddy publishes ports — the brain isn't exposed to the LAN. `docker compose config` validates. `make bootstrap` after Docker's installed and it's live."
+      },
+      {
+        "agent": "rory-chief-of-staff",
+        "kind": "done",
+        "text": "Shipped roryd: an always-on 'Hey Jarvis' daemon (openWakeWord pretrained model, local faster-whisper STT, ElevenLabs-or-system voice). Starts at login, opens the HUD, has the brief ready on boot, and degrades to typed commands with no mic. 54 tests."
+      },
+      {
+        "agent": "rory-chief-of-staff",
+        "kind": "done",
+        "text": "Added a daily-improvement ledger the daemon enforces: every entry must name an improvement AND the pain it removes, so a day cannot be closed by recording activity. 'What did you do yesterday' reads it back."
+      },
+      {
+        "agent": "rory-chief-of-staff",
+        "kind": "done",
+        "text": "Voice power-on for Node 001: Wake-on-LAN sender + authenticated bridge endpoint, plus verified Windows/BIOS setup (Fast Startup is the silent killer) and an honest smart-plug fallback. Alexa/Shortcuts/Home Assistant can now boot the PC."
+      },
+      {
+        "agent": "rory-chief-of-staff",
+        "kind": "done",
+        "text": "Recorded CentLabs Workspace v1 as an architecture decision record (device topology, all 10 phases with WHY/tradeoffs, container-runtime analysis, build order) plus the iPhone-14 headless-node design and recovery runbook — so the projects are never explained twice."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS view models: enter any crew seat and you are holding something — rifle with iron sights, scoped M107, pintle .50 with a feeding belt, Apache canopy with glareshield MFDs, binoculars at the gun line. They sway with movement, kick with the unit's real recoil and muzzle-flash when it actually fires. Kept solid in both render modes deliberately: the weapon is the operator's hands, not part of the projection."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "AEGIS theater-wide war: 114 units on three simultaneous axes — armour at the city, mech infantry in the hills, a recon screen on the flank — with fires in depth at the map edges whose 21/32 km reach covers every sector. Battle infantry now fight on foot on the articulated rig: walk on the advance, braced aim in contact, a fall about the feet when killed, rifle riding the hand throughout."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "Playtested three full walk-in sessions end to end. Caught and fixed: battle stop() crashing on the new infantry rig fleets, view models eaten by the camera near plane, the holo wash rendering the weapon invisible, and table-scale civilians towering like giants over the metric battle from any eye-level camera (the crowd drops to metric scale whenever the camera is on the deck)."
+      },
+      {
+        "agent": "demo-engineer",
+        "kind": "done",
+        "text": "Found why the city disappeared on the owner's iPhone in photoreal mode. buildCity thinned its field to the 430-building budget and then pushed up to six signature towers in AFTER the cut, so it returned 434-436 — 12 of the first 15 sites over. index.html then asked GL to draw more instances than the buffer held. That is INVALID_OPERATION per the WebGL spec: Chrome tolerates it via robust buffer access and reports no error, which is why every desktop and headless test passed, while WebKit drops the whole draw call. Real mode made it total because the wireframe cages that survived in holo are faded to zero there. Fixed at the generator and guarded at the consumer; every skyline is unchanged."
+      }
+    ]
+  },
+  "priorities": [
+    {
+      "id": "sentinel",
+      "label": "SENTINEL DEVELOPMENT",
+      "status": "P0 · ACTIVE",
+      "progress": 0.55,
+      "next": "CI green, two hardening rounds merged. Next milestone (your steer): audit-chain tamper tests + central authorization-contract fuzzing."
+    }
+  ],
+  "tasks": [
+    {
+      "title": "roryd — install on Node 001 + MacBook (autostart)",
+      "project": "CENTLABS",
+      "priority": "P1",
+      "status": "open",
+      "note": "install/ scripts per OS; enable-wol.ps1 + BIOS for voice power-on. Needs the real machines."
+    },
+    {
+      "title": "CentLabs Phase 1 — Node 001 base (WSL2 + Docker + NVIDIA + Compose data plane)",
+      "project": "CENTLABS",
+      "priority": "P1",
+      "status": "open",
+      "note": "Compose + Caddy + Makefile written in centlabs/node001/ and validated. Remaining is on-machine: install Docker Desktop + NVIDIA toolkit, then `make bootstrap`."
+    },
+    {
+      "title": "Glasses: native iOS bridge (real camera frames)",
+      "project": "CENTLABS",
+      "priority": "P2",
+      "status": "open",
+      "note": "Web-app path is built (centlabs/bridge/). Native path is the upgrade: feeds real camera frames to Spotter over the same /assess API. Needs the four Meta IDs + Apple Developer account (CONNECT-CHECKLIST §5)."
+    },
+    {
+      "title": "Sentinel: audit-chain tamper tests",
+      "project": "SENTINEL",
+      "priority": "P0",
+      "status": "open",
+      "note": "Proposed next milestone — verify the hash-chained audit log rejects reordered/edited/truncated events."
+    },
+    {
+      "title": "Sentinel: central authorization-contract fuzzing",
+      "project": "SENTINEL",
+      "priority": "P1",
+      "status": "open",
+      "note": "Fuzz Scope.Decide / Policy.Authorize for scope-bypass regressions."
+    },
+    {
+      "title": "AEGIS: record cinematic capture for the pitch",
+      "project": "DEMOS",
+      "priority": "P1",
+      "status": "open",
+      "note": "?autodemo runs the scripted loop (~3 min): strike, photoreal toggle, 4-target salvo, airdrop, team insert + sweep + waypoint move, UCAV, then a crew-POV pass. Press the button again to stop."
+    },
+    {
+      "title": "Configure ElevenLabs key for authentic RORY voice",
+      "project": "RORY",
+      "priority": "P2",
+      "status": "open",
+      "note": "Settings panel → key + voice ID. Falls back to en-GB system voice."
+    },
+    {
+      "title": "Fill in values.md + business.md knowledge base",
+      "project": "RORY",
+      "priority": "P2",
+      "status": "open",
+      "note": "rory/knowledge/ — the team checks decisions against it; blanks force escalations."
+    }
+  ],
+  "roadblocks": [
+    {
+      "title": "Sentinel next milestone needs direction",
+      "impact": "The team can keep hardening autonomously, but a named milestone focuses P0.",
+      "proposed": "Approve the proposed track — audit-chain tamper tests + authorization-contract fuzzing — or name your own.",
+      "needsUser": true
+    },
+    {
+      "title": "No ElevenLabs credentials",
+      "impact": "RORY speaks with the system en-GB voice instead of the cinematic one.",
+      "proposed": "Paste key + voice ID in Settings (stored in this browser only).",
+      "needsUser": true
+    },
+    {
+      "title": "Knowledge base is placeholder-only",
+      "impact": "Decisions that aren't covered by values.md get escalated instead of resolved.",
+      "proposed": "Fill in rory/knowledge/values.md and business.md when you have a moment.",
+      "needsUser": true
+    }
+  ],
+  "demos": [
+    {
+      "id": "aegis",
+      "title": "AEGIS OVERWATCH",
+      "status": "FIRST LAUNCH",
+      "path": "../index.html",
+      "desc": "Holo-tactical command table — 51 real theaters, holographic and photoreal looks, real road network and living city, a 114-unit theater-wide battle with animated deaths and persistent wrecks, GTA-style crew POV with first-person view models, destructible world, free-roam sandbox.",
+      "flags": "?fastboot · ?autodemo · ?site=<id> · H holo/real · [ ] crew POV · Z hide HUD"
+    },
+    {
+      "id": "rory",
+      "title": "RORY COMMAND HUD",
+      "status": "YOU ARE HERE",
+      "path": "index.html",
+      "desc": "This interface. Voice loop, reactive orb, popup panels, agent state pipeline.",
+      "flags": "?fastboot"
+    }
+  ],
+  "agents": [
+    {
+      "id": "rory-chief-of-staff",
+      "name": "CHIEF OF STAFF",
+      "status": "active",
+      "role": "Runs every session: reads state, delivers the brief, routes work to the team, updates state before signing off."
+    },
+    {
+      "id": "sentinel-lead",
+      "name": "SENTINEL LEAD",
+      "status": "active",
+      "role": "Owns Priority One. Two hardening rounds merged (parsers + authorization gate); CI restored to green."
+    },
+    {
+      "id": "demo-engineer",
+      "name": "DEMO ENGINEER",
+      "status": "active",
+      "role": "Owns the demos group. AEGIS runs two render looks over one scene, a real road network with driving traffic and walking crowds, an animated battle with persistent wrecks, and crew POV into any unit. Phone HUD rebuilt. All suites green."
+    },
+    {
+      "id": "daily-brief",
+      "name": "BRIEFING OFFICER",
+      "status": "active",
+      "role": "Compiles what changed since you left into brief.items and the spoken morning brief."
+    },
+    {
+      "id": "biz-ops",
+      "name": "BIZ OPS",
+      "status": "standby",
+      "role": "Business problems and roadblocks: triage, propose solutions, flag what needs your call."
+    }
+  ],
+  "activity14": [
+    6,
+    8,
+    9,
+    12,
+    15,
+    19,
+    24,
+    31,
+    38,
+    41,
+    46,
+    24,
+    33,
+    22
+  ]
+};
+
+let STATE = EMBEDDED_STATE;
+
+/* ---------------- tiny helpers ---------------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LS = {
+  get k(){ return { key:'rory.elevenKey', voice:'rory.voiceId', name:'rory.name',
+                    muted:'rory.muted', theme:'rory.theme' }; },
+  get(id, d=''){ try{ return localStorage.getItem(id) ?? d; }catch(e){ return d; } },
+  set(id, v){ try{ localStorage.setItem(id, v); }catch(e){} }
+};
+const qs = new URLSearchParams(location.search);
+
+/* =====================================================================
+   ORB — additive-blended particle core with fire filaments and
+   rotating HUD arcs. One scalar `amp` (0..1) drives everything:
+   idle breathe → listening simmer → speaking flare.
+   ===================================================================== */
+const orb = (() => {
+  const cv = $('#orb'), ctx = cv.getContext('2d');
+  let W=0,H=0,DPR=1,CX=0,CY=0,R=120;
+  let amp=0, targetAmp=0.06, mode='idle', t=0;
+  let flare=0; // transient burst on state change
+
+  const P = [];             // particles
+  const NP = 340;
+  function seed(){
+    P.length = 0;
+    for(let i=0;i<NP;i++){
+      P.push({
+        a: Math.random()*Math.PI*2,
+        r0: 0.5 + Math.random()*0.85,          // fraction of R
+        sp: (0.0018+Math.random()*0.005)*(Math.random()<0.5?-1:1),
+        sz: 0.6+Math.random()*1.8,
+        ph: Math.random()*Math.PI*2,
+        fl: 0.5+Math.random()*0.5
+      });
+    }
+  }
+  function resize(){
+    DPR = Math.min(devicePixelRatio||1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = W*DPR; cv.height = H*DPR;
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    CX = W/2; CY = H*0.44;
+    R = Math.min(W,H)*0.21;
+  }
+  addEventListener('resize', resize); resize(); seed();
+
+  function hue(){ return document.body.classList.contains('mk2') ? 194 : 30; }
+
+  // fractal-ish angular noise from stacked sines — cheap, deterministic
+  function n(theta, s1, s2, s3){
+    return Math.sin(3*theta + t*s1) + 0.55*Math.sin(7*theta - t*s2) + 0.3*Math.sin(13*theta + t*s3);
+  }
+
+  function frame(){
+    t += 0.016;
+    // idle breathe unless something is driving targetAmp
+    if(mode==='idle') targetAmp = 0.06 + 0.035*Math.sin(t*0.9);
+    amp += (targetAmp-amp)*0.12;
+    flare *= 0.94;
+    const A = Math.min(1, amp + flare);
+    const hu = hue();
+
+    ctx.clearRect(0,0,W,H);
+    ctx.globalCompositeOperation = 'lighter';
+
+    // --- deep atmosphere bloom (wide, faint) ---
+    let bg2 = ctx.createRadialGradient(CX,CY,R*0.2, CX,CY,R*2.0);
+    bg2.addColorStop(0, `hsla(${hu},100%,45%,${0.14+A*0.14})`);
+    bg2.addColorStop(1,'transparent');
+    ctx.fillStyle = bg2;
+    ctx.beginPath(); ctx.arc(CX,CY,R*2.0,0,7); ctx.fill();
+
+    // --- hot core: tight white-hot center, fast falloff ---
+    const coreR = R*(0.20 + A*0.10);
+    let g = ctx.createRadialGradient(CX,CY,0, CX,CY,coreR*3.0);
+    g.addColorStop(0,    `hsla(${hu+22},100%,96%,${0.85+A*0.15})`);
+    g.addColorStop(0.12, `hsla(${hu+14},100%,78%,${0.7+A*0.2})`);
+    g.addColorStop(0.34, `hsla(${hu},100%,52%,${0.32+A*0.28})`);
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(CX,CY,coreR*3.0,0,7); ctx.fill();
+
+    // --- radial ember spokes: filaments shooting out of the core ---
+    const SPOKES = 64;
+    ctx.lineWidth = 1;
+    for(let i=0;i<SPOKES;i++){
+      const th = i/SPOKES*Math.PI*2 + t*0.03;
+      const wig = Math.sin(t*1.3 + i*2.7) * 0.5 + Math.sin(t*0.7 + i*1.1);
+      const inner = R*(0.30 + 0.06*Math.sin(t*2 + i));
+      const outer = R*(0.62 + 0.42*Math.abs(Math.sin(i*1.7 + t*0.6))) * (0.85 + A*0.5);
+      const bend = 0.10 + 0.05*wig;
+      ctx.beginPath();
+      const SEG = 5;
+      for(let s=0;s<=SEG;s++){
+        const f = s/SEG;
+        const rr = inner + (outer-inner)*f;
+        const a2 = th + bend*f*f*(wig>0?1:-1);
+        const x = CX + Math.cos(a2)*rr, y = CY + Math.sin(a2)*rr*0.96;
+        s ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+      }
+      const br = 0.10 + 0.34*Math.abs(Math.sin(i*0.9 + t*1.4));
+      ctx.strokeStyle = `hsla(${hu+12*br},100%,${58+22*br}%,${br*(0.35+A*0.9)})`;
+      ctx.stroke();
+    }
+
+    // --- fire filament rings (the chaotic ember shell) ---
+    for(let k=0;k<5;k++){
+      const baseR = R*(0.66 + k*0.11);
+      const wob = R*(0.04 + 0.15*A)*(1+k*0.3);
+      ctx.beginPath();
+      const STEPS = 120;
+      for(let i=0;i<=STEPS;i++){
+        const th = i/STEPS*Math.PI*2;
+        const rr = baseR + n(th, 0.7+k*0.31, 1.1+k*0.17, 0.5+k*0.4)*wob;
+        const x = CX + Math.cos(th)*rr, y = CY + Math.sin(th)*rr*0.96;
+        i ? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = `hsla(${hu+8-k*4},100%,${66-k*5}%,${0.20+A*0.30})`;
+      ctx.lineWidth = k===0 ? 1.5 : 1;
+      ctx.shadowColor = `hsla(${hu},100%,55%,0.9)`;
+      ctx.shadowBlur = 8+16*A;
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+
+    // --- particle swarm ---
+    for(const p of P){
+      p.a += p.sp*(1+A*3.2);
+      const jag = 1 + 0.16*Math.sin(t*1.7*p.fl + p.ph)*(0.4+A*1.6);
+      const rr = R*p.r0*jag;
+      const x = CX + Math.cos(p.a)*rr;
+      const y = CY + Math.sin(p.a)*rr*0.96;
+      const tw = 0.5 + 0.5*Math.sin(t*3*p.fl + p.ph);
+      ctx.fillStyle = `hsla(${hu+10*tw},100%,${55+25*tw}%,${(0.10+0.5*tw)*(0.35+A)})`;
+      const s = p.sz*(0.8+A*0.9);
+      ctx.fillRect(x-s/2, y-s/2, s, s);
+    }
+
+    // --- crisp rotating HUD arcs ---
+    ctx.globalCompositeOperation = 'source-over';
+    const arcs = [
+      {r:1.28, w:1.4, len:1.9, sp:0.35, al:0.55},
+      {r:1.36, w:0.8, len:0.8, sp:-0.22, al:0.4},
+      {r:1.45, w:2.2, len:0.45, sp:0.14, al:0.3}
+    ];
+    for(const a of arcs){
+      ctx.beginPath();
+      const off = t*a.sp;
+      ctx.arc(CX,CY,R*a.r, off, off+a.len);
+      ctx.strokeStyle = `hsla(${hu},95%,62%,${a.al*(0.5+A)})`;
+      ctx.lineWidth = a.w;
+      ctx.stroke();
+    }
+    // tick ring
+    ctx.strokeStyle = `hsla(${hu},95%,62%,${0.24+A*0.3})`;
+    ctx.lineWidth = 1;
+    for(let i=0;i<48;i++){
+      const th = i/48*Math.PI*2 + t*0.05;
+      const r1 = R*1.2, r2 = R*(i%4===0 ? 1.16 : 1.18);
+      ctx.beginPath();
+      ctx.moveTo(CX+Math.cos(th)*r1, CY+Math.sin(th)*r1);
+      ctx.lineTo(CX+Math.cos(th)*r2, CY+Math.sin(th)*r2);
+      ctx.stroke();
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  return {
+    set(m){ mode = m; flare = Math.min(1, flare+0.5); },
+    drive(v){ targetAmp = v; },            // 0..1 external amplitude
+    burst(){ flare = 1; },
+    get mode(){ return mode; },
+    center(){ return {x:CX, y:CY, r:R*1.5}; }
+  };
+})();
+
+/* ---------------- orb state label ---------------- */
+function setOrbState(mode, label){
+  orb.set(mode);
+  $('#orbstate-t').textContent = label;
+  $('#orbstate').classList.toggle('rec', mode==='listening');
+  if(mode==='idle') orb.drive(0.06);
+}
+
+/* =====================================================================
+   VOICE OUT — ElevenLabs when configured (real analyser drives the orb),
+   otherwise speechSynthesis with an en-GB voice and a synthetic envelope.
+   ===================================================================== */
+const voice = (() => {
+  let muted = LS.get(LS.k.muted)==='1';
+  let audioCtx=null, analyser=null, envTimer=null;
+  let speakingCount = 0;
+
+  function pickVoice(){
+    const vs = speechSynthesis.getVoices();
+    return vs.find(v=>/en-GB/i.test(v.lang) && /male|daniel|arthur|george/i.test(v.name))
+        || vs.find(v=>/en-GB/i.test(v.lang))
+        || vs.find(v=>/^en/i.test(v.lang))
+        || null;
+  }
+  function startEnv(){
+    stopEnv();
+    envTimer = setInterval(()=>{
+      orb.drive(0.35 + 0.3*Math.random());
+    }, 90);
+  }
+  function stopEnv(){ if(envTimer){ clearInterval(envTimer); envTimer=null; } }
+
+  function beginSpeak(){
+    speakingCount++;
+    setOrbState('speaking','SPEAKING');
+  }
+  function endSpeak(){
+    speakingCount = Math.max(0, speakingCount-1);
+    if(speakingCount===0){
+      stopEnv();
+      setOrbState(listen.active()?'listening':'idle', listen.active()?'LISTENING':'STANDBY');
+    }
+  }
+
+  async function speakEleven(text){
+    const key = LS.get(LS.k.key), vid = LS.get(LS.k.voice) || 'onwK4e9ZLuTAKqWW03F9';
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(vid)}?output_format=mp3_44100_64`,{
+      method:'POST',
+      headers:{'xi-api-key':key,'Content-Type':'application/json'},
+      body:JSON.stringify({text, model_id:'eleven_turbo_v2_5',
+        voice_settings:{stability:0.45, similarity_boost:0.8, style:0.25}})
+    });
+    if(!res.ok) throw new Error('elevenlabs '+res.status);
+    const buf = await res.arrayBuffer();
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') await audioCtx.resume();
+    const audio = await audioCtx.decodeAudioData(buf);
+    const src = audioCtx.createBufferSource();
+    src.buffer = audio;
+    analyser = analyser || audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    src.connect(analyser); analyser.connect(audioCtx.destination);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      if(!playing) return;
+      analyser.getByteFrequencyData(data);
+      let sum=0; for(let i=2;i<40;i++) sum+=data[i];
+      orb.drive(Math.min(1, (sum/38/255)*2.6));
+      requestAnimationFrame(tick);
+    };
+    let playing = true;
+    return new Promise(done=>{
+      src.onended = ()=>{ playing=false; done(); };
+      src.start(); tick();
+    });
+  }
+
+  function speakSynth(text){
+    return new Promise(done=>{
+      const u = new SpeechSynthesisUtterance(text);
+      const v = pickVoice(); if(v) u.voice = v;
+      u.rate = 1.02; u.pitch = 0.92;
+      u.onstart = startEnv;
+      u.onboundary = ()=>orb.burst();
+      u.onend = ()=>{ stopEnv(); done(); };
+      u.onerror = ()=>{ stopEnv(); done(); };
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    });
+  }
+
+  async function say(text, {caption=true}={}){
+    if(caption) captions.add('jv', text);
+    if(muted) return;
+    beginSpeak();
+    try{
+      if(LS.get(LS.k.key)) { await speakEleven(text); }
+      else await speakSynth(text);
+    }catch(e){
+      try{ await speakSynth(text); }catch(_){}
+    }finally{ endSpeak(); }
+  }
+
+  function setMuted(m){
+    muted = m; LS.set(LS.k.muted, m?'1':'0');
+    $('#mutebtn').textContent = m?'🔇':'🔊';
+    $('#mutebtn').classList.toggle('off', m);
+    if(m){ speechSynthesis.cancel(); stopEnv(); }
+  }
+  setMuted(muted);
+
+  return { say, setMuted, get muted(){ return muted; } };
+})();
+
+/* ---------------- captions ---------------- */
+const captions = (() => {
+  const box = $('#captions');
+  let fade=null;
+  function add(kind, text){
+    const el = document.createElement('div');
+    el.className = 'cap '+kind;
+    el.innerHTML = `<span class="who">${kind==='you'?'YOU':'RORY'}</span>${esc(text)}`;
+    box.appendChild(el);
+    while(box.children.length>2) box.removeChild(box.firstChild);
+    clearTimeout(fade);
+    fade = setTimeout(()=>{ box.innerHTML=''; }, 14000);
+  }
+  return { add };
+})();
+
+/* =====================================================================
+   VOICE IN — continuous recognition with a wake word, plus tap-to-talk
+   on the orb and the typed command line. All three feed route().
+   ===================================================================== */
+const listen = (() => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec=null, active=false, wantActive=false, armed=false, armTimer=null;
+  let micStream=null, micAnalyser=null, micCtx=null, micTick=null;
+
+  async function micViz(){
+    try{
+      micStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      micCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const src = micCtx.createMediaStreamSource(micStream);
+      micAnalyser = micCtx.createAnalyser(); micAnalyser.fftSize=256;
+      src.connect(micAnalyser);
+      const data = new Uint8Array(micAnalyser.frequencyBinCount);
+      const tick = ()=>{
+        if(!active){ return; }
+        micAnalyser.getByteFrequencyData(data);
+        let sum=0; for(let i=2;i<40;i++) sum+=data[i];
+        if(orb.mode==='listening') orb.drive(0.12 + Math.min(0.5,(sum/38/255)*1.4));
+        micTick = requestAnimationFrame(tick);
+      };
+      tick();
+    }catch(e){ /* mic denied — recognition may still work, orb just breathes */ }
+  }
+  function micStop(){
+    if(micTick) cancelAnimationFrame(micTick);
+    if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream=null; }
+    if(micCtx){ micCtx.close().catch(()=>{}); micCtx=null; }
+  }
+
+  function arm(){
+    armed = true;
+    clearTimeout(armTimer);
+    armTimer = setTimeout(()=>{ armed=false; }, 9000);
+    orb.burst();
+    setOrbState('listening','COMMAND?');
+  }
+
+  function handle(text){
+    const t = text.trim().toLowerCase();
+    if(!t) return;
+    const wake = /\brory\b/;
+    if(armed){
+      armed = false;
+      captions.add('you', text.trim());
+      route(t);
+    }else if(wake.test(t)){
+      const after = t.split(wake).pop().replace(/^[,.!?\s]+/,'');
+      if(after && after.length>2){
+        captions.add('you', text.trim());
+        route(after);
+      }else arm();
+    }
+  }
+
+  function start(){
+    if(!SR){ toast("Speech recognition unavailable in this browser — use the command line."); return; }
+    wantActive = true;
+    if(active) return;
+    rec = new SR();
+    rec.continuous = true; rec.interimResults = false; rec.lang = 'en-US';
+    rec.onresult = e => {
+      for(let i=e.resultIndex;i<e.results.length;i++)
+        if(e.results[i].isFinal) handle(e.results[i][0].transcript);
+    };
+    rec.onend = ()=>{ active=false; if(wantActive){ try{ rec.start(); active=true; }catch(_){ setUI(false);} } else setUI(false); };
+    rec.onerror = ev => {
+      if(ev.error==='not-allowed' || ev.error==='service-not-allowed'){
+        wantActive=false; setUI(false);
+        toast("Mic blocked — tap-to-talk unavailable. The command line still works.");
+      }
+    };
+    try{ rec.start(); active=true; setUI(true); micViz(); }
+    catch(e){ setUI(false); }
+  }
+  function stop(){
+    wantActive=false;
+    if(rec){ try{ rec.stop(); }catch(_){} }
+    active=false; micStop(); setUI(false);
+  }
+  function setUI(on){
+    active = on;
+    $('#micbtn').classList.toggle('live', on);
+    if(orb.mode!=='speaking') setOrbState(on?'listening':'idle', on?'LISTENING':'STANDBY');
+  }
+  return {
+    toggle(){ (wantActive||active) ? stop() : start(); },
+    start, stop, arm,
+    active: ()=>active
+  };
+})();
+
+function toast(msg){ captions.add('jv', msg); }
+
+/* =====================================================================
+   PANELS — popup builders render straight from STATE.
+   ===================================================================== */
+const panels = (() => {
+  let z = 60, stagger = 0;
+  const open = {};
+
+  function spawn(id, title, bodyHTML){
+    if(open[id]){ focus(open[id]); refresh(id); return open[id]; }
+    const el = document.createElement('div');
+    el.className = 'popup panel';
+    el.dataset.pid = id;
+    const st = stagger++ % 5;
+    const c = orb.center();
+    el.style.left = Math.max(8, Math.min(innerWidth-400, c.x - 195 + (st-2)*44)) + 'px';
+    el.style.top  = Math.max(8, 70 + st*36) + 'px';
+    el.style.zIndex = ++z;
+    el.innerHTML = `<div class="ptitle">${esc(title)}<button class="x" aria-label="close">✕</button></div>
+                    <div class="pbody"></div>`;
+    document.body.appendChild(el);
+    el.querySelector('.pbody').innerHTML = bodyHTML;
+    el.querySelector('.x').onclick = ()=>close(id);
+    el.addEventListener('pointerdown', ()=>focus(el));
+    drag(el, el.querySelector('.ptitle'));
+    open[id] = el;
+    $$(`.dockbtn[data-open="${id}"]`).forEach(b=>b.classList.add('on'));
+    return el;
+  }
+  function close(id){
+    if(open[id]){ open[id].remove(); delete open[id];
+      $$(`.dockbtn[data-open="${id}"]`).forEach(b=>b.classList.remove('on')); }
+  }
+  function closeAll(){ Object.keys(open).forEach(close); }
+  function focus(el){ el.style.zIndex = ++z; }
+  function drag(el, handle){
+    let sx,sy,ox,oy,pid=null;
+    handle.addEventListener('pointerdown', e=>{
+      if(e.target.closest('.x')) return;
+      pid = e.pointerId; handle.setPointerCapture(pid);
+      sx=e.clientX; sy=e.clientY;
+      ox=el.offsetLeft; oy=el.offsetTop;
+    });
+    handle.addEventListener('pointermove', e=>{
+      if(pid===null || e.pointerId!==pid) return;
+      el.style.left = Math.max(-100, Math.min(innerWidth-60, ox + e.clientX-sx)) + 'px';
+      el.style.top  = Math.max(0, Math.min(innerHeight-40, oy + e.clientY-sy)) + 'px';
+    });
+    const up = e=>{ if(e.pointerId===pid) pid=null; };
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  }
+
+  /* ---- body builders ---- */
+  const kindTag = k => k==='done' ? '<span class="tag act">✓ DONE</span>'
+                    : k==='blocked' ? '<span class="tag warn">⚠ BLOCKED</span>'
+                    : '<span class="tag">· IN&nbsp;WORK</span>';
+
+  const builders = {
+    brief(){
+      const b = STATE.brief||{items:[]};
+      return `<div class="row"><div class="d" style="color:var(--ink)">${esc(b.headline||'No brief on file.')}</div>
+              <div class="m">SINCE ${esc((b.since||'').toUpperCase())} · UPDATED ${esc(STATE.meta?.updated||'—')}</div></div>` +
+        b.items.map(i=>`<div class="row"><div class="h"><b>${esc(i.text)}</b>${kindTag(i.kind)}</div>
+              <div class="m">AGENT · ${esc((i.agent||'').toUpperCase())}</div></div>`).join('');
+    },
+    sentinel(){
+      const p = (STATE.priorities||[]).find(x=>x.id==='sentinel') || (STATE.priorities||[])[0];
+      if(!p) return '<div class="row"><div class="d">No priority defined.</div></div>';
+      const pct = Math.round((p.progress||0)*100);
+      const tasks = (STATE.tasks||[]).filter(t=>/sentinel/i.test(t.project||''));
+      return `<div class="row"><div class="h"><b>${esc(p.label)}</b><span class="tag p0">${esc(p.status)}</span></div>
+        <div class="meter" style="margin-top:8px"><i style="width:${pct}%"></i></div>
+        <div class="progress-lab"><span>MILESTONE PROGRESS</span><b>${pct}%</b></div>
+        <div class="d" style="margin-top:8px">${esc(p.next||'')}</div></div>` +
+        tasks.map(t=>`<div class="row"><div class="h"><b>${esc(t.title)}</b>
+          <span class="tag ${t.priority==='P0'?'p0':''}">${esc(t.priority)}</span></div>
+          ${t.note?`<div class="m">${esc(t.note)}</div>`:''}</div>`).join('');
+    },
+    tasks(){
+      const ts = STATE.tasks||[];
+      if(!ts.length) return '<div class="row"><div class="d">Task list clear.</div></div>';
+      return ts.map(t=>`<div class="row"><div class="h"><b>${esc(t.title)}</b>
+        <span class="tag ${t.priority==='P0'?'p0':''}">${esc(t.priority||'')}</span></div>
+        <div class="m">${esc((t.project||'').toUpperCase())} · ${esc((t.status||'open').toUpperCase())}</div>
+        ${t.note?`<div class="d">${esc(t.note)}</div>`:''}</div>`).join('');
+    },
+    ops(){
+      const rs = STATE.roadblocks||[];
+      if(!rs.length) return '<div class="row"><div class="d">No roadblocks on the board.</div></div>';
+      return rs.map(r=>`<div class="row"><div class="h"><b>${esc(r.title)}</b>
+        ${r.needsUser?'<span class="tag warn">⚠ YOUR CALL</span>':'<span class="tag">HANDLED</span>'}</div>
+        <div class="d">IMPACT — ${esc(r.impact)}</div>
+        <div class="d" style="color:var(--ink)">PROPOSED — ${esc(r.proposed)}</div></div>`).join('');
+    },
+    demos(){
+      return (STATE.demos||[]).map(d=>`<div class="row"><div class="h"><b>${esc(d.title)}</b>
+        <span class="tag act">${esc(d.status||'')}</span></div>
+        <div class="d">${esc(d.desc||'')}</div>
+        ${d.flags?`<div class="m">FLAGS · ${esc(d.flags)}</div>`:''}
+        ${d.path && d.id!=='rory'?`<button class="bigbtn" data-launch="${esc(d.path)}">▶ LAUNCH</button>`:''}
+        </div>`).join('');
+    },
+    agents(){
+      const dot = s => s==='active' ? '<span class="tag act">● ACTIVE</span>' : '<span class="tag">○ STANDBY</span>';
+      return (STATE.agents||[]).map(a=>`<div class="row"><div class="h"><b>${esc(a.name)}</b>${dot(a.status)}</div>
+        <div class="d">${esc(a.role)}</div>
+        <div class="m">.claude/agents/${esc(a.id)}.md</div></div>`).join('');
+    },
+    help(){
+      const cmds = [
+        ['“Rory” … pause … command','wake word, then speak'],
+        ['brief me / what did I miss','daily brief + spoken summary'],
+        ['status report','one-breath sitrep'],
+        ['open sentinel','Priority One panel'],
+        ['show tasks / projects','task board'],
+        ['operations / roadblocks','problems + proposed fixes'],
+        ['show demos · launch aegis','demo bay / open AEGIS'],
+        ['agents','the roster'],
+        ['mk one / mk two','amber ↔ cyan palette'],
+        ['mute / unmute','voice output'],
+        ['close everything','dismiss all panels'],
+        ['goodnight','stand down']
+      ];
+      return cmds.map(c=>`<div class="row"><div class="h"><b>${esc(c[0])}</b></div>
+        <div class="m">${esc(c[1])}</div></div>`).join('');
+    },
+    settings(){
+      return `
+      <div class="field"><label>ADDRESS YOU AS</label>
+        <input id="set-name" value="${esc(LS.get(LS.k.name) || STATE.user?.name || '')}" placeholder="sir"></div>
+      <div class="field"><label>ELEVENLABS API KEY — stays in this browser (localStorage), never committed</label>
+        <input id="set-key" type="password" value="${esc(LS.get(LS.k.key))}" placeholder="xi-…"></div>
+      <div class="field"><label>ELEVENLABS VOICE ID (default: Daniel — British)</label>
+        <input id="set-voice" value="${esc(LS.get(LS.k.voice))}" placeholder="onwK4e9ZLuTAKqWW03F9"></div>
+      <button class="bigbtn" id="set-save">SAVE</button>
+      <button class="bigbtn" id="set-test">TEST VOICE</button>
+      <div class="row"><div class="m">Without a key, RORY uses the system's British voice.
+      State pipeline: agents write rory/state.json → this HUD renders it.</div></div>`;
+    }
+  };
+  const titles = {
+    brief:'DAILY BRIEF', sentinel:'PRIORITY ONE — SENTINEL', tasks:'TASK BOARD',
+    ops:'OPERATIONS — ROADBLOCKS', demos:'DEMO BAY', agents:'AGENT ROSTER',
+    help:'VOICE COMMANDS', settings:'SETTINGS'
+  };
+
+  function show(id){
+    if(!builders[id]) return;
+    spawn(id, titles[id], builders[id]());
+    wire(id);
+  }
+  function refresh(id){
+    if(open[id] && builders[id]){
+      open[id].querySelector('.pbody').innerHTML = builders[id]();
+      wire(id);
+    }
+  }
+  function wire(id){
+    const el = open[id]; if(!el) return;
+    el.querySelectorAll('[data-launch]').forEach(b=>{
+      b.onclick = ()=>{ location.href = b.dataset.launch; };
+    });
+    if(id==='settings'){
+      el.querySelector('#set-save').onclick = ()=>{
+        LS.set(LS.k.name, el.querySelector('#set-name').value.trim());
+        LS.set(LS.k.key, el.querySelector('#set-key').value.trim());
+        LS.set(LS.k.voice, el.querySelector('#set-voice').value.trim());
+        $('#sys-voice').textContent = LS.get(LS.k.key) ? 'ELEVEN' : 'SYNTH';
+        voice.say('Settings saved, '+honorific()+'.');
+      };
+      el.querySelector('#set-test').onclick = ()=>voice.say(
+        `Voice check complete, ${honorific()}. All systems are online.`);
+    }
+  }
+  return { show, close, closeAll, refresh, isOpen:id=>!!open[id] };
+})();
+
+/* ---------------- greeting / summaries ---------------- */
+function honorific(){
+  return LS.get(LS.k.name) || STATE.user?.name || STATE.user?.honorific || 'sir';
+}
+function timeGreeting(){
+  const h = new Date().getHours();
+  return h<5 ? 'Working late' : h<12 ? 'Good morning' : h<18 ? 'Good afternoon' : 'Good evening';
+}
+function briefSummary(){
+  const b = STATE.brief||{items:[]};
+  const done = b.items.filter(i=>i.kind==='done').length;
+  const blocked = b.items.filter(i=>i.kind==='blocked').length;
+  let s = `While you were away: ${b.headline||'no changes logged.'} `;
+  s += `${done} item${done===1?'':'s'} completed`;
+  s += blocked ? `, ${blocked} blocked and waiting on you. ` : `, nothing blocked. `;
+  const p = (STATE.priorities||[])[0];
+  if(p) s += `Priority one remains ${p.label.toLowerCase()} — ${p.next||''}`;
+  return s;
+}
+function sitrep(){
+  const tasks = (STATE.tasks||[]).filter(t=>(t.status||'open')==='open').length;
+  const blocks = (STATE.roadblocks||[]).filter(r=>r.needsUser).length;
+  const p = (STATE.priorities||[])[0];
+  return `Systems nominal, ${honorific()}. ${tasks} open task${tasks===1?'':'s'}, `+
+         `${blocks} decision${blocks===1?'':'s'} waiting on you. `+
+         (p?`Sentinel stands at ${Math.round((p.progress||0)*100)} percent of the current milestone.`:'');
+}
+
+/* =====================================================================
+   INTENT ROUTER — voice and typed commands land here.
+   ===================================================================== */
+function route(raw){
+  const t = raw.toLowerCase().trim();
+  const say = voice.say.bind(voice);
+  const open = id => { panels.show(id); };
+
+  if(/\b(brief|briefing|what.*(miss|happen|done)|morning)\b/.test(t)){
+    open('brief'); say(briefSummary()); return;
+  }
+  if(/\b(status|sitrep|report)\b/.test(t)){ open('brief'); say(sitrep()); return; }
+  if(/\bsentinel\b/.test(t)){
+    open('sentinel');
+    const p=(STATE.priorities||[])[0];
+    say(`Sentinel is priority one, ${honorific()}. ${p?p.next:''}`); return;
+  }
+  if(/\b(task|project|board|to.?do)\b/.test(t)){
+    open('tasks');
+    const n=(STATE.tasks||[]).length;
+    say(`${n} item${n===1?'':'s'} on the board. Sentinel items are flagged P-zero.`); return;
+  }
+  if(/\b(op(eration)?s|roadblock|blocker|problem|issue)\b/.test(t)){
+    open('ops');
+    const n=(STATE.roadblocks||[]).filter(r=>r.needsUser).length;
+    say(n?`${n} roadblock${n===1?'':'s'} need your call, ${honorific()}. Proposed fixes are on screen.`
+         :'No roadblocks require your attention.'); return;
+  }
+  if(/\b(launch|open|run)\b.*\b(aegis|overwatch)\b/.test(t) || /^aegis$/.test(t)){
+    say('Launching AEGIS Overwatch.'); setTimeout(()=>{ location.href='../index.html?fastboot'; }, 900); return;
+  }
+  if(/\bdemo/.test(t)){ open('demos'); say('Demo bay on screen.'); return; }
+  if(/\b(agent|roster|team)\b/.test(t)){
+    open('agents');
+    const a=(STATE.agents||[]).filter(x=>x.status==='active').length;
+    say(`${a} agents active, the rest on standby.`); return;
+  }
+  if(/\b(help|command|what can you do)\b/.test(t)){ open('help'); say('Command reference on screen.'); return; }
+  if(/\bsetting|voice setup|eleven\b/.test(t)){ open('settings'); return; }
+  if(/\b(time|date|day)\b/.test(t)){
+    const d=new Date();
+    say(`It is ${d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}, ${d.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'})}.`); return;
+  }
+  if(/\bclose (everything|all)|clear (screen|all)\b/.test(t)){ panels.closeAll(); say('Screen cleared.'); return; }
+  if(/\b(unmute|voice on)\b/.test(t)){ voice.setMuted(false); say('Voice restored.'); return; }
+  if(/\b(mute|quiet|silence)\b/.test(t)){ voice.setMuted(true); toast('Voice muted.'); return; }
+  if(/\bmk.?(1|one)|amber|orange\b/.test(t)){ setTheme(false); say('MK one amber.'); return; }
+  if(/\bmk.?(2|two)|cyan|blue\b/.test(t)){ setTheme(true); say('MK two cyan.'); return; }
+  if(/\b(goodnight|good night|stand down|sleep|shut ?down)\b/.test(t)){
+    panels.closeAll(); listen.stop();
+    say(`Goodnight, ${honorific()}. I'll keep the lights on.`); return;
+  }
+  if(/\b(thank|cheers)\b/.test(t)){ say(`Always, ${honorific()}.`); return; }
+  if(/\b(hello|hey|hi)\b/.test(t)){ say(`${timeGreeting()}, ${honorific()}. How can I help?`); return; }
+  say(`I didn't catch a command in that, ${honorific()}. Say "help" for the reference.`);
+  panels.show('help');
+}
+
+/* ---------------- widgets ---------------- */
+function tickClock(){
+  const d = new Date();
+  $('#clock').textContent = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  $('#date').textContent = d.toLocaleDateString([], {weekday:'short', year:'numeric', month:'short', day:'numeric'}).toUpperCase();
+}
+setInterval(tickClock, 5000); tickClock();
+
+function renderWidgets(){
+  const p = (STATE.priorities||[])[0];
+  if(p){
+    $('#prio-name').textContent = (p.label||'').split(' ')[0];
+    const pct = Math.round((p.progress||0)*100);
+    $('#prio-pct').textContent = pct+'%';
+    $('#prio-bar').style.width = pct+'%';
+    $('#prio-next').textContent = (p.status||'');
+  }
+  const openTasks = (STATE.tasks||[]).filter(t=>(t.status||'open')==='open');
+  $('#sys-agents').textContent = `${(STATE.agents||[]).filter(a=>a.status==='active').length}/${(STATE.agents||[]).length}`;
+  $('#sys-tasks').textContent = openTasks.length;
+  $('#sys-blocks').textContent = (STATE.roadblocks||[]).length;
+  $('#sys-voice').textContent = LS.get(LS.k.key) ? 'ELEVEN' : 'SYNTH';
+  $('#n-brief').textContent = (STATE.brief?.items||[]).length || '';
+  $('#n-tasks').textContent = openTasks.length || '';
+  $('#n-ops').textContent = (STATE.roadblocks||[]).length || '';
+  $('#n-demos').textContent = (STATE.demos||[]).length || '';
+  $('#n-agents').textContent = (STATE.agents||[]).length || '';
+  drawSpark();
+}
+
+/* single-series sparkline — line + faint area, no legend needed */
+function drawSpark(){
+  const cv = $('#spark'), c = cv.getContext('2d');
+  const data = STATE.activity14 || [];
+  const w = cv.width, h = cv.height;
+  c.clearRect(0,0,w,h);
+  if(data.length<2) return;
+  const max = Math.max(...data, 1);
+  const px = i => 2 + i*(w-4)/(data.length-1);
+  const py = v => h-3 - (v/max)*(h-8);
+  const col = getComputedStyle(document.body).getPropertyValue('--c1').trim() || '#ff9a3c';
+  c.beginPath();
+  data.forEach((v,i)=> i?c.lineTo(px(i),py(v)):c.moveTo(px(i),py(v)));
+  c.strokeStyle = col; c.lineWidth = 1.6; c.stroke();
+  c.lineTo(px(data.length-1), h); c.lineTo(px(0), h); c.closePath();
+  c.globalAlpha = 0.14; c.fillStyle = col; c.fill(); c.globalAlpha = 1;
+  const lx = px(data.length-1), ly = py(data[data.length-1]);
+  c.beginPath(); c.arc(lx-1, ly, 2.4, 0, 7); c.fillStyle = col; c.fill();
+}
+
+/* ---------------- theme ---------------- */
+function setTheme(mk2){
+  document.body.classList.toggle('mk2', mk2);
+  LS.set(LS.k.theme, mk2?'mk2':'mk1');
+  drawSpark();
+}
+if(LS.get(LS.k.theme)==='mk2') setTheme(true);
+
+/* ---------------- wiring ---------------- */
+$$('.dockbtn').forEach(b=>{
+  if(b.dataset.open) b.addEventListener('click', ()=>{
+    panels.isOpen(b.dataset.open) ? panels.close(b.dataset.open) : panels.show(b.dataset.open);
+  });
+});
+$('#micbtn').addEventListener('click', ()=>listen.toggle());
+$('#mutebtn').addEventListener('click', ()=>voice.setMuted(!voice.muted));
+$('#themebtn').addEventListener('click', ()=>setTheme(!document.body.classList.contains('mk2')));
+$('#cmdinput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
+    const v = e.target.value.trim();
+    if(v){ captions.add('you', v); route(v); e.target.value=''; }
+  }
+});
+/* tap the orb = arm command capture (or start listening) */
+addEventListener('pointerdown', e=>{
+  if(e.target !== $('#orb')) return;
+  const c = orb.center();
+  const dx = e.clientX-c.x, dy = e.clientY-c.y;
+  if(dx*dx+dy*dy < c.r*c.r){
+    if(!listen.active()) listen.start();
+    listen.arm();
+  }
+});
+addEventListener('keydown', e=>{
+  if(e.target === $('#cmdinput')) return;
+  if(e.key==='Escape') panels.closeAll();
+  if(e.key===' '){ e.preventDefault(); listen.toggle(); }
+  if(e.key==='/'){ e.preventDefault(); $('#cmdinput').focus(); }
+});
+
+/* ---------------- state load ---------------- */
+async function loadState(){
+  try{
+    const res = await fetch('state.json', {cache:'no-store'});
+    if(res.ok){
+      const s = await res.json();
+      if(s && s.brief) STATE = s;
+    }
+  }catch(e){ /* file:// or offline — embedded snapshot stands */ }
+  renderWidgets();
+}
+
+/* ---------------- boot ---------------- */
+const BOOT_LINES = [
+  ['UPLINK · CLAUDE CODE WORKSPACE', 'ok'],
+  ['STATE PIPELINE · rory/state.json', 'ok'],
+  ['AGENT ROSTER · 5 UNITS REGISTERED', 'ok'],
+  ['PRIORITY ONE · SENTINEL DEVELOPMENT', 'ok'],
+  ['DEMO BAY · AEGIS OVERWATCH DOCKED', 'ok'],
+  ['VOICE MATRIX · SPEECH-TO-SPEECH READY', 'ok'],
+  ['ALL SYSTEMS NOMINAL', 'ok']
+];
+async function boot(){
+  await loadState();
+  const fast = qs.has('fastboot') || qs.has('autodemo');
+  const bl = $('#bootlines'), bar = $('#bootbar i');
+  if(fast){ finishBoot(true); return; }
+  for(let i=0;i<BOOT_LINES.length;i++){
+    await new Promise(r=>setTimeout(r, 210+Math.random()*160));
+    const [txt, cls] = BOOT_LINES[i];
+    bl.innerHTML += `<div>▸ ${esc(txt)} <span class="${cls}">[OK]</span></div>`;
+    bar.style.width = Math.round((i+1)/BOOT_LINES.length*100)+'%';
+  }
+  await new Promise(r=>setTimeout(r, 380));
+  finishBoot(false);
+}
+function finishBoot(fast){
+  $('#boot').classList.add('done');
+  setOrbState('idle','STANDBY');
+  const greet = `${timeGreeting()}, ${honorific()}. ` +
+    ((STATE.brief?.items||[]).length
+      ? `I have ${(STATE.brief.items||[]).length} updates since your last session. Say "brief me" when ready.`
+      : `All quiet. Say "help" for commands.`);
+  /* speech needs a user gesture on most browsers — greet on first interaction */
+  let greeted = false;
+  const greetOnce = ()=>{
+    if(greeted) return; greeted = true;
+    voice.say(greet);
+    removeEventListener('pointerdown', greetOnce);
+    removeEventListener('keydown', greetOnce);
+  };
+  if(fast){ captions.add('jv', greet); }
+  addEventListener('pointerdown', greetOnce);
+  addEventListener('keydown', greetOnce);
+  if(speechSynthesis && speechSynthesis.getVoices().length===0)
+    speechSynthesis.onvoiceschanged = ()=>{};
+}
+boot();
+</script>
+</body>
+</html>

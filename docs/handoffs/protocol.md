@@ -2,8 +2,8 @@
 
 Agents pass work through a **validated handoff envelope**. Both Claude Code and
 Codex operate from this same neutral contract. The envelope is validated against
-the `handoff` schema (`jarvis/os/contracts/schemas.js`) and stored by
-`jarvis/os/handoff/store.js`; a malformed or under-specified handoff is rejected.
+the `handoff` schema (`rory/os/contracts/schemas.js`) and stored by
+`rory/os/handoff/store.js`; a malformed or under-specified handoff is rejected.
 
 ## Envelope
 

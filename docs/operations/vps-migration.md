@@ -1,4 +1,4 @@
-# Jarvis OS — VPS Migration Plan (Not Executed Now)
+# Rory OS — VPS Migration Plan (Not Executed Now)
 
 > **Do not deploy now.** This phase is **localhost only**: `localhost` binding,
 > local SQLite, stdio-first MCP, no public exposure (ADR-0010). This document is a
@@ -33,7 +33,7 @@ the append-only ledger into the new store; derived views rebuild from it. Keep
 SQLite as the local/dev default.
 
 ### Encrypted backups
-Automated, **encrypted** backups of the database and the `jarvis/brain/` canonical
+Automated, **encrypted** backups of the database and the `rory/brain/` canonical
 files. Store off-host, encrypted at rest, with periodic **restore drills** — an
 untested backup is not a backup. The ledger is the primary thing to protect.
 

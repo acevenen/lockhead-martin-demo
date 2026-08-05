@@ -6,7 +6,7 @@ the seam that keeps the control plane safe and portable.
 
 ## Design
 - **Tools, not tables.** The surface is the list in
-  `jarvis/os/mcp/descriptors.js`; handlers are in `jarvis/os/mcp/tools.js`. Each
+  `rory/os/mcp/descriptors.js`; handlers are in `rory/os/mcp/tools.js`. Each
   handler goes through the same repositories (and therefore the same contracts,
   approval policy, scope checks, and event logging) that the CLI uses.
 - **Caller identity on every call.** `makeTools(ctx, { caller })` binds the
@@ -27,7 +27,7 @@ handoff_get · lesson_search · review_submit · board_generate · system_status
 
 ## This phase
 Scaffold only — the governed handlers exist and are tested
-(`jarvis/os/test/mcp.test.js`). Binding a live stdio server and wiring it into
+(`rory/os/test/mcp.test.js`). Binding a live stdio server and wiring it into
 Claude Code / Codex is an owner-approved connect step
 (`../operations/connect-claude-code.md`, `../operations/connect-codex.md`). The
 owner's **global** MCP config is not modified in this phase.

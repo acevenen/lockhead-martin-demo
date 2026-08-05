@@ -1,7 +1,7 @@
 # Hermes capability inventory (discovery required)
 
 Hermes is **not integrated**. No capability is assumed. Its manifest
-(`jarvis/brain/agents/registry/hermes.json`) is a placeholder with status
+(`rory/brain/agents/registry/hermes.json`) is a placeholder with status
 `discovery_required`, zero capabilities, zero tools, and every task routed to
 `blocked` pending this inventory. Integration happens through a capability
 **adapter** only after the answers below are known.

@@ -1,18 +1,18 @@
 # Architecture overview
 
-Jarvis is a local-first, multi-agent control plane with a governed shared brain.
+Rory is a local-first, multi-agent control plane with a governed shared brain.
 The intelligence (durable truth) lives in the brain; agents are interfaces into
 it that propose changes and do bounded, reviewed work.
 
 ## Two layers of memory
-- **Canonical, human-readable** (`jarvis/brain/`, version-controlled): mission &
+- **Canonical, human-readable** (`rory/brain/`, version-controlled): mission &
   constitution, owner profile & goals, agent manifests, project charters,
   curated lessons. The source of truth for durable facts.
-- **Operational** (`jarvis/data/jarvis.db`, SQLite, gitignored): tasks, an
+- **Operational** (`rory/data/rory.db`, SQLite, gitignored): tasks, an
   **append-only event ledger**, memory proposals, artifacts, reviews, lessons,
   failures, routing decisions, runs, handoffs. Derived views rebuild from events.
 
-## The control plane (`jarvis/os/`, zero-dependency ESM)
+## The control plane (`rory/os/`, zero-dependency ESM)
 ```
 contracts/  JSON-Schema contracts + a small validator + shared enums
 db/         node:sqlite schema + connection wrapper (idempotent migrate)

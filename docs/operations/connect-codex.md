@@ -13,7 +13,7 @@ capabilities** — configure only what is verified.
 
 ## Wiring (when you approve)
 1. Point the `coding_primary` / `coding_review` model profiles at Codex by
-   setting their env vars (`JARVIS_MODEL_CODING`, `JARVIS_MODEL_CODE_REVIEW`) to
+   setting their env vars (`RORY_MODEL_CODING`, `RORY_MODEL_CODE_REVIEW`) to
    the concrete model ids — no code change (that's the whole point of profile
    routing).
 2. Give Codex the same MCP tool surface as Claude Code

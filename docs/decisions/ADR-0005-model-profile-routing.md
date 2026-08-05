@@ -15,7 +15,7 @@ should have a recorded answer.
 
 Requests are routed to named model **profiles** describing roles — for example
 `ceo_strategy`, `coding_primary`, `coding_review`, `research`, `local_private` —
-defined in `jarvis/os/config/model-profiles.json`. Each profile names an
+defined in `rory/os/config/model-profiles.json`. Each profile names an
 environment variable (`model_env`) that supplies the concrete model id at
 runtime, so **no model id appears in code**. The `ModelRegistry` loads profiles;
 the `Router` is deterministic (same inputs produce the same profile) and persists

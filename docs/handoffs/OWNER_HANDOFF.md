@@ -1,20 +1,20 @@
 # Owner handoff
 
 ## What this is
-The first working foundation of Jarvis — your shared-brain AI company — built
+The first working foundation of Rory — your shared-brain AI company — built
 locally inside this repo. It runs, it's tested, and **nothing has been committed
 or pushed**: per your operating principles, that waits on your approval.
 
 ## What you can do right now (no keys, no setup)
 ```bash
-cd jarvis/os
-node cli/jarvis.js demo:e2e   # watch the company plan, route, review, learn, and report
+cd rory/os
+node cli/rory.js demo:e2e   # watch the company plan, route, review, learn, and report
 node --test                   # 48 tests pass
-node cli/jarvis.js board      # generate today's board meeting
+node cli/rory.js board      # generate today's board meeting
 ```
 
 ## What was built
-- A governed **shared brain**: canonical files in `jarvis/brain/` + an operational
+- A governed **shared brain**: canonical files in `rory/brain/` + an operational
   SQLite store, with proposal-first memory, approval gates, and an append-only
   audit ledger.
 - A **task/agent/artifact/review** system with a deny-by-default state machine,
@@ -32,7 +32,7 @@ node cli/jarvis.js board      # generate today's board meeting
 ## What needs YOU
 1. **Approve committing this** (or tell me to adjust first). It's uncommitted
    working-tree state right now.
-2. **Fill your profile** — `jarvis/brain/profile/*` has honest `unknown`s, not
+2. **Fill your profile** — `rory/brain/profile/*` has honest `unknown`s, not
    guesses. Correct them or approve proposed memories.
 3. **Decide where the hologram code lives** (D-2 in the project decisions).
 4. Later, and only when you say so: connect real models (env vars), wire the MCP

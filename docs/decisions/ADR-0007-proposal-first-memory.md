@@ -23,7 +23,7 @@ prior facts without erasing them: provenance and history are retained. The
 
 ## Consequences
 
-The owner stays in control of who Jarvis thinks they are and what it is allowed
+The owner stays in control of who Rory thinks they are and what it is allowed
 to do. Contradictions surface as disputes to resolve, not silent drift. Full
 provenance means any fact can be traced to its source and correction chain. The
 cost: writes are slower and sometimes gated on a human, and the approval policy

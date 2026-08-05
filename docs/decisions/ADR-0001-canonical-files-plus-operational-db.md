@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-Jarvis needs two very different kinds of persistence. It needs durable memory —
+Rory needs two very different kinds of persistence. It needs durable memory —
 identity, preferences, goals, boundaries, decisions, lessons — that a person
 should be able to read, diff, and approve. It also needs fast operational state:
 tasks, events, routing decisions, review outcomes. A single giant system prompt
@@ -17,9 +17,9 @@ fact from a passing remark, and correcting one means rewriting history.
 ## Decision
 
 Use two stores with distinct jobs. Canonical, human-readable truth lives in
-version-controlled Markdown under `jarvis/brain/` — the durable facts a person
+version-controlled Markdown under `rory/brain/` — the durable facts a person
 can read, diff, and approve in a pull request. Operational state lives in a
-SQLite database (`jarvis/data/jarvis.db`, gitignored): tasks, the append-only
+SQLite database (`rory/data/rory.db`, gitignored): tasks, the append-only
 event ledger, memory rows, routing decisions, reviews. The database is machine
 truth for the running system; the brain files are the canonical human record,
 and memory promotion writes to both on approval.

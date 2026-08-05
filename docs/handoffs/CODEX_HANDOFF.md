@@ -1,27 +1,27 @@
 # Codex handoff
 
 ## Objective
-You are `cto-codex` — CTO / independent technical reviewer for Jarvis, a
+You are `cto-codex` — CTO / independent technical reviewer for Rory, a
 local-first multi-agent control plane. Read `AGENTS.md` first (the neutral shared
 contract), then this.
 
 ## Current architecture
 - Zero-dependency ESM JS on Node 22 built-ins (`node:sqlite`, `node:test`).
-- Canonical human-readable brain in `jarvis/brain/`; operational SQLite store in
-  `jarvis/data/jarvis.db`. Full map: `docs/architecture/overview.md`.
+- Canonical human-readable brain in `rory/brain/`; operational SQLite store in
+  `rory/data/rory.db`. Full map: `docs/architecture/overview.md`.
 - Decisions of record: `docs/decisions/ADR-0001..0011`.
 
 ## Important file locations
-- Contracts + validator: `jarvis/os/contracts/{schemas.js,validator.js,enums.js}`
-- State machine: `jarvis/os/tasks/engine.js`
-- Governed memory: `jarvis/os/memory/repository.js`
-- Deterministic router: `jarvis/os/routing/router.js` + `config/model-profiles.json`
-- Review gate: `jarvis/os/review/engine.js`
-- Learning loop: `jarvis/os/learning/repository.js`
-- Orchestrator + mocked scenario: `jarvis/os/orchestrator/{ceo.js,scenario.js}`
-- Board meeting: `jarvis/os/board/meeting.js`
-- MCP boundary: `jarvis/os/mcp/{descriptors.js,tools.js}`
-- Tests: `jarvis/os/test/*.test.js` (48 passing)
+- Contracts + validator: `rory/os/contracts/{schemas.js,validator.js,enums.js}`
+- State machine: `rory/os/tasks/engine.js`
+- Governed memory: `rory/os/memory/repository.js`
+- Deterministic router: `rory/os/routing/router.js` + `config/model-profiles.json`
+- Review gate: `rory/os/review/engine.js`
+- Learning loop: `rory/os/learning/repository.js`
+- Orchestrator + mocked scenario: `rory/os/orchestrator/{ceo.js,scenario.js}`
+- Board meeting: `rory/os/board/meeting.js`
+- MCP boundary: `rory/os/mcp/{descriptors.js,tools.js}`
+- Tests: `rory/os/test/*.test.js` (48 passing)
 
 ## What was implemented
 Contracts + validation, task state machine (deny-by-default, delegation/retry
@@ -37,7 +37,7 @@ See `docs/operations/NEXT_ACTIONS.md`. Notably: wire the MCP SDK transport,
 implement one real provider `complete()`, hologram Milestone 1, board scheduler.
 
 ## Tests & current failures
-`cd jarvis/os && node --test` → **48 pass, 0 fail**. No known failures.
+`cd rory/os && node --test` → **48 pass, 0 fail**. No known failures.
 
 ## Decisions that must be preserved
 - Model ids are **never** hardcoded — route by profile, resolve from env
@@ -47,7 +47,7 @@ implement one real provider `complete()`, hologram Milestone 1, board scheduler.
 - The event ledger is **append-only** (ADR-0008).
 - High-risk output is **never self-approved** (ADR-0009).
 - Real providers **fail closed**; never use interactive credentials (ADR-0004).
-- Preserve the existing repo — originals in `.claude/agents/` and the `jarvis/`
+- Preserve the existing repo — originals in `.claude/agents/` and the `rory/`
   HUD are untouched (ADR-0011).
 
 ## Independent review requested on

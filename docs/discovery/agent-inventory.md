@@ -11,14 +11,14 @@ it was not invented.
 - **Source / hash:** `.claude/agents/biz-ops.md` · `45daaab3`
 - **Purpose:** Business-problem and roadblock triage.
 - **Capabilities:** Produce Impact / Proposed-fix / needsUser for any business
-  problem; maintain `jarvis/knowledge/business.md`.
+  problem; maintain `rory/knowledge/business.md`.
 - **Tools / permissions:** "All tools" per harness registry (broad — flagged as
   a risk; normalized manifest narrows this).
 - **Input expectations:** A business problem or roadblock, free-form.
 - **Output format:** Impact (1 line) · Proposed (single best fix) · needsUser
   (bool, true only if irreversible / spends money / external).
 - **Model assumptions:** `unknown` (none stated).
-- **Dependencies:** `jarvis/state.json` (roadblocks), `jarvis/knowledge/business.md`.
+- **Dependencies:** `rory/state.json` (roadblocks), `rory/knowledge/business.md`.
 - **Overlaps:** Escalation framing overlaps with the CEO/orchestrator.
 - **Risks:** Broad tool grant; writes to knowledge base.
 - **Recommended company role:** Operations / Strategy analyst (`ops-bizops`).
@@ -33,7 +33,7 @@ it was not invented.
 - **Input expectations:** Session boundary (start/end).
 - **Output format:** `brief.items[]` (kind: done|work|blocked) + spoken brief.
 - **Model assumptions:** `unknown`.
-- **Dependencies:** `git log`, `jarvis/state.json`.
+- **Dependencies:** `git log`, `rory/state.json`.
 - **Overlaps:** The board-meeting Operations-recorder role subsumes much of this.
 - **Risks:** Writes to `state.json` (the live HUD state).
 - **Recommended company role:** Operations recorder / briefing officer
@@ -42,14 +42,14 @@ it was not invented.
 
 ### `demo-engineer`
 - **Source / hash:** `.claude/agents/demo-engineer.md` · `5278bc36`
-- **Purpose:** Own the demos group (AEGIS, JARVIS HUD presentation).
+- **Purpose:** Own the demos group (AEGIS, RORY HUD presentation).
 - **Capabilities:** Demo polish, QA passes, new demo builds, perf, cinematic
   capture. House rules: single-file, no-build, `file://`, three.js r128 vendored.
 - **Tools / permissions:** "All tools".
 - **Input expectations:** A demo task or QA request.
 - **Output format:** `unknown` (code + a short report, by convention).
 - **Model assumptions:** `unknown`.
-- **Dependencies:** `index.html`, `jarvis/index.html`, `vendor/`, `js/`.
+- **Dependencies:** `index.html`, `rory/index.html`, `vendor/`, `js/`.
 - **Overlaps:** Engineering department (but specialized to browser/demo).
 - **Risks:** Edits the demo surfaces directly.
 - **Recommended company role:** Engineering — front-end/demo specialist
@@ -74,9 +74,9 @@ it was not invented.
 
 ## Implicit orchestrator (not a file agent)
 
-### `jarvis-chief-of-staff`
+### `rory-chief-of-staff`
 - **Source / hash:** defined by `CLAUDE.md` · `265a5615`; referenced throughout
-  `jarvis/state.json` as `agents[].id`.
+  `rory/state.json` as `agents[].id`.
 - **Purpose:** Chief of staff — reads state, delivers the brief, routes work,
   owns the state file.
 - **Recommended company role:** **CEO / primary orchestrator** (`ceo-claude`).

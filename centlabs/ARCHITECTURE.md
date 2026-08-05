@@ -63,7 +63,7 @@ protect (Phase 8/9).
 ## 2. Phase decisions
 
 Each phase: the decision, why, the tradeoff, and how it connects to what already
-exists in this workspace (Sentinel, Spotter, the JARVIS HUD, the `jarvisd`
+exists in this workspace (Sentinel, Spotter, the RORY HUD, the `roryd`
 daemon).
 
 ### Phase 1 — Infrastructure
@@ -127,7 +127,7 @@ each request to the right model, look up shared memory (RAG), execute tools
 (Sentinel, Spotter, shell, n8n webhooks), schedule work, and keep an audit trail.
 Redis holds its queue; Postgres holds its history.
 
-_Why one door:_ every interface (Mac, phone, glasses, `jarvisd`) speaks one API
+_Why one door:_ every interface (Mac, phone, glasses, `roryd`) speaks one API
 and inherits routing, memory, and tools for free — add an interface, get the
 whole brain. _Tradeoff:_ Hermes is a single point of failure; mitigated by
 `Restart=always`, health checks (Phase 6), and the fact that it is stateless to
@@ -159,7 +159,7 @@ loss. _Tradeoff:_ two datastores to back up instead of one — worth it, because
 collapsing them (e.g. pgvector only) trades search quality and operational
 clarity for a simplicity you don't actually need here.
 
-> This document, and the JARVIS `state.json`/`ledger.json`, are the first
+> This document, and the RORY `state.json`/`ledger.json`, are the first
 > entries in that memory — the workspace already refuses to explain itself
 > twice.
 
@@ -187,9 +187,9 @@ visibility is the feature.
 
 **Decision: one dashboard, fed by Prometheus/Grafana + Hermes's own status API.**
 GPU/CPU/containers/models from exporters; Hermes/Sentinel/memory/tasks/GitHub/
-device status from Hermes. The existing **JARVIS HUD** (`jarvis/index.html`) is
+device status from Hermes. The existing **RORY HUD** (`rory/index.html`) is
 the design language and the seed of this — it already renders a live `state.json`
-and polls `jarvisd` on `:8791`. Control Center is that HUD, widened, pointed at
+and polls `roryd` on `:8791`. Control Center is that HUD, widened, pointed at
 Hermes instead of a static file.
 
 _Tradeoff:_ Grafana for machine metrics + a custom panel for CentLabs-specific
@@ -200,7 +200,7 @@ job, beats one mediocre pane.
 
 Wake → open Air → everything reconnects. Tailscale reconnects automatically;
 Node 001 was never off; memory is already indexed; Hermes is up; Claude Code
-attaches over Remote-SSH; git syncs; `jarvisd` already greeted you with the
+attaches over Remote-SSH; git syncs; `roryd` already greeted you with the
 brief. **No repetitive setup** is the acceptance test for the whole system — if a
 morning needs manual steps, that's a bug to automate away in Phase 8.
 
@@ -210,7 +210,7 @@ n8n + scheduled jobs on Node 001: repo indexing and embedding on push, nightly
 encrypted backups of the two data volumes, model pulls, doc/summary generation,
 log rotation, DB snapshots, scheduled health checks. **Docker image updates run
 with approval, never silently** — updates are the most common way an automated
-system breaks itself. The JARVIS **daily improvement ledger** is the automation
+system breaks itself. The RORY **daily improvement ledger** is the automation
 that enforces the standing rule that every day ships an improvement and names the
 pain it removed.
 
@@ -229,8 +229,8 @@ accident.
 Bigger local models (the RTX 5060 Ti's 16GB sets today's ceiling; swap the GPU,
 not the architecture); additional AI servers (Hermes routes across nodes the same
 way it routes across models); a Linux migration for Node 001 (every service is
-already a container — the `jarvisd` daemon ships a `systemd --user` unit for
-exactly this); multiple GPUs; voice (the `jarvisd` wake-word daemon is the first
+already a container — the `roryd` daemon ships a `systemd --user` unit for
+exactly this); multiple GPUs; voice (the `roryd` wake-word daemon is the first
 piece); robotics; home automation (Home Assistant is already the WoL bridge);
 CentLabs products and customer deployments. **Each is additive because the seams
 are APIs and containers, not hard-wired assumptions.**
@@ -243,8 +243,8 @@ are APIs and containers, not hard-wired assumptions.**
 |---|---|
 | **Sentinel** (Go security platform, authorization-first, hash-chained audit) | a Hermes tool + the model for Phase 9 audit logging |
 | **Spotter** (device identification + vuln triage; glasses HUD contract) | a Hermes tool; the Ray-Ban interface's first real capability |
-| **JARVIS HUD** (`jarvis/index.html`, live `state.json`) | the seed of the Phase 6 Control Center |
-| **`jarvisd`** (always-on wake-word daemon, brief, ledger, WoL) | the Phase 7 morning workflow + Phase 10 voice + Node 001 power-on |
+| **RORY HUD** (`rory/index.html`, live `state.json`) | the seed of the Phase 6 Control Center |
+| **`roryd`** (always-on wake-word daemon, brief, ledger, WoL) | the Phase 7 morning workflow + Phase 10 voice + Node 001 power-on |
 | **AEGIS** (holo-tactical demo) | the interface-design language for the glasses |
 
 Nothing here is throwaway: each piece is a component of the same system, not a
@@ -266,8 +266,8 @@ working one:
 4. **Memory ingestion:** index this repo first. Prove semantic search + citations
    over real content.
 5. **Hermes v0:** one `/ask` endpoint, the rules-based router, `/memory` lookup.
-   Point `jarvisd` and the HUD at it.
-6. **Control Center:** Grafana + the widened JARVIS HUD against Hermes.
+   Point `roryd` and the HUD at it.
+6. **Control Center:** Grafana + the widened RORY HUD against Hermes.
 7. **Automation + backups + security hardening**, then the iPhone 14 node.
 
 Ship one layer, confirm it, then the next. Never two unproven layers at once.

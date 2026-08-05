@@ -1,13 +1,13 @@
 # Discovery — Integration Risks
 
-Risks identified while planning how the Jarvis OS integrates with the existing
+Risks identified while planning how the Rory OS integrates with the existing
 repository, and the mitigation adopted.
 
 | # | Risk | Likelihood | Mitigation adopted |
 |---|---|---|---|
-| 1 | **Collision with existing `jarvis/`** (the HUD). A "Jarvis" OS could overwrite `state.json` / `index.html`. | High if careless | OS is added under **new** subdirs (`jarvis/brain/`, `jarvis/os/`, `jarvis/data/`). Existing HUD files are never written. |
+| 1 | **Collision with existing `rory/`** (the HUD). A "Rory" OS could overwrite `state.json` / `index.html`. | High if careless | OS is added under **new** subdirs (`rory/brain/`, `rory/os/`, `rory/data/`). Existing HUD files are never written. |
 | 2 | **Overwriting the authoritative `CLAUDE.md`.** | Medium | `CLAUDE.md` is **preserved**; a small, clearly-delimited pointer section is appended (additive, reversible). `AGENTS.md` is new. |
-| 3 | **Destructive agent migration.** Normalizing agents could rewrite the originals. | Medium | Originals in `.claude/agents/` are **untouched**; normalization produces new manifests under `jarvis/brain/agents/` with source hashes recorded. |
+| 3 | **Destructive agent migration.** Normalizing agents could rewrite the originals. | Medium | Originals in `.claude/agents/` are **untouched**; normalization produces new manifests under `rory/brain/agents/` with source hashes recorded. |
 | 4 | **Heavy dependencies / native builds** (better-sqlite3, ajv, vitest) failing in a restricted env. | Medium | Zero external deps: `node:sqlite`, `node:test`, a small in-repo JSON-Schema validator. |
 | 5 | **Secret leakage** into repo/logs. | High impact | `.env.example` holds names only; structured logger redacts secret-like keys; memory policy forbids storing credentials; `data/` DB is gitignored. |
 | 6 | **Prompt injection** via imported agent text or future web/doc ingestion. | Medium | Imported agent prompts are stored as **provenance data, never executed as code**. Memory writes are proposal-first and scoped. Threat model documents the rest. |
