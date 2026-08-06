@@ -22,6 +22,7 @@ async function main() {
     case 'status': return cmdStatus();
     case 'board': return cmdBoard();
     case 'demo:e2e': return cmdDemo();
+    case 'mcp': return cmdMcp();
     case 'agents': return cmdAgents();
     case 'tasks': return cmdTasks();
     case 'approvals': return cmdApprovals();
@@ -36,6 +37,7 @@ function cmdHelp() {
   status        one-glance system status
   board         generate today's board meeting (--regenerate to overwrite)
   demo:e2e      run the mocked end-to-end hologram workflow (in-memory, safe)
+  mcp           serve the governed brain over stdio (MCP, JSON-RPC 2.0; zero-dep)
   agents        list the registered agent company
   tasks         list tasks
   approvals     list memory proposals awaiting your decision
@@ -107,6 +109,14 @@ async function cmdDemo() {
   } finally {
     ctx.close();
   }
+}
+
+async function cmdMcp() {
+  // Serve the governed tool boundary over stdio. The server owns the process
+  // lifecycle (exits when stdin closes), so hold main() open until then.
+  const { startMcpServer } = await import('../mcp/server.js');
+  startMcpServer();
+  return new Promise(() => {});
 }
 
 function cmdAgents() {

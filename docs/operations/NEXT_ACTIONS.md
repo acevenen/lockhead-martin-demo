@@ -17,8 +17,11 @@ tested; these carry it forward. Nothing here has been committed — see
 ## Build-forward (bounded tasks for the company)
 4. **Hologram Milestone 1** — real browser spike: `getUserMedia` + MediaPipe Hands
    landmarks at >15fps. (Task T1 in the hologram backlog.)
-5. **Wire the MCP server transport** — add the official SDK in `rory/os/mcp/`
-   and register it project-scoped (`connect-claude-code.md`). Owner-approved.
+5. ~~**Wire the MCP server transport**~~ — **DONE, zero-dependency.** A stdio
+   JSON-RPC server ships at `rory/os/mcp/server.js` (`node cli/rory.js mcp`),
+   verified by `test/mcp-server.test.js`. No SDK was added — it runs on node
+   built-ins, preserving the zero-dep property. Remaining owner step: register it
+   project-scoped in your MCP client (`connect-claude-code.md`).
 6. **Connect a real model** — set `RORY_MODEL_*` env vars and implement one
    provider adapter's `complete()` against its official SDK (start with the CEO
    or coding profile). Keep the mock as the test default.

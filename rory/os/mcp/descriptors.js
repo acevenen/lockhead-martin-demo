@@ -1,8 +1,8 @@
 // MCP tool descriptors: the narrow, governed surface other agents (Claude Code,
 // Codex) reach the shared brain through — never raw database access. The
-// transport (official MCP SDK over stdio) is a thin outer layer added at connect
-// time (see docs/operations/connect-*.md); these descriptors + the handlers in
-// tools.js are the substance and are transport-agnostic.
+// transport is a zero-dependency stdio JSON-RPC server in server.js (run:
+// `node cli/rory.js mcp`); these descriptors + the handlers in tools.js are the
+// substance and are transport-agnostic.
 export const TOOL_DESCRIPTORS = [
   { name: 'memory_search', write: false, summary: 'Full-text search active durable memory within the caller\'s read scopes.' },
   { name: 'memory_get', write: false, summary: 'Fetch one memory by id if the caller may read its scope.' },
