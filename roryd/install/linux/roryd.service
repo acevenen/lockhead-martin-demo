@@ -1,0 +1,32 @@
+# systemd --user unit for the RORY daemon (Linux, incl. a future Node 001
+# migration). A --user unit runs in the graphical session, so it can reach the
+# PipeWire/PulseAudio microphone; a system unit cannot.
+#
+# Install:
+#   mkdir -p ~/.config/systemd/user
+#   cp roryd.service ~/.config/systemd/user/
+#   # edit WorkingDirectory + RORY_HOME below
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now roryd
+#   # so it runs without an active login session (headless Node):
+#   sudo loginctl enable-linger $USER
+#
+# Logs:  journalctl --user -u roryd -f
+
+[Unit]
+Description=CentLabs RORY always-on voice daemon
+After=default.target
+
+[Service]
+Type=simple
+# REPLACE_ME: absolute path to the repo's roryd/ directory
+WorkingDirectory=%h/centlabs/lockhead-martin-demo/roryd
+Environment=PYTHONPATH=.
+# REPLACE_ME: absolute path to the repo root
+Environment=RORY_HOME=%h/centlabs/lockhead-martin-demo
+ExecStart=/usr/bin/python3 -m roryd.daemon
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,181 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "task",
+  "type": "object",
+  "required": [
+    "id",
+    "objective",
+    "status",
+    "risk",
+    "created_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "parent_goal": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "parent_task": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scope": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "risk": {
+      "type": "string",
+      "enum": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "required_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "allowed_tools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "memory_scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "max_tokens": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_usd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "timeout_ms": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "assigned_agent": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "reviewer": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "planned",
+        "queued",
+        "assigned",
+        "running",
+        "review_requested",
+        "changes_requested",
+        "blocked",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "evidence": {
+      "type": "array"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "failure": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "recommended_next_action": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "delegation_depth": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "retries": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "lease_expires_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

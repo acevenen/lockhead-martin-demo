@@ -23,7 +23,7 @@ Ray-Ban Display  ──HTTPS──▶  Caddy (Node 001)  ──▶  bridge.py  �
 | Method | Path | What it does |
 |---|---|---|
 | `GET`  | `/bridge/` | the glasses web HUD (static, `web/index.html`) |
-| `GET`  | `/brief` | the JARVIS one-liner, from the same `jarvis/state.json` the HUD uses |
+| `GET`  | `/brief` | the RORY one-liner, from the same `rory/state.json` the HUD uses |
 | `POST` | `/assess` | device observations → the Spotter HUD contract |
 | `GET`  | `/health` | which capabilities this Node can serve right now |
 
@@ -89,7 +89,7 @@ non-default Node with `?api=https://node001`.
 | `SENTINEL_BIN` | path to the `sentinel` binary (else it's looked up on `PATH`) |
 | `CENTLABS_BRIDGE_TOKEN` | shared token; unset = open (dev), set = required |
 | `CENTLABS_BRIDGE_PORT` | listen port (default `8794`) |
-| `JARVIS_HOME` | repo root override, for `/brief`'s `state.json` |
+| `RORY_HOME` | repo root override, for `/brief`'s `state.json` |
 
 ## Tests
 

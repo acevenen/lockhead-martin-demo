@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "failure",
+  "type": "object",
+  "required": [
+    "id",
+    "symptom",
+    "created_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "run_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "symptom": {
+      "type": "string",
+      "minLength": 1
+    },
+    "impact": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "evidence": {
+      "type": "array"
+    },
+    "root_cause_status": {
+      "type": "string",
+      "enum": [
+        "unknown",
+        "hypothesized",
+        "confirmed"
+      ]
+    },
+    "likely_root_cause": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "contributing_factors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recurrent": {
+      "type": "boolean"
+    },
+    "containment": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "proposed_prevention": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "owner": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "verification_state": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "partial",
+        "not_run"
+      ]
+    },
+    "lesson_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

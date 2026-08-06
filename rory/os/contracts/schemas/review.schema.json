@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "review",
+  "type": "object",
+  "required": [
+    "review_id",
+    "task_id",
+    "worker_agent",
+    "reviewer_agent",
+    "decision",
+    "created_at"
+  ],
+  "properties": {
+    "review_id": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "artifact_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "worker_agent": {
+      "type": "string"
+    },
+    "reviewer_agent": {
+      "type": "string"
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "findings": {
+      "type": "array"
+    },
+    "evidence": {
+      "type": "array"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "approved",
+        "changes_requested",
+        "escalated"
+      ]
+    },
+    "required_changes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

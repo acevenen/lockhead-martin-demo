@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "handoff",
+  "type": "object",
+  "required": [
+    "handoff_id",
+    "task_id",
+    "from_agent",
+    "to_agent",
+    "objective",
+    "status",
+    "summary",
+    "created_at"
+  ],
+  "properties": {
+    "handoff_id": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "from_agent": {
+      "type": "string"
+    },
+    "to_agent": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "blocked",
+        "review_requested",
+        "completed"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "artifact",
+          "description"
+        ],
+        "properties": {
+          "artifact": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "decision": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "commands_or_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "partial",
+            "not_run"
+          ]
+        }
+      }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommended_next_action": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

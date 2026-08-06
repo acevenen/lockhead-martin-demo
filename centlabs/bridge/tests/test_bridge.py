@@ -178,9 +178,9 @@ def test_read_brief_from_state(tmp_path, monkeypatch):
         ]},
         "roadblocks": [{"needsUser": True}, {"needsUser": False}],
     }
-    (tmp_path / "jarvis").mkdir()
-    (tmp_path / "jarvis" / "state.json").write_text(json.dumps(state))
-    monkeypatch.setenv("JARVIS_HOME", str(tmp_path))
+    (tmp_path / "rory").mkdir()
+    (tmp_path / "rory" / "state.json").write_text(json.dumps(state))
+    monkeypatch.setenv("RORY_HOME", str(tmp_path))
     b = bridge.read_brief()
     assert b["done"] == 2
     assert b["decisions"] == 1
@@ -188,7 +188,7 @@ def test_read_brief_from_state(tmp_path, monkeypatch):
 
 
 def test_read_brief_missing_file(tmp_path, monkeypatch):
-    monkeypatch.setenv("JARVIS_HOME", str(tmp_path))
+    monkeypatch.setenv("RORY_HOME", str(tmp_path))
     b = bridge.read_brief()
     assert b["done"] == 0
     assert b["line"] == "No brief available."
@@ -196,9 +196,9 @@ def test_read_brief_missing_file(tmp_path, monkeypatch):
 
 def test_read_brief_no_decisions_line(tmp_path, monkeypatch):
     state = {"brief": {"items": [{"kind": "done"}]}, "roadblocks": []}
-    (tmp_path / "jarvis").mkdir()
-    (tmp_path / "jarvis" / "state.json").write_text(json.dumps(state))
-    monkeypatch.setenv("JARVIS_HOME", str(tmp_path))
+    (tmp_path / "rory").mkdir()
+    (tmp_path / "rory" / "state.json").write_text(json.dumps(state))
+    monkeypatch.setenv("RORY_HOME", str(tmp_path))
     assert "nothing waiting on you" in bridge.read_brief()["line"]
 
 
